@@ -182,6 +182,7 @@ function Layout() {
                 <Route path="/" element={<InicioPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
                 <Route path="/presupuestos" element={<PresupuestosPage />} />
+                <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
                 <Route path="/citas" element={<CitasPage />} />
                 <Route path="/reparaciones" element={<ReparacionesPage />} />
                 <Route path="/facturas" element={<FacturasPage />} />

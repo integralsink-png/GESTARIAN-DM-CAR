@@ -61,7 +61,7 @@ export function PresupuestoHibridoPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const soundRef = useRef<HTMLAudioElement | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
   const voiceTimerRef = useRef<number | null>(null)
 
   const total = useMemo(
@@ -69,14 +69,45 @@ export function PresupuestoHibridoPage() {
     [conceptos],
   )
 
-  useEffect(() => {
-    soundRef.current = new Audio('/pistola_neumatica.mp3')
-  }, [])
-
   const playSound = useCallback(() => {
-    if (soundRef.current) {
-      soundRef.current.currentTime = 0
-      soundRef.current.play().catch(() => {})
+    if (typeof window === 'undefined') return
+
+    // Try a simple media file first if available
+    try {
+      const audio = new Audio('/pistola_neumatica.mp3')
+      audio.currentTime = 0
+      audio.play().catch(() => {
+        // fallback to simple tone if file is unavailable
+        if ('AudioContext' in window) {
+          const ctx = new AudioContext()
+          audioContextRef.current = ctx
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.type = 'triangle'
+          osc.frequency.value = 880
+          gain.gain.value = 0.06
+          osc.connect(gain)
+          gain.connect(ctx.destination)
+          osc.start()
+          osc.stop(ctx.currentTime + 0.1)
+          osc.onended = () => ctx.close()
+        }
+      })
+    } catch {
+      if (typeof window !== 'undefined' && 'AudioContext' in window) {
+        const ctx = new AudioContext()
+        audioContextRef.current = ctx
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        osc.type = 'triangle'
+        osc.frequency.value = 880
+        gain.gain.value = 0.06
+        osc.connect(gain)
+        gain.connect(ctx.destination)
+        osc.start()
+        osc.stop(ctx.currentTime + 0.1)
+        osc.onended = () => ctx.close()
+      }
     }
   }, [])
 
@@ -312,15 +343,22 @@ export function PresupuestoHibridoPage() {
   }, [concepto, speak])
 
   const handleFinishConcepts = useCallback(() => {
+    let finalConceptos = conceptos
     if (concepto.descripcion.trim()) {
-      handleAddConcept()
+      if (concepto.precio <= 0) {
+        setOcrError('Añade un precio válido antes de finalizar.')
+        return
+      }
+      finalConceptos = [...conceptos, concepto]
+      setConceptos(finalConceptos)
+      setConcepto({ descripcion: '', cantidad: 1, precio: 0 })
     }
-    if (conceptos.length === 0) {
+    if (finalConceptos.length === 0) {
       setOcrError('Añade al menos un concepto antes de finalizar.')
       return
     }
     setPhase('review')
-  }, [concepto, conceptos, handleAddConcept])
+  }, [concepto, conceptos])
 
   const handleListenConcept = useCallback(() => {
     if (!sttSupported) return
@@ -417,12 +455,26 @@ export function PresupuestoHibridoPage() {
                 <div className="border-2 border-cyan-400/80 bg-black/20" style={{ width: '80%', aspectRatio: '4 / 1' }} />
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-200">Coloca la matrícula dentro del rectángulo 4:1 y pulsa el botón de captura.</p>
-              <Button onClick={handleCapturePlate}>
-                <Camera className="w-4 h-4" /> Capturar matrícula
-              </Button>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <label className="block text-sm text-slate-200">
+                <span className="sr-only">Matrícula manual</span>
+                <input
+                  value={manualPlate}
+                  onChange={(e) => setManualPlate(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  placeholder="Escribe la matrícula manualmente"
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
+                />
+              </label>
+              <div className="flex flex-wrap gap-2 justify-end">
+                <Button onClick={handleCapturePlate}>
+                  <Camera className="w-4 h-4" /> Capturar matrícula
+                </Button>
+                <Button variant="secondary" onClick={handleConfirmPlate} disabled={!manualPlate}>
+                  <Check className="w-4 h-4" /> Usar matrícula
+                </Button>
+              </div>
             </div>
+            <p className="text-sm text-slate-400">Coloca la matrícula dentro del rectángulo 4:1 y pulsa el botón de captura. También puedes escribirla manualmente si no se detecta.</p>
             <canvas ref={canvasRef} className="hidden" />
           </div>
         )}
