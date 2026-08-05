@@ -1,0 +1,5188 @@
+================================================================================
+
+GESTARIAN
+
+DOCUMENT MASTER
+
+Especificación Funcional, Técnica y Estratégica
+
+Versión: 1.0
+
+Estado:
+Documento Maestro Oficial
+
+Proyecto:
+GESTARIAN
+
+Proyecto Piloto:
+DM CAR
+
+Motor de Inteligencia Artificial:
+METIS
+
+Arquitectura:
+Desktop
+Mobile
+Cloud
+
+Documento vivo sujeto a revisiones.
+
+================================================================================
+
+
+
+
+
+
+
+
+================================================================================
+
+HISTORIAL DE REVISIONES
+
+================================================================================
+
+Versión 1.0
+
+Creación del Document Master.
+
+Definición de la arquitectura general del proyecto.
+
+Definición de la estrategia comercial.
+
+Definición de METIS.
+
+Definición del modelo de datos.
+
+Definición de Desktop.
+
+Definición de Mobile.
+
+Definición de Cloud.
+
+Definición del Roadmap.
+
+Definición del Backlog.
+
+Definición de los estándares de desarrollo.
+
+Definición de los principios del proyecto.
+
+================================================================================
+
+Todas las modificaciones posteriores deberán registrarse indicando:
+
+Número de revisión.
+
+Fecha.
+
+Capítulos afectados.
+
+Descripción del cambio.
+
+Responsable.
+
+================================================================================
+
+
+================================================================================
+
+ÍNDICE GENERAL
+
+================================================================================
+
+Presentación
+
+Historial de Revisiones
+
+Índice
+
+Glosario
+
+Capítulo 1
+Visión General
+
+Capítulo 2
+Arquitectura General
+
+Capítulo 3
+Arquitectura Funcional
+
+Capítulo 4
+Arquitectura de Datos
+
+Capítulo 5
+Arquitectura Desktop · Mobile · Cloud
+
+Capítulo 6
+Diseño UX/UI
+
+Capítulo 7
+Roadmap
+
+Capítulo 8
+Backlog
+
+Capítulo 9
+Modelo Comercial
+
+Capítulo 10
+Estrategia de Comercialización, Distribución y Expansión
+
+Capítulo 11
+METIS
+
+Motor de Inteligencia Artificial
+
+Capítulo 12
+Seguridad, Licenciamiento y Protección
+
+Capítulo 13
+Estándares de Desarrollo y Normas para IA
+
+Capítulo 14
+Principios No Negociables
+
+Capítulo 15
+Visión Estratégica
+
+Anexos
+
+================================================================================
+
+
+================================================================================
+
+GLOSARIO
+
+================================================================================
+
+GESTARIAN
+
+Plataforma principal de gestión empresarial.
+
+------------------------------------------------------------
+
+GESTARIAN CORE
+
+Núcleo del sistema.
+
+Contiene la lógica de negocio, arquitectura de datos y procesos comunes.
+
+------------------------------------------------------------
+
+METIS
+
+Motor de Inteligencia Artificial de GESTARIAN.
+
+Integra OCR, visión artificial, lenguaje natural, automatización y
+asistencia inteligente.
+
+------------------------------------------------------------
+
+Desktop
+
+Aplicación de escritorio.
+
+Centro administrativo del sistema.
+
+------------------------------------------------------------
+
+Mobile
+
+Aplicación móvil.
+
+Centro de captura de información en campo.
+
+------------------------------------------------------------
+
+Cloud
+
+Servicios de sincronización, almacenamiento y acceso remoto.
+
+------------------------------------------------------------
+
+Document Master
+
+Documento oficial que define toda la arquitectura del proyecto.
+
+Toda decisión importante deberá reflejarse en este documento.
+
+------------------------------------------------------------
+
+Roadmap
+
+Plan de desarrollo por fases del proyecto.
+
+------------------------------------------------------------
+
+Backlog
+
+Listado priorizado de tareas pendientes.
+
+------------------------------------------------------------
+
+Expediente
+
+Unidad documental que agrupa toda la información relacionada con un
+trabajo.
+
+------------------------------------------------------------
+
+ID_EXPEDIENTE
+
+Identificador único que acompaña al expediente durante todo su ciclo de
+vida.
+
+------------------------------------------------------------
+
+OCR
+
+Reconocimiento Óptico de Caracteres.
+
+------------------------------------------------------------
+
+IA
+
+Inteligencia Artificial.
+
+En GESTARIAN todas las funciones de IA forman parte de METIS.
+
+------------------------------------------------------------
+
+Partner
+
+Empresa o profesional autorizado para comercializar, implantar, formar o
+dar soporte a GESTARIAN.
+
+================================================================================
+
+Fin del Glosario
+
+================================================================================
+
+
+
+
+
+================================================================================
+
+GESTARIAN
+Document Master
+Versión 1.0
+
+Autor:
+iCLOM
+
+Proyecto:
+GESTARIAN
+Sistema Inteligente de Gestión para Talleres de Chapa y Pintura
+
+================================================================================
+
+1. INTRODUCCIÓN
+
+GESTARIAN nace con el objetivo de eliminar la mayor parte del trabajo
+administrativo existente en un taller de reparación de vehículos.
+
+El proyecto comenzó como una solución desarrollada en Microsoft Excel
+mediante VBA, denominada DM CAR, utilizada como piloto funcional para
+validar todos los procesos reales de trabajo.
+
+Tras validar la operativa con usuarios reales, el proyecto evoluciona
+hacia una plataforma profesional denominada GESTARIAN.
+
+GESTARIAN no pretende ser simplemente un programa de facturación.
+
+Su objetivo es convertirse en el asistente inteligente del taller.
+
+El sistema conecta todos los departamentos implicados en la actividad
+diaria:
+
+• Recepción.
+• Oficina.
+• Operarios.
+• Administración.
+• Gestoría.
+
+Toda la información generada durante la vida de un expediente permanece
+centralizada y relacionada mediante identificadores únicos.
+
+El objetivo principal consiste en reducir tiempos administrativos,
+eliminar errores humanos y automatizar todos los procesos repetitivos.
+
+La filosofía del proyecto es muy sencilla:
+
+"El profesional debe dedicar su tiempo a reparar vehículos.
+GESTARIAN se encargará del resto."
+
+================================================================================
+
+2. OBJETIVOS DEL PROYECTO
+
+Los objetivos principales son:
+
+• Reducir trabajo administrativo.
+
+• Automatizar la introducción de datos.
+
+• Evitar duplicidades de información.
+
+• Centralizar toda la documentación del expediente.
+
+• Facilitar el trabajo del personal administrativo.
+
+• Facilitar el trabajo de los operarios.
+
+• Automatizar la comunicación con la gestoría.
+
+• Crear un historial documental completo de cada reparación.
+
+• Preparar una arquitectura escalable para futuras versiones Cloud.
+
+• Diseñar un sistema sencillo de utilizar por cualquier taller,
+  independientemente de su tamaño.
+
+================================================================================
+
+3. FILOSOFÍA DEL PRODUCTO
+
+GESTARIAN se desarrolla bajo cinco principios fundamentales.
+
+1. Simplicidad
+
+La aplicación debe ser extremadamente sencilla.
+
+El usuario nunca debe sentirse perdido.
+
+Las acciones importantes deberán realizarse con el menor número posible
+de pulsaciones.
+
+------------------------------------------------------------
+
+2. Automatización
+
+Toda tarea repetitiva deberá automatizarse.
+
+Ejemplos:
+
+- OCR.
+
+- IA documental.
+
+- Voz.
+
+- Generación automática de documentos.
+
+- Envío automático a gestoría.
+
+------------------------------------------------------------
+
+3. Escalabilidad
+
+Todo el sistema deberá diseñarse para crecer.
+
+Nunca se desarrollarán soluciones que dificulten futuras ampliaciones.
+
+------------------------------------------------------------
+
+4. Modularidad
+
+Cada módulo será independiente.
+
+Los cambios realizados en un módulo no deberán afectar al resto.
+
+------------------------------------------------------------
+
+5. Inteligencia Artificial
+
+La IA será un elemento transversal del proyecto.
+
+No será una función independiente.
+
+Estará integrada en todos los procesos donde pueda ahorrar tiempo al
+usuario.
+
+================================================================================
+
+4. ESTADO ACTUAL DEL PROYECTO
+
+Actualmente existen tres fases claramente diferenciadas.
+
+FASE 1
+
+DM CAR
+
+Piloto funcional desarrollado en Excel VBA.
+
+Su misión ha sido validar procesos reales.
+
+No constituye el producto definitivo.
+
+------------------------------------------------------------
+
+FASE 2
+
+GESTARIAN Desktop
+
+Versión profesional basada inicialmente en el piloto.
+
+Constituye el producto comercial de entrada.
+
+------------------------------------------------------------
+
+FASE 3
+
+GESTARIAN Ecosystem
+
+Compuesto por:
+
+• Desktop.
+
+• Mobile.
+
+• Cloud.
+
+• Inteligencia Artificial.
+
+• Integraciones con gestorías.
+
+================================================================================
+
+Fin del Capítulo 1
+
+================================================================================
+
+CAPÍTULO 2
+
+ARQUITECTURA GENERAL DEL SISTEMA
+
+================================================================================
+
+1. VISIÓN GENERAL
+
+GESTARIAN ha sido diseñado como un ecosistema modular.
+
+Cada módulo tiene una responsabilidad claramente definida.
+
+Todos los módulos trabajan sobre la misma información utilizando
+identificadores únicos (ID), garantizando la trazabilidad completa del
+expediente desde su creación hasta su cierre definitivo.
+
+La filosofía del sistema consiste en capturar la información una única
+vez y reutilizarla automáticamente durante todo el ciclo de vida del
+vehículo.
+
+================================================================================
+
+2. MÓDULOS PRINCIPALES
+
+GESTARIAN se divide inicialmente en cinco grandes módulos.
+
+1. GESTARIAN Desktop
+
+2. GESTARIAN Mobile
+
+3. GESTARIAN Cloud
+
+4. Inteligencia Artificial
+
+5. Integración con Gestorías
+
+Cada módulo podrá evolucionar de forma independiente sin afectar al
+resto del sistema.
+
+================================================================================
+
+3. GESTARIAN DESKTOP
+
+GESTARIAN Desktop constituye el núcleo administrativo del sistema.
+
+Será la primera versión comercial del producto.
+
+Sus funciones principales son:
+
+• Gestión de clientes.
+
+• Gestión de vehículos.
+
+• Gestión de presupuestos.
+
+• Gestión de reparaciones.
+
+• Gestión de facturación.
+
+• Gestión documental.
+
+• Informes.
+
+• Balances.
+
+• Envío automático a gestoría.
+
+• Archivo histórico.
+
+Desktop NO utilizará funciones de captura directa desde cámara.
+
+Desktop actuará como centro administrativo.
+
+================================================================================
+
+4. GESTARIAN MOBILE
+
+GESTARIAN Mobile constituye la extensión operativa del taller.
+
+Su misión consiste en capturar información directamente donde se produce.
+
+Ejemplos:
+
+• Fotografías.
+
+• OCR.
+
+• Voz.
+
+• Matrículas.
+
+• Facturas.
+
+• Documentación.
+
+• Estado de la reparación.
+
+Toda la información capturada será sincronizada con el núcleo del sistema.
+
+================================================================================
+
+5. GESTARIAN CLOUD
+
+La versión Cloud permitirá en el futuro:
+
+• Sincronización entre dispositivos.
+
+• Copias de seguridad.
+
+• Multiusuario.
+
+• Multitaller.
+
+• Acceso remoto.
+
+• Portal para gestorías.
+
+• APIs.
+
+La arquitectura actual deberá prepararse para facilitar esta futura
+evolución.
+
+================================================================================
+
+6. INTELIGENCIA ARTIFICIAL
+
+La IA no será un módulo independiente.
+
+Será una tecnología transversal integrada en todo el ecosistema.
+
+Ejemplos:
+
+• OCR de matrículas.
+
+• OCR documental.
+
+• OCR facturas.
+
+• Dictado inteligente.
+
+• Interpretación de reparaciones.
+
+• Generación automática de conceptos.
+
+• Clasificación documental.
+
+• Asistente administrativo.
+
+• Automatización de procesos.
+
+================================================================================
+
+7. GESTORÍA
+
+GESTARIAN incorpora desde su versión inicial la automatización del
+intercambio documental con la gestoría.
+
+El sistema permitirá:
+
+• Generar automáticamente los documentos necesarios.
+
+• Organizar los expedientes.
+
+• Enviar la documentación.
+
+• Compartir enlaces seguros.
+
+• Mantener histórico de declaraciones.
+
+El objetivo consiste en eliminar la preparación manual de documentación.
+
+================================================================================
+
+8. PRINCIPIOS DE DESARROLLO
+
+Todo el proyecto deberá respetar los siguientes principios.
+
+• Arquitectura modular.
+
+• Código reutilizable.
+
+• Bajo acoplamiento.
+
+• Alta cohesión.
+
+• Escalabilidad.
+
+• Fácil mantenimiento.
+
+• Interfaces intuitivas.
+
+• Alto rendimiento.
+
+• Preparado para crecimiento.
+
+================================================================================
+
+9. TECNOLOGÍAS
+
+Versión Desktop
+
+Microsoft Excel VBA.
+
+Versión Mobile
+
+Flutter.
+
+Lenguaje
+
+Dart.
+
+Asistente de desarrollo
+
+Cursor.
+
+Inteligencia Artificial
+
+Modelos IA compatibles con Cursor y futuras integraciones.
+
+Backend futuro
+
+Pendiente de definir durante la fase Cloud.
+
+================================================================================
+
+10. OBJETIVO FINAL
+
+GESTARIAN no debe entenderse como una aplicación.
+
+Debe entenderse como un ecosistema completo capaz de conectar:
+
+Recepción
+
+↓
+
+Taller
+
+↓
+
+Administración
+
+↓
+
+Gestoría
+
+↓
+
+Archivo digital
+
+↓
+
+Inteligencia Artificial
+
+Todo ello funcionando como un único sistema.
+
+================================================================================
+
+Fin del Capítulo 2
+
+================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+
+CAPÍTULO 3
+
+FLUJO FUNCIONAL COMPLETO
+
+================================================================================
+
+1. FILOSOFÍA
+
+GESTARIAN está diseñado para seguir exactamente el flujo de trabajo real
+de un taller de chapa y pintura.
+
+La aplicación nunca obligará al usuario a trabajar de una forma distinta.
+
+Será el software quien se adapte al funcionamiento del taller.
+
+Toda la información viajará siempre asociada mediante identificadores
+únicos.
+
+Cada expediente tendrá una trazabilidad completa desde su creación hasta
+su cierre definitivo.
+
+================================================================================
+
+2. FLUJO GENERAL
+
+El ciclo completo será el siguiente.
+
+CLIENTE
+
+↓
+
+VEHÍCULO
+
+↓
+
+PRESUPUESTO
+
+↓
+
+ACEPTACIÓN
+
+↓
+
+CITA
+
+↓
+
+ENTRADA EN TALLER
+
+↓
+
+REPARACIÓN
+
+↓
+
+FACTURA
+
+↓
+
+COBRO
+
+↓
+
+ENVÍO A GESTORÍA
+
+↓
+
+ARCHIVO HISTÓRICO
+
+================================================================================
+
+3. ALTA DE CLIENTE
+
+Cuando un cliente llegue por primera vez al taller se realizará el alta.
+
+Los datos mínimos serán:
+
+• Nombre.
+
+• DNI / CIF.
+
+• Dirección.
+
+• Código Postal.
+
+• Municipio.
+
+• Provincia.
+
+• Teléfono.
+
+• Email.
+
+El sistema generará automáticamente un:
+
+ID_CLIENTE
+
+Si el cliente ya existe únicamente se recuperará su información.
+
+Nunca se crearán clientes duplicados.
+
+================================================================================
+
+4. ALTA DE VEHÍCULO
+
+Cada vehículo quedará asociado a un único cliente.
+
+Datos principales.
+
+• Matrícula.
+
+• Marca.
+
+• Modelo.
+
+• Versión.
+
+• Color.
+
+• Año.
+
+• Bastidor (opcional).
+
+• Kilómetros.
+
+El sistema generará automáticamente:
+
+ID_VEHICULO
+
+Un mismo cliente podrá tener varios vehículos.
+
+================================================================================
+
+5. PRESUPUESTO
+
+El presupuesto constituye el punto de partida del negocio.
+
+Es la pantalla principal de GESTARIAN.
+
+El presupuesto permitirá:
+
+• Introducir conceptos.
+
+• Mano de obra.
+
+• Materiales.
+
+• Pintura.
+
+• Recambios.
+
+• Observaciones.
+
+• Fecha prevista.
+
+• Estado.
+
+El sistema generará automáticamente:
+
+ID_PRESUPUESTO
+
+================================================================================
+
+6. IMÁGENES DEL PRESUPUESTO
+
+El presupuesto podrá disponer de imágenes.
+
+Estas imágenes son totalmente independientes de la reparación.
+
+Ejemplos:
+
+• Daños iniciales.
+
+• Fotografías para valoración.
+
+• Documentación.
+
+• Fotografías del vehículo.
+
+El cliente puede aceptar o rechazar el presupuesto.
+
+Aunque sea rechazado, las imágenes permanecerán asociadas al presupuesto.
+
+================================================================================
+
+7. ACEPTACIÓN
+
+Cuando el cliente acepte el presupuesto el sistema permitirá generar una
+CITA.
+
+No existirá reparación sin presupuesto aceptado.
+
+================================================================================
+
+8. CITA
+
+La cita organiza la entrada del vehículo.
+
+El sistema generará automáticamente:
+
+ID_CITA
+
+La cita contendrá:
+
+• Fecha.
+
+• Hora.
+
+• Vehículo.
+
+• Cliente.
+
+• Observaciones.
+
+• Estado.
+
+================================================================================
+
+9. ENTRADA EN TALLER
+
+El vehículo pasa al estado:
+
+EN REPARACIÓN
+
+A partir de este momento se crea automáticamente el expediente de
+reparación.
+
+El sistema generará:
+
+ID_REPARACION
+
+================================================================================
+
+10. REPARACIÓN
+
+Durante la reparación podrán añadirse:
+
+• Observaciones.
+
+• Mano de obra.
+
+• Material.
+
+• Tiempo empleado.
+
+• Fotografías.
+
+Las imágenes podrán clasificarse como:
+
+ANTES
+
+DURANTE
+
+DESPUÉS
+
+Estas imágenes constituirán el expediente documental de la reparación.
+
+================================================================================
+
+11. FACTURA
+
+Una vez finalizada la reparación se emitirá la factura.
+
+El sistema generará:
+
+ID_FACTURA
+
+La factura heredará automáticamente:
+
+Cliente.
+
+Vehículo.
+
+Presupuesto.
+
+Reparación.
+
+Conceptos.
+
+Importes.
+
+IVA.
+
+Totales.
+
+================================================================================
+
+12. EXPEDIENTE FINAL
+
+Cada expediente contendrá:
+
+Cliente.
+
+Vehículo.
+
+Presupuesto.
+
+Reparación.
+
+Factura.
+
+Imágenes.
+
+Documentación.
+
+Histórico.
+
+Todo ello quedará relacionado mediante IDs.
+
+================================================================================
+
+13. COBRO
+
+El sistema registrará:
+
+Pendiente.
+
+Parcial.
+
+Cobrado.
+
+Fecha de cobro.
+
+Forma de pago.
+
+Importe.
+
+================================================================================
+
+14. ENVÍO A GESTORÍA
+
+Una vez emitida la factura el sistema podrá:
+
+Generar automáticamente la documentación.
+
+Preparar informes.
+
+Enviar documentación.
+
+Compartir enlace Drive.
+
+Mantener histórico documental.
+
+================================================================================
+
+15. ARCHIVO DIGITAL
+
+Cada expediente permanecerá disponible indefinidamente.
+
+Permitirá consultar:
+
+Cliente.
+
+Vehículo.
+
+Presupuesto.
+
+Reparación.
+
+Factura.
+
+Fotografías.
+
+PDF.
+
+Informes.
+
+Toda la información permanecerá relacionada mediante sus identificadores.
+
+================================================================================
+
+16. PRINCIPIO FUNDAMENTAL
+
+Toda la información deberá introducirse una única vez.
+
+A partir de ese momento el sistema reutilizará automáticamente los datos
+durante todo el ciclo de vida del expediente.
+
+El usuario nunca deberá volver a escribir información ya existente.
+
+================================================================================
+
+17. OBJETIVO
+
+GESTARIAN debe reducir al mínimo el trabajo administrativo.
+
+El profesional únicamente debe preocuparse de reparar el vehículo.
+
+Toda la gestión restante deberá realizarla automáticamente el sistema.
+
+================================================================================
+
+Fin del Capítulo 3
+
+================================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+================================================================================
+
+CAPÍTULO 4
+
+ARQUITECTURA DE DATOS
+
+================================================================================
+
+1. FILOSOFÍA
+
+Toda la información almacenada en GESTARIAN deberá organizarse mediante
+entidades independientes relacionadas entre sí mediante identificadores
+únicos (ID).
+
+Nunca deberán duplicarse datos.
+
+Cada entidad representará un único concepto de negocio.
+
+La información deberá poder reutilizarse automáticamente durante toda la
+vida del expediente.
+
+================================================================================
+
+2. ENTIDADES PRINCIPALES
+
+El núcleo de GESTARIAN estará formado por las siguientes entidades.
+
+• CLIENTES
+
+• VEHÍCULOS
+
+• PRESUPUESTOS
+
+• CITAS
+
+• REPARACIONES
+
+• FACTURAS
+
+• PROVEEDORES
+
+• INFORMES
+
+• EXPEDIENTES DOCUMENTALES
+
+================================================================================
+
+3. CLIENTES
+
+Representa a la persona o empresa propietaria del vehículo.
+
+Identificador:
+
+ID_CLIENTE
+
+Datos principales:
+
+• Nombre
+
+• Apellidos
+
+• Empresa
+
+• DNI / CIF
+
+• Dirección
+
+• Código Postal
+
+• Municipio
+
+• Provincia
+
+• País
+
+• Teléfono
+
+• Email
+
+• Observaciones
+
+Reglas:
+
+Un cliente puede tener varios vehículos.
+
+Nunca existirán clientes duplicados.
+
+================================================================================
+
+4. VEHÍCULOS
+
+Representa cada vehículo registrado.
+
+Identificador:
+
+ID_VEHICULO
+
+Datos principales:
+
+• Matrícula
+
+• Marca
+
+• Modelo
+
+• Versión
+
+• Año
+
+• Color
+
+• Bastidor
+
+• Kilómetros
+
+• Combustible
+
+• Observaciones
+
+Relación:
+
+Cada vehículo pertenece a un único cliente.
+
+Un cliente puede tener múltiples vehículos.
+
+================================================================================
+
+5. PRESUPUESTOS
+
+Representa la valoración económica inicial.
+
+Identificador:
+
+ID_PRESUPUESTO
+
+Datos principales:
+
+• Fecha
+
+• Cliente
+
+• Vehículo
+
+• Conceptos
+
+• Mano de obra
+
+• Materiales
+
+• Pintura
+
+• Recambios
+
+• Descuentos
+
+• IVA
+
+• Total
+
+• Estado
+
+Estados posibles:
+
+• Pendiente
+
+• Aceptado
+
+• Rechazado
+
+================================================================================
+
+6. CITAS
+
+Organizan la planificación del taller.
+
+Identificador:
+
+ID_CITA
+
+Datos principales:
+
+• Fecha
+
+• Hora
+
+• Cliente
+
+• Vehículo
+
+• Presupuesto
+
+• Operario asignado
+
+• Observaciones
+
+• Estado
+
+================================================================================
+
+7. REPARACIONES
+
+Representan el trabajo realizado.
+
+Identificador:
+
+ID_REPARACION
+
+Datos principales:
+
+• Fecha entrada
+
+• Fecha prevista
+
+• Fecha salida
+
+• Operario
+
+• Estado
+
+• Tiempo empleado
+
+• Observaciones
+
+• Fotografías
+
+Estados posibles:
+
+• Pendiente
+
+• En preparación
+
+• En reparación
+
+• Pintura
+
+• Montaje
+
+• Finalizada
+
+================================================================================
+
+8. FACTURAS
+
+Representan la facturación final.
+
+Identificador:
+
+ID_FACTURA
+
+Datos principales:
+
+• Número
+
+• Fecha
+
+• Cliente
+
+• Vehículo
+
+• Reparación
+
+• Base imponible
+
+• IVA
+
+• Total
+
+• Estado de cobro
+
+================================================================================
+
+9. PROVEEDORES
+
+Permite registrar automáticamente los proveedores.
+
+Identificador:
+
+ID_PROVEEDOR
+
+Datos principales:
+
+• Nombre
+
+• CIF
+
+• Dirección
+
+• Email
+
+• Teléfono
+
+• Observaciones
+
+En futuras versiones podrán crearse automáticamente mediante OCR de
+facturas.
+
+================================================================================
+
+10. INFORMES
+
+Representan todos los informes generados por GESTARIAN.
+
+Identificador:
+
+ID_INFORME
+
+Ejemplos:
+
+• IVA trimestral
+
+• IRPF
+
+• Resumen anual
+
+• Balances
+
+• Estadísticas
+
+• Declaraciones
+
+Todos los informes permanecerán archivados.
+
+================================================================================
+
+11. EXPEDIENTES DOCUMENTALES
+
+Cada reparación dispondrá de un expediente documental.
+
+El expediente podrá contener:
+
+• Fotografías
+
+• PDFs
+
+• Facturas
+
+• Presupuestos
+
+• Informes
+
+• Documentación del vehículo
+
+• Documentación del cliente
+
+El expediente estará relacionado mediante:
+
+ID_REPARACION
+
+================================================================================
+
+12. RELACIONES ENTRE ENTIDADES
+
+CLIENTE
+
+↓
+
+VEHÍCULO
+
+↓
+
+PRESUPUESTO
+
+↓
+
+CITA
+
+↓
+
+REPARACIÓN
+
+↓
+
+FACTURA
+
+↓
+
+INFORMES
+
+Todas las entidades conservarán siempre la relación con sus
+identificadores correspondientes.
+
+================================================================================
+
+13. REGLAS DE INTEGRIDAD
+
+No podrán existir:
+
+Facturas sin reparación.
+
+Reparaciones sin presupuesto aceptado.
+
+Vehículos sin cliente.
+
+Citas sin vehículo.
+
+Informes sin factura cuando correspondan.
+
+Todas las relaciones deberán mantenerse consistentes.
+
+================================================================================
+
+14. TRAZABILIDAD
+
+Desde cualquier entidad deberá ser posible acceder al resto.
+
+Ejemplo:
+
+Factura
+
+↓
+
+Reparación
+
+↓
+
+Presupuesto
+
+↓
+
+Vehículo
+
+↓
+
+Cliente
+
+Y viceversa.
+
+El usuario nunca perderá el contexto del expediente.
+
+================================================================================
+
+15. ESCALABILIDAD
+
+Esta arquitectura deberá ser compatible con:
+
+Excel VBA.
+
+Flutter.
+
+Bases de datos SQL.
+
+Cloud.
+
+APIs.
+
+Sin necesidad de modificar el modelo de datos.
+
+================================================================================
+
+Fin del Capítulo 4
+
+================================================================================
+
+
+
+
+
+
+
+
+
+
+================================================================================
+
+CAPÍTULO 5
+
+ARQUITECTURA FUNCIONAL
+
+================================================================================
+
+1. FILOSOFÍA
+
+GESTARIAN se desarrolla bajo una arquitectura modular.
+
+Cada plataforma tendrá funciones específicas.
+
+Nunca deberán duplicarse responsabilidades entre Desktop y Mobile.
+
+Cada plataforma hará aquello para lo que ha sido diseñada.
+
+Desktop será el centro administrativo.
+
+Mobile será el centro de captura de información.
+
+Cloud será el centro de sincronización y servicios.
+
+================================================================================
+
+2. GESTARIAN DESKTOP
+
+GESTARIAN Desktop constituye el núcleo principal del sistema.
+
+Su misión es gestionar toda la información administrativa del taller.
+
+Permitirá trabajar incluso sin disponer de la aplicación móvil.
+
+Las funciones principales serán:
+
+• Gestión de clientes.
+
+• Gestión de vehículos.
+
+• Gestión de presupuestos.
+
+• Gestión de citas.
+
+• Gestión de reparaciones.
+
+• Gestión de facturación.
+
+• Gestión documental.
+
+• Gestión de proveedores.
+
+• Balances.
+
+• Informes.
+
+• Declaraciones.
+
+• Envío automático a gestoría.
+
+• Archivo documental.
+
+================================================================================
+
+3. FUNCIONES DOCUMENTALES DEL DESKTOP
+
+Desktop permitirá gestionar documentación del expediente.
+
+No capturará imágenes directamente.
+
+El usuario podrá:
+
+• Subir imágenes.
+
+• Eliminar imágenes.
+
+• Ver imágenes.
+
+• Abrir carpeta del expediente.
+
+• Adjuntar PDFs.
+
+• Adjuntar documentos.
+
+Las imágenes podrán proceder de cualquier dispositivo.
+
+Ejemplos:
+
+• Cámara digital.
+
+• Teléfono móvil.
+
+• Tablet.
+
+• Correo electrónico.
+
+• WhatsApp.
+
+El sistema únicamente organizará correctamente la documentación.
+
+================================================================================
+
+4. PRESUPUESTOS
+
+Cada presupuesto podrá contener imágenes.
+
+Las imágenes del presupuesto son independientes de la reparación.
+
+Podrán utilizarse para:
+
+• Fotografías iniciales.
+
+• Valoración de daños.
+
+• Fotografías del vehículo.
+
+• Documentación.
+
+Aunque el presupuesto sea rechazado,
+las imágenes permanecerán asociadas al expediente.
+
+================================================================================
+
+5. REPARACIONES
+
+Cuando el presupuesto sea aceptado
+se creará automáticamente el expediente de reparación.
+
+El expediente permitirá almacenar fotografías clasificadas como:
+
+ANTES
+
+DURANTE
+
+DESPUÉS
+
+Estas fotografías constituirán el histórico documental de la reparación.
+
+================================================================================
+
+6. FACTURA
+
+Cuando la reparación finalice
+se generará la factura correspondiente.
+
+La factura cerrará administrativamente el expediente.
+
+Toda la documentación permanecerá disponible.
+
+================================================================================
+
+7. FUNCIONES QUE DESKTOP NO REALIZA
+
+Desktop nunca deberá utilizar:
+
+• Cámara.
+
+• OCR.
+
+• Lectura automática de matrículas.
+
+• Dictado por voz.
+
+• Captura documental mediante IA.
+
+Estas funciones pertenecen exclusivamente a GESTARIAN Mobile.
+
+================================================================================
+
+8. GESTARIAN MOBILE
+
+La aplicación móvil constituye una ampliación funcional.
+
+No sustituye al Desktop.
+
+Lo complementa.
+
+Su misión consiste en capturar información directamente desde el lugar
+donde se produce.
+
+================================================================================
+
+9. FUNCIONES MOBILE
+
+La aplicación móvil realizará:
+
+• Captura de fotografías.
+
+• OCR de matrículas.
+
+• OCR de permisos de circulación.
+
+• OCR de fichas técnicas.
+
+• OCR de facturas.
+
+• Dictado por voz.
+
+• IA para interpretación de reparaciones.
+
+• Comunicación con Desktop.
+
+• Sincronización automática.
+
+================================================================================
+
+10. PRINCIPIO DE CAPTURA
+
+Toda información deberá capturarse en origen.
+
+Ejemplo.
+
+Recepción:
+
+Fotografía del vehículo.
+
+↓
+
+OCR matrícula.
+
+↓
+
+Creación automática del expediente.
+
+↓
+
+Sincronización.
+
+El usuario nunca deberá volver a escribir esa información.
+
+================================================================================
+
+11. CLOUD
+
+La versión Cloud será el punto central de sincronización.
+
+Permitirá:
+
+• Copias de seguridad.
+
+• Multiusuario.
+
+• Multitaller.
+
+• Portal gestorías.
+
+• APIs.
+
+• Servicios IA.
+
+================================================================================
+
+12. ESCALABILIDAD
+
+Todas las funciones desarrolladas en Desktop deberán poder migrarse
+posteriormente al entorno Cloud.
+
+Nunca se desarrollarán soluciones que impidan esta evolución.
+
+================================================================================
+
+13. OBJETIVO
+
+Desktop permitirá trabajar de forma totalmente profesional.
+
+Mobile permitirá trabajar más rápido.
+
+Cloud permitirá trabajar desde cualquier lugar.
+
+Las tres plataformas compartirán exactamente la misma arquitectura de
+datos.
+
+================================================================================
+
+14. PRINCIPIO FUNDAMENTAL
+
+GESTARIAN Desktop deberá seguir siendo útil incluso aunque el cliente no
+contrate la versión Mobile.
+
+La versión Mobile no será obligatoria.
+
+Será una mejora de productividad.
+
+El usuario decidirá libremente cuándo desea incorporarla.
+
+================================================================================
+
+Fin del Capítulo 5
+
+================================================================================
+
+
+================================================================================
+
+CAPÍTULO 6
+
+DISEÑO DE INTERFAZ Y EXPERIENCIA DE USUARIO (UX/UI)
+
+================================================================================
+
+1. FILOSOFÍA DE DISEÑO
+
+GESTARIAN deberá transmitir desde el primer momento una imagen de
+producto profesional, moderno y sencillo.
+
+El usuario no debe sentir que está utilizando un ERP tradicional.
+
+La aplicación debe convertirse en una herramienta de trabajo diaria,
+rápida e intuitiva.
+
+Cada pantalla deberá mostrar únicamente la información necesaria para
+realizar la tarea correspondiente.
+
+La simplicidad tendrá siempre prioridad frente a la cantidad de
+información mostrada.
+
+================================================================================
+
+2. PRINCIPIOS DE DISEÑO
+
+Toda la interfaz deberá cumplir los siguientes principios.
+
+• Minimalista.
+
+• Profesional.
+
+• Muy rápida.
+
+• Fluida.
+
+• Oscura.
+
+• Muy intuitiva.
+
+• Sin elementos innecesarios.
+
+• Preparada para crecer.
+
+================================================================================
+
+3. TEMA VISUAL
+
+La aplicación utilizará como tema principal:
+
+Modo Oscuro.
+
+Colores neutros.
+
+Grises oscuros.
+
+Negro.
+
+Blanco.
+
+Los colores vivos únicamente se utilizarán para representar estados.
+
+================================================================================
+
+4. COLORES FUNCIONALES
+
+VERDE
+
+Procesos finalizados.
+
+Aceptado.
+
+Cobrado.
+
+Correcto.
+
+------------------------------------------------------------
+
+NARANJA
+
+Pendiente.
+
+En proceso.
+
+Aviso.
+
+------------------------------------------------------------
+
+ROJO
+
+Urgente.
+
+Incidencia.
+
+Pendiente de cobro.
+
+Error.
+
+------------------------------------------------------------
+
+AZUL
+
+Información.
+
+Estadísticas.
+
+Informes.
+
+Elementos IA.
+
+================================================================================
+
+5. NAVEGACIÓN
+
+Toda la aplicación utilizará una navegación horizontal mediante
+PageView.
+
+El usuario podrá desplazarse:
+
+• Deslizando lateralmente.
+
+• Pulsando el menú inferior.
+
+Ambos sistemas permanecerán completamente sincronizados.
+
+================================================================================
+
+6. MENÚ INFERIOR
+
+El menú inferior será fijo.
+
+Siempre permanecerá visible.
+
+Nunca desaparecerá.
+
+Nunca cambiará de posición.
+
+Contendrá cinco iconos.
+
+================================================================================
+
+7. ESTRUCTURA OFICIAL
+
+Las cinco pantallas oficiales serán:
+
+1.
+
+PRESUPUESTOS
+
+Pantalla principal.
+
+Es el punto de inicio de toda la actividad del taller.
+
+Permite:
+
+• Alta de presupuestos.
+
+• Edición.
+
+• Valoraciones.
+
+• Fotografías iniciales.
+
+• Estado del presupuesto.
+
+------------------------------------------------------------
+
+2.
+
+CITAS
+
+Permite organizar:
+
+• Agenda.
+
+• Recepción.
+
+• Calendario.
+
+• Entrada de vehículos.
+
+• Planificación diaria.
+
+------------------------------------------------------------
+
+3.
+
+REPARACIONES
+
+Centro operativo del taller.
+
+Permite:
+
+• Estado de cada vehículo.
+
+• Seguimiento.
+
+• Observaciones.
+
+• Fotografías.
+
+• Mano de obra.
+
+• Operarios.
+
+------------------------------------------------------------
+
+4.
+
+FACTURACIÓN
+
+Permite:
+
+• Emitir facturas.
+
+• Cobros.
+
+• Facturas proveedores.
+
+• OCR documental.
+
+• Gestión económica.
+
+------------------------------------------------------------
+
+5.
+
+INFORMES
+
+Permite:
+
+• Informes.
+
+• Balances.
+
+• IVA.
+
+• IRPF.
+
+• Gestoría.
+
+• Biblioteca documental.
+
+================================================================================
+
+8. PANTALLA DE INICIO
+
+La aplicación deberá abrir SIEMPRE la pantalla:
+
+PRESUPUESTOS.
+
+Toda la operativa comienza con la creación de un presupuesto.
+
+El flujo natural del taller comienza en este punto.
+
+================================================================================
+
+9. FLUJO NATURAL
+
+El recorrido lógico del usuario será:
+
+PRESUPUESTOS
+
+↓
+
+CITAS
+
+↓
+
+REPARACIONES
+
+↓
+
+FACTURACIÓN
+
+↓
+
+INFORMES
+
+La navegación deberá respetar este orden.
+
+================================================================================
+
+10. ANIMACIONES
+
+Todas las animaciones deberán ser discretas.
+
+Tiempo recomendado:
+
+250 ms
+
+300 ms
+
+Nunca deberán ralentizar el trabajo.
+
+================================================================================
+
+11. ICONOS
+
+Todos los iconos deberán pertenecer a la misma familia.
+
+Preferentemente Material Design.
+
+El icono activo deberá destacarse mediante:
+
+• Mayor tamaño.
+
+• Brillo.
+
+• Línea inferior.
+
+• Cambio de color.
+
+================================================================================
+
+12. TIPOGRAFÍA
+
+Fuente limpia.
+
+Muy legible.
+
+Jerarquía clara.
+
+Evitar tamaños pequeños.
+
+================================================================================
+
+13. EXPERIENCIA DE USUARIO
+
+Toda acción importante deberá realizarse en un máximo de tres pasos.
+
+El usuario nunca deberá navegar por múltiples pantallas para completar
+una tarea sencilla.
+
+La interfaz deberá anticiparse a las necesidades del usuario.
+
+================================================================================
+
+14. RESPONSIVE
+
+La aplicación deberá funcionar correctamente en:
+
+• Teléfonos.
+
+• Tablets.
+
+• Pantallas grandes.
+
+Manteniendo siempre la misma identidad visual.
+
+================================================================================
+
+15. IDENTIDAD DEL PRODUCTO
+
+GESTARIAN deberá transmitir:
+
+Tecnología.
+
+Orden.
+
+Profesionalidad.
+
+Innovación.
+
+Rapidez.
+
+Fiabilidad.
+
+El diseño nunca deberá resultar agresivo visualmente.
+
+================================================================================
+
+16. REGLA FUNDAMENTAL
+
+Antes de incorporar cualquier nueva función deberá responderse a una
+pregunta:
+
+"¿Esta función ayuda realmente al profesional a trabajar más rápido?"
+
+Si la respuesta es NO...
+
+La función deberá eliminarse o rediseñarse.
+
+================================================================================
+
+17. DECISIÓN DE PROYECTO
+
+La estructura de navegación definida en este documento constituye la
+arquitectura oficial de GESTARIAN.
+
+No deberá modificarse sin autorización expresa de la dirección del
+proyecto.
+
+================================================================================
+
+Fin del Capítulo 6
+
+================================================================================
+
+
+
+================================================================================
+
+CAPÍTULO 7
+
+ROADMAP DE DESARROLLO
+
+================================================================================
+
+1. OBJETIVO
+
+El desarrollo de GESTARIAN deberá realizarse por fases claramente
+definidas.
+
+Cada fase deberá ser completamente funcional antes de iniciar la
+siguiente.
+
+No deberán desarrollarse funcionalidades futuras si afectan a la
+estabilidad de las versiones anteriores.
+
+El proyecto prioriza una evolución sólida frente a una evolución rápida.
+
+================================================================================
+
+2. FASE 0
+
+DM CAR
+
+Objetivo.
+
+Validar el funcionamiento real del sistema mediante Microsoft Excel VBA.
+
+Estado.
+
+COMPLETADO.
+
+Objetivos alcanzados.
+
+• Gestión de clientes.
+
+• Gestión de vehículos.
+
+• Presupuestos.
+
+• Reparaciones.
+
+• Facturación.
+
+• Informes.
+
+• Gestión documental.
+
+• Automatización mediante macros.
+
+• Validación en entorno real.
+
+Resultado.
+
+DM CAR demuestra que la filosofía de GESTARIAN funciona correctamente.
+
+================================================================================
+
+3. FASE 1
+
+GESTARIAN DESKTOP
+
+Objetivo.
+
+Convertir el piloto DM CAR en un producto comercial estable.
+
+Funciones principales.
+
+• Reorganización completa del código.
+
+• Separación por módulos.
+
+• Sistema de IDs.
+
+• Gestión documental.
+
+• Expedientes digitales.
+
+• Enlaces automáticos.
+
+• Gestoría.
+
+• Informes.
+
+• Balances.
+
+• Protección.
+
+• Licenciamiento.
+
+Estado.
+
+EN DESARROLLO.
+
+================================================================================
+
+4. FASE 2
+
+GESTARIAN MOBILE
+
+Objetivo.
+
+Eliminar la introducción manual de información.
+
+Funciones.
+
+• Cámara.
+
+• OCR.
+
+• Voz.
+
+• IA.
+
+• Fotografías.
+
+• Captura documental.
+
+• Sincronización.
+
+La aplicación móvil trabajará siempre como complemento del Desktop.
+
+Nunca sustituirá sus funciones administrativas.
+
+================================================================================
+
+5. FASE 3
+
+INTELIGENCIA ARTIFICIAL
+
+Objetivo.
+
+Automatizar procesos.
+
+Funciones previstas.
+
+• OCR matrículas.
+
+• OCR permisos.
+
+• OCR facturas.
+
+• OCR fichas técnicas.
+
+• Dictado inteligente.
+
+• Interpretación automática de reparaciones.
+
+• Generación de conceptos.
+
+• Clasificación documental.
+
+• Asistente administrativo.
+
+================================================================================
+
+6. FASE 4
+
+GESTORÍA
+
+Objetivo.
+
+Eliminar completamente el trabajo manual de preparación documental.
+
+Funciones.
+
+• Envío automático.
+
+• Informes.
+
+• Declaraciones.
+
+• Enlace Drive.
+
+• Integración Sage.
+
+• Integración A3.
+
+• Historial documental.
+
+================================================================================
+
+7. FASE 5
+
+CLOUD
+
+Objetivo.
+
+Centralizar toda la información.
+
+Funciones.
+
+• Sincronización.
+
+• Multiusuario.
+
+• Multitaller.
+
+• Copias seguridad.
+
+• API.
+
+• Acceso remoto.
+
+================================================================================
+
+8. FASE 6
+
+ECOSISTEMA GESTARIAN
+
+Objetivo.
+
+Convertir GESTARIAN en una plataforma empresarial.
+
+Posibles módulos futuros.
+
+• Gestión de recambios.
+
+• Gestión de proveedores.
+
+• CRM.
+
+• Agenda inteligente.
+
+• Portal cliente.
+
+• Portal gestoría.
+
+• Cuadros de mando.
+
+• Estadísticas IA.
+
+================================================================================
+
+9. PRIORIDADES
+
+El orden de desarrollo será siempre:
+
+1.
+
+Estabilidad.
+
+2.
+
+Facilidad de uso.
+
+3.
+
+Automatización.
+
+4.
+
+Inteligencia Artificial.
+
+5.
+
+Escalabilidad.
+
+Nunca se sacrificará la estabilidad por incorporar nuevas funciones.
+
+================================================================================
+
+10. REGLA DE DESARROLLO
+
+Toda nueva función deberá cumplir tres condiciones.
+
+1.
+
+Aportar valor real.
+
+2.
+
+Reducir trabajo administrativo.
+
+3.
+
+Integrarse con la arquitectura existente.
+
+Si una función no cumple estas tres condiciones deberá descartarse o
+aplazarse.
+
+================================================================================
+
+11. REVISIÓN Rev.1.1
+
+A partir de esta revisión se establece una diferencia oficial entre la
+arquitectura Desktop y Mobile.
+
+Desktop seguirá el flujo administrativo del expediente.
+
+Mobile seguirá el flujo operativo del taller.
+
+Ambas plataformas compartirán exactamente la misma arquitectura de datos,
+pero podrán tener interfaces completamente diferentes.
+
+================================================================================
+
+12. REVISIÓN Rev.1.2
+
+Se establece oficialmente que la pantalla principal de la aplicación
+móvil será una pantalla de CAPTURA RÁPIDA.
+
+Esta pantalla estará orientada al trabajo junto al vehículo y reunirá las
+funciones de:
+
+• Cámara.
+
+• Micrófono.
+
+• OCR.
+
+• Inteligencia Artificial.
+
+La distribución definitiva de pantallas móviles podrá evolucionar durante
+el desarrollo, pero siempre respetando esta filosofía.
+
+================================================================================
+
+Fin del Capítulo 7
+
+================================================================================
+
+
+================================================================================
+
+CAPÍTULO 8
+
+BACKLOG GENERAL DEL PROYECTO
+
+================================================================================
+
+1. OBJETIVO
+
+El Backlog constituye la lista oficial de tareas pendientes del proyecto.
+
+Todas las nuevas funcionalidades deberán registrarse aquí antes de ser
+desarrolladas.
+
+Las tareas se clasificarán según su prioridad.
+
+P0 = Crítica.
+
+P1 = Alta.
+
+P2 = Media.
+
+P3 = Futuras mejoras.
+
+================================================================================
+
+=========================
+P0 · ARQUITECTURA
+=========================
+
+□ Implantar sistema completo de identificadores únicos.
+
+ID_EXPEDIENTE
+
+ID_CLIENTE
+
+ID_VEHICULO
+
+ID_PRESUPUESTO
+
+ID_CITA
+
+ID_REPARACION
+
+ID_FACTURA
+
+ID_PROVEEDOR
+
+ID_INFORME
+
+------------------------------------------------------------
+
+□ Revisar todas las relaciones entre tablas.
+
+------------------------------------------------------------
+
+□ Eliminar datos duplicados.
+
+------------------------------------------------------------
+
+□ Preparar estructura para futura base de datos.
+
+================================================================================
+
+=========================
+P0 · DESKTOP
+=========================
+
+□ Reorganizar módulos VBA.
+
+□ Limpiar código antiguo.
+
+□ Eliminar procedimientos duplicados.
+
+□ Revisar llamadas entre módulos.
+
+□ Revisar constantes globales.
+
+□ Consolidar estructura del proyecto.
+
+□ Revisar rendimiento.
+
+□ Optimizar búsquedas.
+
+================================================================================
+
+=========================
+P0 · INTERFAZ
+=========================
+
+□ Revisar todos los objetos.
+
+□ Revisar todos los Shapes.
+
+□ Revisar nombres.
+
+□ Homogeneizar tamaños.
+
+□ Revisar resolución Full HD.
+
+□ Ajustar Zoom 100%.
+
+□ Revisar paneles inmovilizados.
+
+□ Revisar alineaciones.
+
+□ Revisar iconografía.
+
+================================================================================
+
+=========================
+P0 · DOCUMENTACIÓN
+=========================
+
+□ Finalizar Document Master.
+
+□ Actualizar Roadmap.
+
+□ Actualizar Backlog.
+
+□ Mantener historial de revisiones.
+
+================================================================================
+
+=========================
+P1 · GESTIÓN DOCUMENTAL
+=========================
+
+□ Crear expediente digital.
+
+□ Asociar imágenes.
+
+□ Asociar PDFs.
+
+□ Organizar carpetas.
+
+□ Enlaces automáticos.
+
+□ Vista previa.
+
+□ Historial documental.
+
+================================================================================
+
+=========================
+P1 · PRESUPUESTOS
+=========================
+
+□ Adjuntar fotografías.
+
+□ Adjuntar documentación.
+
+□ Historial de versiones.
+
+□ Estado del presupuesto.
+
+□ Control de aceptación.
+
+================================================================================
+
+=========================
+P1 · REPARACIONES
+=========================
+
+□ Expediente fotográfico.
+
+□ Fotografías ANTES.
+
+□ Fotografías DURANTE.
+
+□ Fotografías DESPUÉS.
+
+□ Seguimiento de estados.
+
+□ Histórico de actuaciones.
+
+================================================================================
+
+=========================
+P1 · FACTURACIÓN
+=========================
+
+□ Facturación automática.
+
+□ Cobros.
+
+□ Estados.
+
+□ Pendientes.
+
+□ Vencimientos.
+
+□ Proveedores.
+
+================================================================================
+
+=========================
+P1 · GESTORÍA
+=========================
+
+□ Envío automático.
+
+□ Enlace Drive.
+
+□ Organización documental.
+
+□ IVA.
+
+□ IRPF.
+
+□ Declaraciones.
+
+□ Biblioteca documental.
+
+□ Integración Sage.
+
+□ Integración A3.
+
+================================================================================
+
+=========================
+P1 · SEGURIDAD
+=========================
+
+□ Sistema de licencias.
+
+□ Activación.
+
+□ Protección VBA.
+
+□ Validación de instalación.
+
+□ Control de versiones.
+
+□ Actualizaciones.
+
+================================================================================
+
+=========================
+P2 · MOBILE
+=========================
+
+□ Flutter.
+
+□ Arquitectura.
+
+□ Navegación.
+
+□ Cámara.
+
+□ OCR.
+
+□ Micrófono.
+
+□ IA.
+
+□ Sincronización.
+
+□ Notificaciones.
+
+================================================================================
+
+=========================
+P2 · OCR
+=========================
+
+□ Matrículas.
+
+□ Permiso circulación.
+
+□ Ficha técnica.
+
+□ Facturas.
+
+□ Albaranes.
+
+□ Documentos.
+
+================================================================================
+
+=========================
+P2 · IA
+=========================
+
+□ Dictado inteligente.
+
+□ Interpretación reparaciones.
+
+□ Generación automática de conceptos.
+
+□ Clasificación documental.
+
+□ Automatización administrativa.
+
+================================================================================
+
+=========================
+P2 · CLOUD
+=========================
+
+□ Sincronización.
+
+□ APIs.
+
+□ Multiusuario.
+
+□ Multitaller.
+
+□ Portal gestoría.
+
+□ Portal cliente.
+
+================================================================================
+
+=========================
+P3 · FUTURO
+=========================
+
+□ CRM.
+
+□ Agenda inteligente.
+
+□ Inteligencia predictiva.
+
+□ Cuadros de mando.
+
+□ Estadísticas avanzadas.
+
+□ Integraciones externas.
+
+□ Marketplace.
+
+□ API pública.
+
+================================================================================
+
+REVISIÓN Rev.1.3
+
+Se incorpora oficialmente la separación funcional entre Desktop y Mobile.
+
+Desktop permitirá subir imágenes manualmente a los expedientes.
+
+Mobile realizará la captura automática mediante cámara, OCR y voz.
+
+Ambos compartirán la misma estructura documental.
+
+================================================================================
+
+REVISIÓN Rev.1.4
+
+El presupuesto podrá contener imágenes incluso cuando no sea aceptado.
+
+Las reparaciones dispondrán de un expediente fotográfico completo
+(ANTES, DURANTE y DESPUÉS).
+
+================================================================================
+
+REVISIÓN Rev.1.5
+
+Se establece como prioridad mantener una única arquitectura de datos para
+todas las plataformas (Desktop, Mobile y Cloud), evitando duplicidades y
+facilitando la migración futura.
+
+================================================================================
+
+Fin del Capítulo 8
+
+================================================================================
+
+
+
+================================================================================
+
+CAPÍTULO 9
+
+MODELO COMERCIAL
+
+================================================================================
+
+1. FILOSOFÍA
+
+GESTARIAN nace con un objetivo muy claro.
+
+No pretende vender un programa.
+
+Pretende vender tiempo.
+
+Cada minuto que el profesional deja de dedicar a tareas
+administrativas es un minuto que puede dedicar a reparar vehículos y
+facturar.
+
+GESTARIAN deberá convertirse en una inversión rentable para el taller.
+
+================================================================================
+
+2. ESTRATEGIA DE ENTRADA
+
+La mayor barrera de entrada para un taller es el miedo a cambiar de
+programa.
+
+Por este motivo GESTARIAN deberá permitir utilizar el sistema sin riesgo.
+
+El cliente podrá comprobar por sí mismo las ventajas del sistema antes
+de realizar una inversión importante.
+
+================================================================================
+
+3. FASE DE PRUEBA
+
+Todo nuevo cliente dispondrá de un período gratuito de:
+
+90 días.
+
+Durante este período podrá utilizar GESTARIAN Desktop prácticamente con
+todas sus funciones.
+
+El objetivo será demostrar el ahorro de tiempo y la mejora en la
+organización del taller.
+
+================================================================================
+
+4. PLAN DESKTOP
+
+Finalizado el período de prueba, el cliente podrá continuar utilizando
+GESTARIAN Desktop mediante una suscripción mensual.
+
+Precio previsto:
+
+20 €/mes.
+
+Incluye:
+
+• Gestión de clientes.
+
+• Gestión de vehículos.
+
+• Presupuestos.
+
+• Reparaciones.
+
+• Facturación.
+
+• Gestión documental.
+
+• Informes.
+
+• Balances.
+
+• Envío automático a gestoría.
+
+• Biblioteca documental.
+
+• Actualizaciones.
+
+================================================================================
+
+5. ACTIVACIÓN MOBILE
+
+Cuando un cliente contrate GESTARIAN Desktop obtendrá automáticamente un
+nuevo período de prueba para GESTARIAN Mobile.
+
+Duración:
+
+90 días.
+
+El objetivo es que el cliente descubra las ventajas de trabajar con
+cámara, OCR, voz e inteligencia artificial directamente desde el taller.
+
+================================================================================
+
+6. PLAN PRO
+
+Finalizado el período de prueba de Mobile, el cliente podrá elegir entre
+dos opciones.
+
+OPCIÓN A
+
+Continuar únicamente con Desktop.
+
+20 €/mes.
+
+OPCIÓN B
+
+Activar GESTARIAN PRO.
+
+Precio previsto:
+
+60 €/mes.
+
+Incluye:
+
+Desktop.
+
+Aplicación Mobile.
+
+OCR.
+
+IA.
+
+Captura automática.
+
+Sincronización.
+
+Automatizaciones.
+
+Funciones avanzadas.
+
+================================================================================
+
+7. CANCELACIÓN
+
+El cliente podrá cancelar su suscripción en cualquier momento.
+
+Si cancela la modalidad PRO podrá volver al plan Desktop si así lo
+desea.
+
+La filosofía comercial será siempre flexible y transparente.
+
+No existirán permanencias obligatorias.
+
+================================================================================
+
+8. PROPUESTA DE VALOR
+
+GESTARIAN deberá diferenciarse por ofrecer mucho más que un programa de
+facturación.
+
+El cliente obtiene:
+
+Menos tiempo administrativo.
+
+Menos errores.
+
+Mayor organización.
+
+Documentación centralizada.
+
+Comunicación con gestoría.
+
+Digitalización del taller.
+
+================================================================================
+
+9. CLIENTE OBJETIVO
+
+En su primera fase GESTARIAN estará dirigido a:
+
+Talleres independientes de chapa y pintura.
+
+Posteriormente podrá adaptarse a:
+
+• Talleres multimarca.
+
+• Mecánica.
+
+• Vehículos industriales.
+
+• Motocicletas.
+
+• Otros sectores con necesidades similares.
+
+================================================================================
+
+10. CRECIMIENTO
+
+La estrategia de crecimiento será progresiva.
+
+1.
+
+Validación con talleres reales.
+
+2.
+
+Mejora continua.
+
+3.
+
+Expansión regional.
+
+4.
+
+Expansión nacional.
+
+5.
+
+Internacionalización.
+
+================================================================================
+
+11. FILOSOFÍA DE PRECIOS
+
+GESTARIAN no competirá por ser el programa más barato.
+
+Competirá por ofrecer el mayor ahorro de tiempo.
+
+Si un taller ahorra varias horas administrativas cada mes, el coste de
+la suscripción queda ampliamente compensado.
+
+El precio deberá percibirse como una inversión y no como un gasto.
+
+================================================================================
+
+12. FUTURO
+
+El modelo comercial podrá ampliarse con nuevos servicios.
+
+Ejemplos:
+
+• Multiusuario.
+
+• Multiempresa.
+
+• Portal cliente.
+
+• Portal gestoría.
+
+• API profesional.
+
+• Marketplace.
+
+• Módulos especializados.
+
+Todos ellos deberán integrarse sin alterar la arquitectura principal del
+proyecto.
+
+================================================================================
+
+REVISIÓN Rev.1.6
+
+La aplicación móvil se considera un complemento de alto valor añadido,
+no una obligación.
+
+El usuario podrá trabajar únicamente con Desktop o evolucionar a la
+versión PRO cuando considere que el ahorro de tiempo justifica la
+inversión.
+
+================================================================================
+
+Fin del Capítulo 9
+
+================================================================================
+
+
+
+
+================================================================================
+
+CAPÍTULO 10
+
+ESTRATEGIA DE COMERCIALIZACIÓN, DISTRIBUCIÓN Y EXPANSIÓN
+
+================================================================================
+
+1. FILOSOFÍA
+
+GESTARIAN no debe depender exclusivamente de la venta directa.
+
+El crecimiento del proyecto deberá apoyarse en una red de colaboradores,
+distribuidores y agentes especializados que ya trabajen diariamente con
+el público objetivo.
+
+La estrategia consiste en aprovechar redes comerciales ya existentes en
+lugar de construir una desde cero.
+
+================================================================================
+
+2. OBJETIVO
+
+Reducir el coste de captación de nuevos clientes.
+
+Aumentar la velocidad de implantación.
+
+Llegar a cualquier taller mediante profesionales que ya mantienen una
+relación de confianza con ellos.
+
+================================================================================
+
+3. CANALES DE VENTA
+
+GESTARIAN podrá comercializarse mediante distintos canales.
+
+• Venta directa.
+
+• Página web oficial.
+
+• Recomendaciones.
+
+• Distribuidores autorizados.
+
+• Agentes comerciales.
+
+• Gestorías colaboradoras.
+
+• Asociaciones profesionales.
+
+• Empresas tecnológicas.
+
+• Marketplace de software.
+
+================================================================================
+
+4. RED DE AGENTES COMERCIALES
+
+Uno de los principales canales de crecimiento será una red de agentes
+comerciales especializados.
+
+Estos agentes ya visitan regularmente a los profesionales del sector y
+conocen perfectamente sus necesidades.
+
+Su función será:
+
+• Presentar GESTARIAN.
+
+• Realizar demostraciones.
+
+• Gestionar altas.
+
+• Resolver dudas iniciales.
+
+• Acompañar al cliente durante la implantación.
+
+================================================================================
+
+5. PARTNERS ESTRATÉGICOS
+
+GESTARIAN buscará acuerdos con empresas que ya trabajan diariamente con
+los talleres.
+
+Ejemplos.
+
+• Distribuidores de pintura.
+
+• Distribuidores de recambios.
+
+• Fabricantes de maquinaria.
+
+• Empresas de elevadores.
+
+• Cabinas de pintura.
+
+• Consumibles.
+
+• Software complementario.
+
+• Empresas de renting.
+
+• Servicios tecnológicos.
+
+================================================================================
+
+6. GESTORÍAS
+
+Las gestorías constituyen un colaborador estratégico.
+
+Podrán recomendar GESTARIAN a sus clientes debido a la reducción del
+trabajo administrativo y a la mejora en la calidad de la documentación
+recibida.
+
+En el futuro podrán disponer de un portal específico para gestionar la
+documentación de todos sus clientes.
+
+================================================================================
+
+7. ADAPTACIÓN A NUEVOS SECTORES
+
+La arquitectura de GESTARIAN ha sido diseñada para ser reutilizable.
+
+Una vez consolidado el sector de automoción podrán desarrollarse
+versiones especializadas para otros sectores profesionales.
+
+Ejemplos.
+
+• Fontanería.
+
+• Electricidad.
+
+• Construcción.
+
+• Climatización.
+
+• Carpintería.
+
+• Cerrajería.
+
+• Jardinería.
+
+• Reformas.
+
+• Mantenimiento industrial.
+
+La filosofía del sistema permanecerá inalterada.
+
+Únicamente cambiarán los procesos específicos de cada profesión.
+
+================================================================================
+
+8. RED DE DISTRIBUIDORES
+
+GESTARIAN podrá crear una red oficial de distribuidores.
+
+Cada distribuidor podrá representar el producto en una zona geográfica
+determinada.
+
+Funciones.
+
+• Venta.
+
+• Implantación.
+
+• Formación.
+
+• Soporte inicial.
+
+• Seguimiento comercial.
+
+================================================================================
+
+9. SISTEMA DE COMISIONES
+
+Podrá establecerse un programa de incentivos para colaboradores.
+
+Ejemplos.
+
+• Comisión por alta.
+
+• Comisión recurrente.
+
+• Bonificaciones por volumen.
+
+• Incentivos por permanencia.
+
+La política de comisiones deberá favorecer relaciones comerciales
+estables y duraderas.
+
+================================================================================
+
+10. INTERNACIONALIZACIÓN
+
+La arquitectura del sistema permitirá su adaptación a otros países.
+
+Será necesario adaptar:
+
+• Idioma.
+
+• Fiscalidad.
+
+• Informes.
+
+• Integraciones.
+
+El núcleo del sistema permanecerá idéntico.
+
+================================================================================
+
+11. FILOSOFÍA DE CRECIMIENTO
+
+GESTARIAN crecerá mediante una estrategia progresiva.
+
+1.
+
+Validación del producto.
+
+↓
+
+2.
+
+Implantación regional.
+
+↓
+
+3.
+
+Expansión nacional.
+
+↓
+
+4.
+
+Creación de red comercial.
+
+↓
+
+5.
+
+Especialización por sectores.
+
+↓
+
+6.
+
+Expansión internacional.
+
+================================================================================
+
+12. OBJETIVO FINAL
+
+GESTARIAN deberá convertirse en una plataforma de referencia para la
+gestión inteligente de pequeñas y medianas empresas.
+
+Su crecimiento no dependerá únicamente del software, sino de la creación
+de un ecosistema formado por:
+
+• Clientes.
+
+• Agentes comerciales.
+
+• Distribuidores.
+
+• Gestorías.
+
+• Partners tecnológicos.
+
+• Inteligencia Artificial.
+
+================================================================================
+
+REVISIÓN Rev.2.0
+
+Se establece oficialmente que la estrategia de crecimiento de GESTARIAN
+estará basada en un modelo híbrido de venta directa y red de
+colaboradores especializados.
+
+La prioridad será aprovechar profesionales y empresas que ya mantengan
+una relación de confianza con los sectores objetivo, reduciendo el coste
+de captación y acelerando la implantación del sistema.
+
+================================================================================
+
+Fin del Capítulo 10
+
+================================================================================
+
+
+
+================================================================================
+
+CAPÍTULO 11
+
+METIS
+
+MOTOR DE INTELIGENCIA ARTIFICIAL DE GESTARIAN
+
+================================================================================
+
+1. FILOSOFÍA
+
+METIS constituye el motor de Inteligencia Artificial de GESTARIAN.
+
+No debe entenderse como una función independiente ni como un módulo
+aislado.
+
+METIS forma parte del núcleo funcional del sistema y actúa de manera
+transversal sobre todas las plataformas del ecosistema GESTARIAN.
+
+Su objetivo es reducir al mínimo la introducción manual de información,
+automatizar procesos repetitivos y asistir al usuario durante todo el
+ciclo de vida del expediente.
+
+METIS nunca sustituirá el criterio profesional.
+
+Su misión será ayudar al usuario a trabajar más rápido, con menos
+errores y con mayor calidad.
+
+================================================================================
+
+2. PRINCIPIO FUNDAMENTAL
+
+Toda información que pueda obtenerse automáticamente mediante METIS no
+deberá solicitarse manualmente al usuario.
+
+Cada dato deberá capturarse una única vez y reutilizarse durante todo el
+ciclo de vida del expediente.
+
+La automatización será siempre prioritaria frente a la introducción
+manual de datos.
+
+================================================================================
+
+3. METIS OCR
+
+METIS permitirá capturar automáticamente información mediante OCR.
+
+Entre otras funciones:
+
+• Lectura de matrículas.
+
+• Permisos de circulación.
+
+• Fichas técnicas.
+
+• DNI.
+
+• CIF.
+
+• Facturas.
+
+• Albaranes.
+
+• Documentación administrativa.
+
+Toda la información será validada antes de incorporarse al sistema.
+
+================================================================================
+
+4. METIS VISION
+
+METIS analizará automáticamente imágenes capturadas desde la aplicación
+móvil.
+
+Funciones previstas.
+
+• Detección automática de matrículas.
+
+• Clasificación de fotografías.
+
+• Identificación del tipo de documento.
+
+• Asociación automática al expediente.
+
+• Organización documental.
+
+En futuras versiones podrá incorporar nuevas capacidades de análisis de
+imagen.
+
+================================================================================
+
+5. METIS VOICE
+
+El operario podrá comunicarse con METIS mediante lenguaje natural.
+
+Ejemplo.
+
+"He desmontado el paragolpes delantero, he sustituido el soporte derecho
+y he preparado la aleta para pintura."
+
+METIS interpretará automáticamente la información y propondrá conceptos
+estructurados para el expediente.
+
+El usuario podrá aceptar, modificar o rechazar la propuesta.
+
+================================================================================
+
+6. METIS DOCUMENTS
+
+Toda la documentación incorporada al sistema será organizada
+automáticamente.
+
+Ejemplos.
+
+• Fotografías.
+
+• PDFs.
+
+• Facturas.
+
+• Presupuestos.
+
+• Informes.
+
+• Documentación administrativa.
+
+El usuario no deberá preocuparse por la estructura de carpetas.
+
+================================================================================
+
+7. METIS ASSISTANT
+
+METIS actuará como asistente inteligente del usuario.
+
+Podrá colaborar en tareas como:
+
+• Completar información.
+
+• Detectar errores.
+
+• Revisar documentación.
+
+• Avisar de expedientes incompletos.
+
+• Recordar tareas pendientes.
+
+• Proponer acciones.
+
+================================================================================
+
+8. METIS ACCOUNTING
+
+METIS asistirá en los procesos administrativos.
+
+Funciones previstas.
+
+• Lectura automática de facturas.
+
+• Alta automática de proveedores.
+
+• Interpretación de conceptos.
+
+• Revisión de importes.
+
+• Validación documental.
+
+• Preparación de información para gestoría.
+
+La validación final corresponderá siempre al usuario.
+
+================================================================================
+
+9. METIS AUTOMATION
+
+METIS automatizará todos los procesos repetitivos posibles.
+
+Ejemplos.
+
+• Organización documental.
+
+• Clasificación.
+
+• Sincronización.
+
+• Preparación de informes.
+
+• Envíos automáticos.
+
+• Avisos.
+
+• Recordatorios.
+
+================================================================================
+
+10. METIS LEARNING
+
+En futuras versiones METIS podrá aprender del funcionamiento habitual de
+cada empresa.
+
+Ejemplos.
+
+• Conceptos más utilizados.
+
+• Reparaciones frecuentes.
+
+• Proveedores habituales.
+
+• Preferencias del usuario.
+
+• Patrones de trabajo.
+
+El aprendizaje deberá respetar siempre la privacidad del usuario y la
+legislación vigente.
+
+================================================================================
+
+11. METIS EN EL ECOSISTEMA
+
+METIS será común para todas las plataformas.
+
+GESTARIAN Desktop.
+
+GESTARIAN Mobile.
+
+GESTARIAN Cloud.
+
+Cada plataforma utilizará únicamente aquellas capacidades que resulten
+adecuadas para su entorno de trabajo.
+
+================================================================================
+
+12. PRINCIPIO ÉTICO
+
+METIS nunca tomará decisiones económicas, fiscales o legales de forma
+autónoma.
+
+Todas las propuestas generadas deberán poder:
+
+• Aceptarse.
+
+• Modificarse.
+
+• Rechazarse.
+
+La responsabilidad final corresponderá siempre al usuario.
+
+================================================================================
+
+13. EVOLUCIÓN
+
+METIS evolucionará de forma continua.
+
+Cada nueva versión podrá incorporar nuevas capacidades sin modificar la
+arquitectura principal de GESTARIAN.
+
+La Inteligencia Artificial deberá crecer junto con el producto.
+
+================================================================================
+
+14. VISIÓN DE FUTURO
+
+El objetivo final de METIS es convertirse en un compañero de trabajo para
+todos los perfiles profesionales.
+
+Recepción.
+
+Administración.
+
+Operarios.
+
+Encargados.
+
+Gerencia.
+
+METIS deberá colaborar con cada uno de ellos adaptando sus funciones al
+contexto de trabajo.
+
+================================================================================
+
+15. REVISIÓN Rev.2.1
+
+METIS pasa a ser oficialmente el motor de Inteligencia Artificial de
+GESTARIAN.
+
+Toda funcionalidad inteligente desarrollada en el proyecto deberá formar
+parte de METIS.
+
+No se desarrollarán soluciones independientes de Inteligencia Artificial
+fuera de esta arquitectura.
+
+================================================================================
+
+Fin del Capítulo 11
+
+================================================================================
+
+
+================================================================================
+
+CAPÍTULO 12
+
+SEGURIDAD, LICENCIAMIENTO Y PROTECCIÓN DEL SISTEMA
+
+================================================================================
+
+1. FILOSOFÍA
+
+La seguridad constituye un elemento estratégico de GESTARIAN.
+
+El objetivo no es únicamente proteger el software, sino también la
+información de los clientes y la inversión realizada durante años por
+cada empresa.
+
+La protección deberá ser transparente para el usuario y dificultar al
+máximo las copias no autorizadas y las modificaciones del sistema.
+
+================================================================================
+
+2. PRINCIPIOS
+
+GESTARIAN deberá garantizar:
+
+• Integridad de la información.
+
+• Confidencialidad.
+
+• Disponibilidad.
+
+• Trazabilidad.
+
+• Protección frente a copias no autorizadas.
+
+• Recuperación ante incidencias.
+
+================================================================================
+
+3. PROTECCIÓN DEL CÓDIGO
+
+La versión Desktop protegerá el código fuente mediante mecanismos
+adecuados para dificultar el acceso no autorizado.
+
+El objetivo es evitar modificaciones accidentales o el uso indebido del
+desarrollo.
+
+La protección nunca deberá impedir el mantenimiento oficial del sistema.
+
+================================================================================
+
+4. SISTEMA DE LICENCIAS
+
+Cada instalación dispondrá de una licencia propia.
+
+La licencia permitirá identificar la instalación autorizada y controlar
+el acceso a las funciones contratadas.
+
+Las licencias podrán activarse, renovarse, suspenderse o cancelarse desde
+el sistema de gestión correspondiente.
+
+================================================================================
+
+5. MODALIDADES DE LICENCIA
+
+El sistema contemplará diferentes modalidades.
+
+• Versión de prueba.
+
+• Desktop.
+
+• PRO.
+
+• Multiusuario.
+
+• Multiempresa.
+
+• Versiones especiales.
+
+Cada modalidad habilitará únicamente las funciones correspondientes.
+
+================================================================================
+
+6. PERÍODO DE PRUEBA
+
+Toda nueva instalación podrá disponer de un período de evaluación.
+
+Durante dicho período el usuario podrá comprobar el funcionamiento del
+producto antes de contratar una licencia.
+
+Finalizado el período de prueba, el sistema solicitará la activación de
+una licencia válida.
+
+================================================================================
+
+7. CONTROL DE VERSIONES
+
+GESTARIAN deberá identificar la versión instalada.
+
+Cada actualización incluirá:
+
+• Número de versión.
+
+• Fecha.
+
+• Historial de cambios.
+
+• Compatibilidad.
+
+La actualización deberá preservar siempre la información del usuario.
+
+================================================================================
+
+8. COPIAS DE SEGURIDAD
+
+El sistema fomentará la realización periódica de copias de seguridad.
+
+En futuras versiones podrá incorporar:
+
+• Copias automáticas.
+
+• Copias en la nube.
+
+• Restauración guiada.
+
+• Historial de versiones.
+
+================================================================================
+
+9. SEGURIDAD DOCUMENTAL
+
+Todos los documentos generados por GESTARIAN deberán conservar su
+integridad.
+
+El sistema organizará automáticamente:
+
+• Presupuestos.
+
+• Facturas.
+
+• Informes.
+
+• Fotografías.
+
+• Documentación asociada.
+
+================================================================================
+
+10. CONTROL DE ACCESO
+
+GESTARIAN podrá incorporar diferentes niveles de acceso.
+
+Ejemplos.
+
+• Administrador.
+
+• Gerencia.
+
+• Recepción.
+
+• Operario.
+
+• Gestoría.
+
+Cada usuario visualizará únicamente las funciones autorizadas.
+
+================================================================================
+
+11. AUDITORÍA
+
+El sistema podrá registrar operaciones relevantes.
+
+Ejemplos.
+
+• Creación de expedientes.
+
+• Modificación de datos.
+
+• Eliminación de documentos.
+
+• Facturación.
+
+• Cambios de configuración.
+
+Estos registros facilitarán el seguimiento de incidencias y el control
+interno.
+
+================================================================================
+
+12. ACTUALIZACIONES
+
+Las actualizaciones deberán ser compatibles con la arquitectura existente.
+
+Siempre que sea posible conservarán:
+
+• Configuración.
+
+• Licencias.
+
+• Bases de datos.
+
+• Expedientes.
+
+• Historial documental.
+
+================================================================================
+
+13. ESCALABILIDAD
+
+La arquitectura de seguridad deberá ser compatible con:
+
+GESTARIAN Desktop.
+
+GESTARIAN Mobile.
+
+GESTARIAN Cloud.
+
+La evolución tecnológica no deberá requerir rediseñar el modelo de
+protección.
+
+================================================================================
+
+14. FILOSOFÍA DE PROTECCIÓN
+
+La seguridad no deberá dificultar el trabajo del usuario legítimo.
+
+Su finalidad será proteger el producto y la información, manteniendo una
+experiencia de uso sencilla y transparente.
+
+================================================================================
+
+15. REVISIÓN Rev.2.2
+
+La estrategia de seguridad se desarrollará por fases.
+
+En las primeras versiones se priorizará la estabilidad y la facilidad de
+implantación.
+
+Los mecanismos avanzados de licenciamiento, autenticación y protección
+evolucionarán progresivamente conforme crezca el ecosistema GESTARIAN.
+
+================================================================================
+
+Fin del Capítulo 12
+
+================================================================================
+
+
+================================================================================
+
+CAPÍTULO 13
+
+ESTÁNDARES DE DESARROLLO
+
+NORMAS PARA DESARROLLADORES E INTELIGENCIAS ARTIFICIALES
+
+================================================================================
+
+1. OBJETIVO
+
+Este documento establece las normas obligatorias que deberán seguir
+todos los desarrolladores e Inteligencias Artificiales que participen en
+el desarrollo de GESTARIAN.
+
+Su finalidad es garantizar la coherencia del proyecto, facilitar el
+mantenimiento y asegurar la escalabilidad del sistema.
+
+================================================================================
+
+2. FILOSOFÍA
+
+Toda nueva funcionalidad deberá integrarse en la arquitectura existente.
+
+No se desarrollarán soluciones aisladas.
+
+Cada nuevo módulo deberá respetar la estructura general del proyecto.
+
+Siempre deberá priorizarse la calidad del diseño frente a la rapidez de
+implementación.
+
+================================================================================
+
+3. PRINCIPIOS GENERALES
+
+Todo desarrollo deberá cumplir los siguientes principios.
+
+• Simplicidad.
+
+• Modularidad.
+
+• Reutilización.
+
+• Escalabilidad.
+
+• Legibilidad.
+
+• Mantenibilidad.
+
+• Bajo acoplamiento.
+
+• Alta cohesión.
+
+================================================================================
+
+4. ARQUITECTURA
+
+Toda nueva funcionalidad deberá respetar la arquitectura oficial.
+
+GESTARIAN
+
+↓
+
+GESTARIAN CORE
+
+↓
+
+METIS
+
+↓
+
+Desktop
+
+↓
+
+Mobile
+
+↓
+
+Cloud
+
+No se crearán arquitecturas paralelas.
+
+================================================================================
+
+5. MODELO DE DATOS
+
+Nunca deberán duplicarse datos.
+
+Todas las relaciones deberán realizarse mediante identificadores únicos.
+
+Toda nueva entidad deberá integrarse dentro del modelo oficial.
+
+================================================================================
+
+6. IDENTIFICADORES
+
+Todas las entidades deberán utilizar IDs únicos.
+
+ID_EXPEDIENTE
+
+ID_CLIENTE
+
+ID_VEHICULO
+
+ID_PRESUPUESTO
+
+ID_CITA
+
+ID_REPARACION
+
+ID_FACTURA
+
+ID_PROVEEDOR
+
+ID_INFORME
+
+Nunca deberán utilizarse referencias ambiguas.
+
+================================================================================
+
+7. COMPATIBILIDAD
+
+Toda nueva función deberá ser compatible con:
+
+Desktop.
+
+Mobile.
+
+Cloud.
+
+Siempre que resulte técnicamente posible.
+
+No deberán desarrollarse soluciones que dificulten futuras migraciones.
+
+================================================================================
+
+8. EXPERIENCIA DE USUARIO
+
+Toda nueva pantalla deberá respetar:
+
+La identidad visual.
+
+La navegación oficial.
+
+La filosofía del producto.
+
+No deberán incorporarse elementos innecesarios.
+
+================================================================================
+
+9. REUTILIZACIÓN
+
+Antes de desarrollar una nueva función deberá comprobarse si existe otra
+que pueda reutilizarse.
+
+Se evitará cualquier duplicación de código.
+
+================================================================================
+
+10. DOCUMENTACIÓN
+
+Toda modificación importante deberá actualizar:
+
+Roadmap.
+
+Backlog.
+
+Document Master.
+
+Historial de revisiones.
+
+La documentación forma parte del desarrollo.
+
+================================================================================
+
+11. DESARROLLO CON IA
+
+Las Inteligencias Artificiales deberán:
+
+Analizar el contexto antes de proponer soluciones.
+
+Respetar las decisiones ya adoptadas.
+
+Mantener la coherencia arquitectónica.
+
+No reinventar funcionalidades existentes.
+
+Cuando existan varias alternativas, deberán explicar las ventajas e
+inconvenientes de cada una antes de proponer una implementación.
+
+================================================================================
+
+12. CALIDAD DEL CÓDIGO
+
+Todo código deberá ser:
+
+Legible.
+
+Comentado cuando sea necesario.
+
+Modular.
+
+Fácil de mantener.
+
+Fácil de ampliar.
+
+Las funciones excesivamente largas deberán dividirse en procedimientos
+más pequeños.
+
+================================================================================
+
+13. GESTIÓN DE ERRORES
+
+Todo desarrollo deberá contemplar:
+
+Validaciones.
+
+Control de errores.
+
+Mensajes comprensibles.
+
+Recuperación cuando sea posible.
+
+El sistema nunca deberá finalizar inesperadamente por errores no
+controlados.
+
+================================================================================
+
+14. RENDIMIENTO
+
+La velocidad de ejecución será un criterio prioritario.
+
+Toda nueva funcionalidad deberá minimizar:
+
+Tiempo de carga.
+
+Consumo de memoria.
+
+Procesos repetitivos.
+
+Accesos innecesarios.
+
+================================================================================
+
+15. SEGURIDAD
+
+Nunca deberán almacenarse datos sensibles de forma insegura.
+
+Toda comunicación entre módulos deberá respetar la arquitectura de
+seguridad definida para GESTARIAN.
+
+================================================================================
+
+16. EVOLUCIÓN
+
+Toda nueva funcionalidad deberá diseñarse pensando en futuras versiones.
+
+El código no deberá resolver únicamente el problema actual.
+
+Deberá facilitar la evolución del sistema.
+
+================================================================================
+
+17. REVISIÓN DE PROPUESTAS
+
+Antes de implementar cambios importantes, las IA deberán comprobar:
+
+• Compatibilidad con el modelo de datos.
+
+• Compatibilidad con Desktop.
+
+• Compatibilidad con Mobile.
+
+• Compatibilidad con Cloud.
+
+• Compatibilidad con METIS.
+
+• Impacto sobre la experiencia de usuario.
+
+• Impacto sobre el rendimiento.
+
+================================================================================
+
+18. REGLA FUNDAMENTAL
+
+Ninguna Inteligencia Artificial ni desarrollador deberá modificar una
+decisión de arquitectura previamente aprobada sin justificar claramente
+la mejora propuesta.
+
+Si una modificación afecta a la arquitectura oficial, deberá proponerse
+como una revisión del Document Master y no implementarse directamente.
+
+================================================================================
+
+19. REVISIÓN Rev.2.3
+
+El Document Master pasa a considerarse la fuente oficial de referencia
+del proyecto.
+
+En caso de conflicto entre el código existente y el Document Master,
+deberá prevalecer el criterio establecido en este documento, salvo que se
+apruebe una revisión posterior.
+
+================================================================================
+
+Fin del Capítulo 13
+
+================================================================================
+================================================================================
+
+CAPÍTULO 14
+
+PRINCIPIOS NO NEGOCIABLES
+
+================================================================================
+
+1. OBJETIVO
+
+Este capítulo define los principios fundamentales sobre los que se
+desarrollará GESTARIAN.
+
+Estas normas tendrán prioridad sobre cualquier decisión técnica de menor
+nivel.
+
+Toda modificación que afecte a estos principios deberá aprobarse mediante
+una revisión del Document Master.
+
+================================================================================
+
+2. EL USUARIO ES LA PRIORIDAD
+
+Toda decisión deberá responder a una única pregunta:
+
+"¿Ayuda realmente al profesional a trabajar más rápido, mejor y con
+menos esfuerzo?"
+
+Si la respuesta es negativa, la solución deberá replantearse.
+
+================================================================================
+
+3. SIMPLICIDAD
+
+La solución más sencilla será siempre la opción preferente, siempre que
+cumpla los requisitos funcionales.
+
+Se evitarán arquitecturas innecesariamente complejas.
+
+================================================================================
+
+4. NO DUPLICAR INFORMACIÓN
+
+Cada dato deberá existir una única vez dentro del sistema.
+
+Toda reutilización deberá realizarse mediante identificadores únicos.
+
+La duplicación de información queda expresamente desaconsejada.
+
+================================================================================
+
+5. UNA SOLA FUENTE DE VERDAD
+
+El Document Master constituye la referencia oficial del proyecto.
+
+Cuando exista conflicto entre documentación, código o propuestas,
+prevalecerá siempre el Document Master.
+
+================================================================================
+
+6. ESCALABILIDAD
+
+Toda funcionalidad deberá diseñarse pensando en el crecimiento futuro.
+
+Las decisiones tomadas hoy no deberán impedir la evolución del sistema.
+
+================================================================================
+
+7. MODULARIDAD
+
+Cada módulo tendrá una única responsabilidad.
+
+Los módulos deberán poder evolucionar de forma independiente siempre que
+no alteren la arquitectura general.
+
+================================================================================
+
+8. COMPATIBILIDAD
+
+Desktop.
+
+Mobile.
+
+Cloud.
+
+METIS.
+
+CORE.
+
+Todos deberán compartir la misma arquitectura de datos.
+
+La evolución tecnológica nunca deberá romper esta compatibilidad.
+
+================================================================================
+
+9. AUTOMATIZACIÓN
+
+Siempre que un proceso pueda automatizarse sin comprometer la seguridad
+ni la calidad de la información, deberá priorizarse la automatización.
+
+================================================================================
+
+10. VALIDACIÓN HUMANA
+
+Las decisiones económicas, fiscales, jurídicas o administrativas
+continuarán siendo responsabilidad del usuario.
+
+GESTARIAN propondrá.
+
+El usuario decidirá.
+
+================================================================================
+
+11. EXPERIENCIA DE USUARIO
+
+La interfaz deberá mantenerse limpia, intuitiva y coherente.
+
+Nunca se añadirán funciones que compliquen el trabajo diario sin aportar
+un beneficio claro.
+
+================================================================================
+
+12. EVOLUCIÓN CONTROLADA
+
+Toda nueva funcionalidad deberá integrarse en el ecosistema existente.
+
+No se permitirán soluciones aisladas o incompatibles con la arquitectura
+oficial.
+
+================================================================================
+
+13. DOCUMENTACIÓN OBLIGATORIA
+
+Toda modificación importante deberá reflejarse en:
+
+• Document Master.
+
+• Roadmap.
+
+• Backlog.
+
+• Historial de revisiones.
+
+La documentación forma parte inseparable del desarrollo.
+
+================================================================================
+
+14. RESPETO A LAS DECISIONES DEL PROYECTO
+
+Las Inteligencias Artificiales y los desarrolladores deberán respetar las
+decisiones previamente aprobadas.
+
+Si consideran que existe una alternativa mejor, deberán proponerla y
+justificar sus ventajas antes de modificar la arquitectura existente.
+
+================================================================================
+
+15. INNOVACIÓN
+
+GESTARIAN deberá mantenerse abierto a nuevas tecnologías.
+
+Toda innovación será bienvenida siempre que:
+
+• Mejore el producto.
+
+• Mantenga la compatibilidad.
+
+• Respete la arquitectura.
+
+• Aporte valor real al usuario.
+
+================================================================================
+
+16. VISIÓN A LARGO PLAZO
+
+Todas las decisiones deberán tomarse pensando en un horizonte de varios
+años.
+
+El objetivo no es desarrollar una aplicación puntual, sino construir una
+plataforma tecnológica capaz de evolucionar de forma continua.
+
+================================================================================
+
+17. REVISIÓN Rev.2.4
+
+Los principios recogidos en este capítulo se consideran permanentes y
+deberán servir como referencia para cualquier evolución futura de
+GESTARIAN.
+
+Su modificación requerirá una revisión expresa del Document Master.
+
+================================================================================
+
+Fin del Capítulo 14
+
+================================================================================
+
+
+================================================================================
+
+CAPÍTULO 15
+
+VISIÓN ESTRATÉGICA DEL PROYECTO
+
+2026 - 2035
+
+================================================================================
+
+1. PROPÓSITO
+
+GESTARIAN nace con el objetivo de simplificar la gestión diaria de las
+pequeñas y medianas empresas.
+
+Su misión no consiste únicamente en informatizar procesos existentes,
+sino en transformar la forma de trabajar mediante automatización,
+organización e Inteligencia Artificial.
+
+El tiempo administrativo recuperado deberá convertirse en tiempo
+productivo para el profesional.
+
+================================================================================
+
+2. VISIÓN
+
+GESTARIAN aspira a convertirse en una plataforma inteligente de gestión
+empresarial adaptable a diferentes sectores profesionales.
+
+La plataforma evolucionará de forma progresiva, manteniendo siempre una
+arquitectura sólida, modular y escalable.
+
+================================================================================
+
+3. MISIÓN
+
+Ayudar a los profesionales a dedicar menos tiempo a tareas
+administrativas y más tiempo a su actividad principal.
+
+GESTARIAN automatizará todos aquellos procesos repetitivos que no aporten
+valor directo al negocio.
+
+================================================================================
+
+4. PRIMERA ETAPA
+
+El primer sector objetivo será el de los talleres de chapa y pintura.
+
+DM CAR constituye el proyecto piloto que valida el modelo funcional y la
+arquitectura sobre la que se construye GESTARIAN.
+
+La experiencia obtenida permitirá desarrollar un producto estable antes
+de ampliar el alcance a otros sectores.
+
+================================================================================
+
+5. EXPANSIÓN SECTORIAL
+
+Una vez consolidada la solución para talleres, la plataforma podrá
+adaptarse a otros profesionales.
+
+Ejemplos.
+
+• Mecánica.
+
+• Fontanería.
+
+• Electricidad.
+
+• Construcción.
+
+• Climatización.
+
+• Carpintería.
+
+• Cerrajería.
+
+• Jardinería.
+
+• Reformas.
+
+• Mantenimiento industrial.
+
+La arquitectura permanecerá prácticamente inalterada.
+
+Únicamente evolucionarán los procesos específicos de cada actividad.
+
+================================================================================
+
+6. ECOSISTEMA
+
+GESTARIAN evolucionará como un ecosistema compuesto por:
+
+GESTARIAN CORE.
+
+METIS.
+
+GESTARIAN Desktop.
+
+GESTARIAN Mobile.
+
+GESTARIAN Cloud.
+
+Portal Gestoría.
+
+Portal Cliente.
+
+APIs.
+
+Todos compartirán una única arquitectura de datos.
+
+================================================================================
+
+7. METIS
+
+METIS será el motor inteligente del ecosistema.
+
+Su evolución será continua.
+
+Incorporará progresivamente nuevas capacidades relacionadas con:
+
+Visión Artificial.
+
+OCR.
+
+Lenguaje Natural.
+
+Automatización.
+
+Asistencia Inteligente.
+
+Aprendizaje.
+
+Siempre bajo supervisión del usuario.
+
+================================================================================
+
+8. EVOLUCIÓN TECNOLÓGICA
+
+GESTARIAN deberá adaptarse a las nuevas tecnologías sin perder la
+compatibilidad con su arquitectura principal.
+
+La plataforma deberá estar preparada para integrar nuevos servicios,
+modelos de IA y sistemas externos.
+
+================================================================================
+
+9. APERTURA
+
+GESTARIAN se diseñará para integrarse con otros sistemas.
+
+Siempre que sea posible se favorecerá el uso de APIs e integraciones que
+permitan ampliar las capacidades del ecosistema.
+
+================================================================================
+
+10. INTERNACIONALIZACIÓN
+
+La arquitectura permitirá adaptar el producto a diferentes países.
+
+Las diferencias fiscales, legales o idiomáticas deberán resolverse
+mediante módulos específicos, manteniendo inalterado el núcleo del
+sistema.
+
+================================================================================
+
+11. FILOSOFÍA DE DESARROLLO
+
+GESTARIAN evolucionará mediante mejoras continuas.
+
+No se perseguirá incorporar funciones por motivos comerciales si no
+aportan un beneficio real al usuario.
+
+Cada nueva versión deberá ofrecer una mejora tangible en productividad,
+automatización o experiencia de uso.
+
+================================================================================
+
+12. COMPROMISO
+
+El proyecto mantendrá un compromiso permanente con:
+
+• Calidad.
+
+• Estabilidad.
+
+• Innovación.
+
+• Seguridad.
+
+• Escalabilidad.
+
+• Simplicidad.
+
+================================================================================
+
+13. OBJETIVO FINAL
+
+El objetivo de GESTARIAN no es convertirse únicamente en un software de
+gestión.
+
+El objetivo es crear una plataforma inteligente capaz de acompañar al
+profesional durante todo su trabajo diario.
+
+GESTARIAN deberá convertirse en un compañero de trabajo que reduzca la
+carga administrativa y permita a las empresas centrarse en aquello que
+realmente genera valor.
+
+================================================================================
+
+14. DECLARACIÓN DEL PROYECTO
+
+Cada decisión adoptada durante el desarrollo deberá responder a la
+siguiente pregunta:
+
+"¿Contribuye esta mejora a construir una plataforma más útil para el
+profesional?"
+
+Si la respuesta es afirmativa, la mejora estará alineada con la visión de
+GESTARIAN.
+
+================================================================================
+
+15. REVISIÓN Rev.3.0
+
+Con la aprobación de este capítulo se considera completada la primera
+versión del Document Master de GESTARIAN.
+
+Este documento pasa a ser la referencia oficial para la evolución del
+proyecto y deberá actualizarse mediante revisiones sucesivas conforme
+GESTARIAN incorpore nuevas funcionalidades, plataformas y modelos de
+negocio.
+
+================================================================================
+
+Fin del Capítulo 15
+
+================================================================================
+
+
+================================================================================
+
+ANEXO A
+
+PROMPT MAESTRO PARA INTELIGENCIAS ARTIFICIALES
+
+================================================================================
+
+Antes de generar cualquier respuesta o escribir cualquier línea de código,
+la Inteligencia Artificial deberá asumir que forma parte del equipo de
+desarrollo de GESTARIAN.
+
+Toda decisión deberá respetar obligatoriamente el Document Master.
+
+La IA nunca deberá tomar decisiones de arquitectura por iniciativa
+propia.
+
+Si considera que existe una alternativa mejor, deberá explicarla y
+proponer una revisión del Document Master antes de modificar la
+arquitectura.
+
+================================================================================
+
+OBJETIVO
+
+Construir una plataforma profesional, modular, escalable y mantenible.
+
+No se pretende desarrollar únicamente una aplicación.
+
+Se pretende construir un ecosistema tecnológico preparado para crecer
+durante muchos años.
+
+================================================================================
+
+PRIORIDADES
+
+1.
+
+Arquitectura.
+
+2.
+
+Calidad.
+
+3.
+
+Escalabilidad.
+
+4.
+
+Mantenimiento.
+
+5.
+
+Rendimiento.
+
+6.
+
+Experiencia de usuario.
+
+La rapidez de desarrollo nunca tendrá prioridad sobre la calidad del
+diseño.
+
+================================================================================
+
+OBLIGACIONES
+
+La IA deberá:
+
+Analizar el contexto.
+
+Leer las instrucciones.
+
+Respetar las decisiones anteriores.
+
+Reutilizar código.
+
+Reducir duplicidades.
+
+Documentar las decisiones importantes.
+
+Explicar ventajas e inconvenientes cuando existan varias alternativas.
+
+================================================================================
+
+PROHIBICIONES
+
+No duplicar código.
+
+No crear estructuras paralelas.
+
+No modificar la arquitectura.
+
+No cambiar nombres oficiales.
+
+No crear nuevos identificadores si ya existe uno equivalente.
+
+No romper compatibilidad.
+
+================================================================================
+
+ARQUITECTURA OFICIAL
+
+GESTARIAN
+
+↓
+
+GESTARIAN CORE
+
+↓
+
+METIS
+
+↓
+
+Desktop
+
+↓
+
+Mobile
+
+↓
+
+Cloud
+
+Toda propuesta deberá integrarse en esta arquitectura.
+
+================================================================================
+
+Fin del Anexo A
+
+================================================================================
+
+
+================================================================================
+
+ANEXO B
+
+CONVENCIONES
+
+================================================================================
+
+Toda carpeta utilizará nombres en inglés.
+
+Toda variable pública utilizará nombres descriptivos.
+
+Toda constante será mayúscula.
+
+Todo ID comenzará por ID_
+
+Ejemplos.
+
+ID_CLIENTE
+
+ID_VEHICULO
+
+ID_EXPEDIENTE
+
+ID_FACTURA
+
+ID_REPARACION
+
+================================================================================
+
+Toda clase tendrá una única responsabilidad.
+
+================================================================================
+
+Toda función deberá realizar una única tarea.
+
+================================================================================
+
+Nunca deberán existir funciones superiores a 100 líneas salvo causa
+justificada.
+
+================================================================================
+
+Las funciones complejas deberán dividirse en funciones auxiliares.
+
+================================================================================
+
+Todo código nuevo deberá incluir comentarios únicamente cuando sean
+necesarios para comprender decisiones de diseño.
+
+Nunca comentar código evidente.
+
+================================================================================
+
+
+================================================================================
+
+ANEXO C
+
+REGLAS PARA CURSOR
+
+================================================================================
+
+Cursor actuará como desarrollador principal del proyecto.
+
+Antes de modificar cualquier archivo deberá:
+
+Analizar dependencias.
+
+Buscar reutilización.
+
+Comprobar compatibilidad.
+
+Verificar el impacto.
+
+================================================================================
+
+Cuando genere código:
+
+No eliminará funcionalidades existentes.
+
+No modificará comportamiento salvo petición expresa.
+
+Mantendrá compatibilidad hacia atrás.
+
+================================================================================
+
+Cuando proponga mejoras:
+
+No las implementará automáticamente.
+
+Esperará aprobación.
+
+================================================================================
+
+Si detecta errores de arquitectura:
+
+Los documentará.
+
+Explicará la causa.
+
+Propondrá la solución.
+
+Nunca realizará cambios silenciosos.
+
+================================================================================
+
+Si existen dos soluciones técnicamente válidas:
+
+Elegirá siempre la más sencilla.
+
+================================================================================
+
+Antes de finalizar cualquier tarea comprobará:
+
+Compilación.
+
+Errores.
+
+Dependencias.
+
+Rendimiento.
+
+Legibilidad.
+
+================================================================================
+
+Fin del Anexo C
+
+================================================================================
+
+
+================================================================================
+
+ANEXO D
+
+FILOSOFÍA
+
+================================================================================
+
+GESTARIAN no pretende ser el software con más funciones.
+
+Pretende ser el software que más tiempo ahorra.
+
+Cada nueva función deberá ahorrar tiempo.
+
+Cada pantalla deberá reducir pulsaciones.
+
+Cada automatización deberá eliminar trabajo repetitivo.
+
+Cada decisión deberá facilitar la vida del profesional.
+
+La tecnología es un medio.
+
+Nunca un fin.
+
+================================================================================
+
+El éxito de GESTARIAN no se medirá por la cantidad de código.
+
+Se medirá por las horas de trabajo que consiga ahorrar a sus usuarios.
+
+================================================================================
+
+La simplicidad será siempre una ventaja competitiva.
+
+================================================================================
+
+Fin del Anexo D
+
+================================================================================
+
+
+ADR-001
+
+Título:
+Migración de Flet a Flutter
+
+Fecha:
+17/07/2026
+
+Estado:
+Aceptada
+
+Contexto:
+Se evaluó Flet como framework para la aplicación móvil.
+
+Decisión:
+Flutter pasa a ser el framework oficial.
+Cursor será el entorno principal de desarrollo.
+
+Motivos:
+Mayor escalabilidad.
+Mayor comunidad.
+Mejor rendimiento.
+Compatibilidad con Android e iOS.
+Mayor soporte para IA y herramientas modernas.
+
+Consecuencias:
+Todo el desarrollo móvil utilizará Flutter.
+Las futuras instrucciones para IA deberán asumir Flutter como estándar.
+

@@ -1,0 +1,632 @@
+======================================================================================================================================================
+WBV OBJECT AUDIT
+Fecha: 19/07/2026 14:10:26
+Libro: 190714.xlsm
+======================================================================================================================================================
+
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: INICIO
+------------------------------------------------------------------------------------------------------------------------
+Nombre=fondo | Tipo=Imagen | Visible=-1 | Left=0 | Top=0 | Width=965 | Height=562 | Macro= | Locked=Falso | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 24 | Tipo=AutoShape | Visible=-1 | Left=761 | Top=190 | Width=56 | Height=52 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 27 | Tipo=AutoShape | Visible=-1 | Left=1020 | Top=199 | Width=0 | Height=151 | Texto= | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=WindowsMediaPlayer1 | Tipo=ActiveX | Visible=-1 | Left=0 | Top=255 | Width=101 | Height=106 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=549 | Top=36 | Width=40 | Height=44 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=19 | Top=17 | Width=102 | Height=67 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=846 | Top=16 | Width=98 | Height=63 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_CITAS | Tipo=AutoShape | Visible=-1 | Left=328 | Top=409 | Width=96 | Height=43 | Texto=CITAS | Macro='190714.xlsm'!Ir_A_Citas | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_REGISTRO_PRESUPUESTOS | Tipo=AutoShape | Visible=-1 | Left=305 | Top=456 | Width=145 | Height=55 | Texto=REGISTRO PRESUPUESTOS | Macro='190714.xlsm'!Ir_A_Registro_Presupuestos | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=BTN_REGISTRO_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=584 | Top=466 | Width=212 | Height=45 | Texto=REGISTRO FACTURAS | Macro='190714.xlsm'!Ir_A_Registro_Facturas | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=BTN_INCIDENCIAS | Tipo=AutoShape | Visible=-1 | Left=457 | Top=466 | Width=119 | Height=45 | Texto=INCIDENCIAS | Macro='190714.xlsm'!Ir_A_Incidencias | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=BTN_ALTA_CLIENTES | Tipo=AutoShape | Visible=-1 | Left=175 | Top=465 | Width=122 | Height=44 | Texto=ALTA CLIENTE | Macro='190714.xlsm'!Ir_A_Alta_Cliente | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_BALANCES | Tipo=AutoShape | Visible=-1 | Left=805 | Top=464 | Width=141 | Height=47 | Texto=BALANCES | Macro='190714.xlsm'!Ir_A_Balances | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_BASE_DE_DATOS | Tipo=AutoShape | Visible=-1 | Left=24 | Top=465 | Width=142 | Height=46 | Texto=BASE DE DATOS | Macro='190714.xlsm'!Ir_A_Base_Datos | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=Rounded Rectangle 32 | Tipo=AutoShape | Visible=-1 | Left=190 | Top=274 | Width=128 | Height=84 | Texto= | Macro='190714.xlsm'!Ir_a_Guia_Operativa | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=LUZRADIO | Tipo=Linea | Visible=0 | Left=173 | Top=213 | Width=9 | Height=0 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=BTN_RADIO_ON_OF | Tipo=AutoShape | Visible=-1 | Left=1 | Top=136 | Width=129 | Height=82 | Texto= | Macro='190714.xlsm'!Radio_Los40_Toggle | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=329 | Top=31 | Width=128 | Height=47 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=18
+Nombre=onoF | Tipo=Linea | Visible=-1 | Left=112 | Top=163 | Width=12 | Height=2 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=501 | Top=166 | Width=519 | Height=272 | Texto=SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=20
+Nombre=BTN_MIS_DATOS | Tipo=AutoShape | Visible=-1 | Left=176 | Top=409 | Width=136 | Height=43 | Texto=MIS DATOS | Macro='190714.xlsm'!IrAMisDatos | Locked=Verdadero | Placement=3 | ZOrder=21
+Nombre=BTN_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=606 | Top=408 | Width=183 | Height=45 | Texto=FACTURAS PROVEEDORES | Macro='190714.xlsm'!IrARegistro | Locked=Verdadero | Placement=3 | ZOrder=22
+Nombre=BTN_PROVEEDORES | Tipo=AutoShape | Visible=-1 | Left=434 | Top=408 | Width=157 | Height=45 | Texto=PROVEEDORES | Macro='190714.xlsm'!IrAProveedores | Locked=Verdadero | Placement=3 | ZOrder=23
+Nombre=EQ_B_1_1 | Tipo=AutoShape | Visible=0 | Left=282 | Top=185 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=24
+Nombre=EQ_B_1_2 | Tipo=AutoShape | Visible=0 | Left=282 | Top=176 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=25
+Nombre=EQ_B_1_3 | Tipo=AutoShape | Visible=0 | Left=282 | Top=168 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=26
+Nombre=EQ_B_1_4 | Tipo=AutoShape | Visible=0 | Left=282 | Top=160 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=27
+Nombre=EQ_B_1_5 | Tipo=AutoShape | Visible=0 | Left=282 | Top=151 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=28
+Nombre=EQ_B_1_6 | Tipo=AutoShape | Visible=0 | Left=282 | Top=143 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=29
+Nombre=EQ_B_1_7 | Tipo=AutoShape | Visible=0 | Left=282 | Top=135 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=30
+Nombre=EQ_B_1_8 | Tipo=AutoShape | Visible=0 | Left=282 | Top=127 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=31
+Nombre=EQ_B_1_9 | Tipo=AutoShape | Visible=0 | Left=282 | Top=118 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=32
+Nombre=EQ_B_1_10 | Tipo=AutoShape | Visible=0 | Left=282 | Top=110 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=33
+Nombre=EQ_B_2_1 | Tipo=AutoShape | Visible=0 | Left=313 | Top=185 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=34
+Nombre=EQ_B_2_2 | Tipo=AutoShape | Visible=0 | Left=313 | Top=176 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=35
+Nombre=EQ_B_2_3 | Tipo=AutoShape | Visible=0 | Left=313 | Top=168 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=36
+Nombre=EQ_B_2_4 | Tipo=AutoShape | Visible=0 | Left=313 | Top=160 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=37
+Nombre=EQ_B_2_5 | Tipo=AutoShape | Visible=0 | Left=313 | Top=151 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=38
+Nombre=EQ_B_2_6 | Tipo=AutoShape | Visible=0 | Left=313 | Top=143 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=39
+Nombre=EQ_B_2_7 | Tipo=AutoShape | Visible=0 | Left=313 | Top=135 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=40
+Nombre=EQ_B_2_8 | Tipo=AutoShape | Visible=0 | Left=313 | Top=127 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=41
+Nombre=EQ_B_2_9 | Tipo=AutoShape | Visible=0 | Left=313 | Top=118 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=42
+Nombre=EQ_B_2_10 | Tipo=AutoShape | Visible=0 | Left=313 | Top=110 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=43
+Nombre=EQ_B_3_1 | Tipo=AutoShape | Visible=0 | Left=348 | Top=185 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=44
+Nombre=EQ_B_3_2 | Tipo=AutoShape | Visible=0 | Left=348 | Top=176 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=45
+Nombre=EQ_B_3_3 | Tipo=AutoShape | Visible=0 | Left=348 | Top=168 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=46
+Nombre=EQ_B_3_4 | Tipo=AutoShape | Visible=0 | Left=348 | Top=160 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=47
+Nombre=EQ_B_3_5 | Tipo=AutoShape | Visible=0 | Left=348 | Top=151 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=48
+Nombre=EQ_B_3_6 | Tipo=AutoShape | Visible=0 | Left=348 | Top=143 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=49
+Nombre=EQ_B_3_7 | Tipo=AutoShape | Visible=0 | Left=348 | Top=135 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=50
+Nombre=EQ_B_3_8 | Tipo=AutoShape | Visible=0 | Left=348 | Top=127 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=51
+Nombre=EQ_B_3_9 | Tipo=AutoShape | Visible=0 | Left=348 | Top=118 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=52
+Nombre=EQ_B_3_10 | Tipo=AutoShape | Visible=0 | Left=348 | Top=110 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=53
+Nombre=EQ_B_4_1 | Tipo=AutoShape | Visible=0 | Left=379 | Top=185 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=54
+Nombre=EQ_B_4_2 | Tipo=AutoShape | Visible=0 | Left=379 | Top=176 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=55
+Nombre=EQ_B_4_3 | Tipo=AutoShape | Visible=0 | Left=379 | Top=168 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=56
+Nombre=EQ_B_4_4 | Tipo=AutoShape | Visible=0 | Left=379 | Top=160 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=57
+Nombre=EQ_B_4_5 | Tipo=AutoShape | Visible=0 | Left=379 | Top=151 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=58
+Nombre=EQ_B_4_6 | Tipo=AutoShape | Visible=0 | Left=379 | Top=143 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=59
+Nombre=EQ_B_4_7 | Tipo=AutoShape | Visible=0 | Left=379 | Top=135 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=60
+Nombre=EQ_B_4_8 | Tipo=AutoShape | Visible=0 | Left=379 | Top=127 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=61
+Nombre=EQ_B_4_9 | Tipo=AutoShape | Visible=0 | Left=379 | Top=118 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=62
+Nombre=EQ_B_4_10 | Tipo=AutoShape | Visible=0 | Left=379 | Top=110 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=63
+Nombre=EQ_B_5_1 | Tipo=AutoShape | Visible=0 | Left=414 | Top=185 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=64
+Nombre=EQ_B_5_2 | Tipo=AutoShape | Visible=0 | Left=414 | Top=176 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=65
+Nombre=EQ_B_5_3 | Tipo=AutoShape | Visible=0 | Left=414 | Top=168 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=66
+Nombre=EQ_B_5_4 | Tipo=AutoShape | Visible=0 | Left=414 | Top=160 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=67
+Nombre=EQ_B_5_5 | Tipo=AutoShape | Visible=0 | Left=414 | Top=151 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=68
+Nombre=EQ_B_5_6 | Tipo=AutoShape | Visible=0 | Left=414 | Top=143 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=69
+Nombre=EQ_B_5_7 | Tipo=AutoShape | Visible=0 | Left=414 | Top=135 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=70
+Nombre=EQ_B_5_8 | Tipo=AutoShape | Visible=0 | Left=414 | Top=127 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=71
+Nombre=EQ_B_5_9 | Tipo=AutoShape | Visible=0 | Left=414 | Top=118 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=72
+Nombre=EQ_B_5_10 | Tipo=AutoShape | Visible=0 | Left=414 | Top=110 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=73
+Nombre=EQ_B_6_1 | Tipo=AutoShape | Visible=0 | Left=449 | Top=185 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=74
+Nombre=EQ_B_6_2 | Tipo=AutoShape | Visible=0 | Left=449 | Top=176 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=75
+Nombre=EQ_B_6_3 | Tipo=AutoShape | Visible=0 | Left=449 | Top=168 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=76
+Nombre=EQ_B_6_4 | Tipo=AutoShape | Visible=0 | Left=449 | Top=160 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=77
+Nombre=EQ_B_6_5 | Tipo=AutoShape | Visible=0 | Left=449 | Top=151 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=78
+Nombre=EQ_B_6_6 | Tipo=AutoShape | Visible=0 | Left=449 | Top=143 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=79
+Nombre=EQ_B_6_7 | Tipo=AutoShape | Visible=0 | Left=449 | Top=135 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=80
+Nombre=EQ_B_6_8 | Tipo=AutoShape | Visible=0 | Left=449 | Top=127 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=81
+Nombre=EQ_B_6_9 | Tipo=AutoShape | Visible=0 | Left=449 | Top=118 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=82
+Nombre=EQ_B_6_10 | Tipo=AutoShape | Visible=0 | Left=449 | Top=110 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=83
+Nombre=EQ_B_7_1 | Tipo=AutoShape | Visible=0 | Left=480 | Top=185 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=84
+Nombre=EQ_B_7_2 | Tipo=AutoShape | Visible=0 | Left=480 | Top=176 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=85
+Nombre=EQ_B_7_3 | Tipo=AutoShape | Visible=0 | Left=480 | Top=168 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=86
+Nombre=EQ_B_7_4 | Tipo=AutoShape | Visible=0 | Left=480 | Top=160 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=87
+Nombre=EQ_B_7_5 | Tipo=AutoShape | Visible=0 | Left=480 | Top=151 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=88
+Nombre=EQ_B_7_6 | Tipo=AutoShape | Visible=0 | Left=480 | Top=143 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=89
+Nombre=EQ_B_7_7 | Tipo=AutoShape | Visible=0 | Left=480 | Top=135 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=90
+Nombre=EQ_B_7_8 | Tipo=AutoShape | Visible=0 | Left=480 | Top=127 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=91
+Nombre=EQ_B_7_9 | Tipo=AutoShape | Visible=0 | Left=480 | Top=118 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=92
+Nombre=EQ_B_7_10 | Tipo=AutoShape | Visible=0 | Left=480 | Top=110 | Width=32 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=93
+Nombre=EQ_B_8_1 | Tipo=AutoShape | Visible=0 | Left=515 | Top=185 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=94
+Nombre=EQ_B_8_2 | Tipo=AutoShape | Visible=0 | Left=515 | Top=176 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=95
+Nombre=EQ_B_8_3 | Tipo=AutoShape | Visible=0 | Left=515 | Top=168 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=96
+Nombre=EQ_B_8_4 | Tipo=AutoShape | Visible=0 | Left=515 | Top=160 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=97
+Nombre=EQ_B_8_5 | Tipo=AutoShape | Visible=0 | Left=515 | Top=151 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=98
+Nombre=EQ_B_8_6 | Tipo=AutoShape | Visible=0 | Left=515 | Top=143 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=99
+Nombre=EQ_B_8_7 | Tipo=AutoShape | Visible=0 | Left=515 | Top=135 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=100
+Nombre=EQ_B_8_8 | Tipo=AutoShape | Visible=0 | Left=515 | Top=127 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=101
+Nombre=EQ_B_8_9 | Tipo=AutoShape | Visible=0 | Left=515 | Top=118 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=102
+Nombre=EQ_B_8_10 | Tipo=AutoShape | Visible=0 | Left=515 | Top=110 | Width=28 | Height=7 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=103
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: MIS DATOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 18 | Tipo=AutoShape | Visible=-1 | Left=370 | Top=36 | Width=307 | Height=61 | Texto=MIS  DATOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=174 | Top=169 | Width=608 | Height=329 | Texto=Cumplimenta tus datos para hacer funcionar el software de gestiòn.
+
+Contraseña Software: Para darte acceso, se bloquea tras tres intentos fallidos y solo el desarrollador del programa podrà solucionarlo. 
+
+Contraseña Email: Facilitada por Google tras solicitud, sirve para que Excel pueda conectar con Gmail para enviar Email a clientes y gestorìa. 
+
+MI ENLACE DRIVE PARA GESTORÌA: Necesario para que la gestorìa acceda a ver las facturas que tienes subidas a Google DRIVE. Cuando envìes el informe trimestral a la gestorìa podrà descargarlas. Solo puede acceder a la carpeta que contiene las facturas, no puede ver el resto de tu contenido.  
+
+ | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=698 | Top=49 | Width=39 | Height=27 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=210 | Top=45 | Width=116 | Height=43 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=27 | Top=19 | Width=127 | Height=72 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=776 | Top=20 | Width=147 | Height=74 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=logobw | Tipo=AutoShape | Visible=-1 | Left=800 | Top=304 | Width=113 | Height=92 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=logo | Tipo=AutoShape | Visible=-1 | Left=801 | Top=155 | Width=109 | Height=99 | Texto=l | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 23 | Tipo=AutoShape | Visible=-1 | Left=759 | Top=269 | Width=183 | Height=26 | Texto=Logo para documentos | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=Rounded Rectangle 27 | Tipo=AutoShape | Visible=-1 | Left=761 | Top=119 | Width=181 | Height=26 | Texto=Logo corporativo | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: CONFIGURACION
+------------------------------------------------------------------------------------------------------------------------
+Nombre=botonactualizardatos | Tipo=AutoShape | Visible=-1 | Left=736 | Top=609 | Width=158 | Height=30 | Texto=TEST SISTEMA | Macro='190714.xlsm'!ActualizarEstadoSistema | Locked=Verdadero | Placement=1 | ZOrder=1
+Nombre=Rounded Rectangle 3 | Tipo=AutoShape | Visible=-1 | Left=345 | Top=45 | Width=301 | Height=61 | Texto=CONFIGURACIÒN | Macro= | Locked=Verdadero | Placement=1 | ZOrder=2
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=175 | Top=168 | Width=591 | Height=327 | Texto=Cumplimenta tus datos para hacer funcionar el software de gestiòn.
+
+Contraseña Software: Para darte acceso, se bloquea tras tres intentos fallidos y solo el desarrollador del programa podrà solucionarlo. 
+
+Contraseña Email: Facilitada por Google tras solicitud, sirve para que Excel pueda conectar con Gmail para enviar Email a clientes y gestorìa. 
+
+MI ENLACE DRIVE PARA GESTORÌA: Necesario para que la gestorìa acceda a ver las facturas que tienes subidas a Google DRIVE. Cuando envìes el informe trimestral a la gestorìa podrà descargarlas. Solo puede acceder a la carpeta que contiene las facturas, no puede ver el resto de tu contenido.  
+
+ | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=659 | Top=63 | Width=36 | Height=27 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=1 | ZOrder=4
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=246 | Top=61 | Width=89 | Height=57 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=1 | ZOrder=5
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=27 | Top=19 | Width=183 | Height=100 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=1 | ZOrder=6
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=737 | Top=18 | Width=206 | Height=103 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=1 | ZOrder=7
+Nombre=estado_email | Tipo=AutoShape | Visible=-1 | Left=696 | Top=528 | Width=227 | Height=20 | Texto=EMAIL OK | Macro= | Locked=Verdadero | Placement=1 | ZOrder=8
+Nombre=estado_gmail | Tipo=AutoShape | Visible=-1 | Left=695 | Top=455 | Width=227 | Height=20 | Texto=GMAIL LISTO | Macro= | Locked=Verdadero | Placement=1 | ZOrder=9
+Nombre=estado_licencia | Tipo=AutoShape | Visible=-1 | Left=695 | Top=491 | Width=227 | Height=20 | Texto=LICENCIA PENDIENTE | Macro= | Locked=Verdadero | Placement=1 | ZOrder=10
+Nombre=estado_drive | Tipo=AutoShape | Visible=-1 | Left=697 | Top=563 | Width=227 | Height=20 | Texto=RUTA LOCAL NO EXISTE | Macro= | Locked=Verdadero | Placement=1 | ZOrder=11
+Nombre=estado_backup | Tipo=AutoShape | Visible=-1 | Left=695 | Top=386 | Width=227 | Height=20 | Texto=BACKUP NO CONFIGURADO | Macro= | Locked=Verdadero | Placement=1 | ZOrder=12
+Nombre=estado_OCR | Tipo=AutoShape | Visible=-1 | Left=693 | Top=311 | Width=227 | Height=20 | Texto=OCR MOVIL NO INSTALADO | Macro= | Locked=Verdadero | Placement=1 | ZOrder=13
+Nombre=estado_actualizacion | Tipo=AutoShape | Visible=-1 | Left=694 | Top=348 | Width=227 | Height=20 | Texto=ACTUALIZACON SIN COMPROBAR | Macro= | Locked=Verdadero | Placement=1 | ZOrder=14
+Nombre=estado_ia | Tipo=AutoShape | Visible=-1 | Left=694 | Top=421 | Width=227 | Height=20 | Texto=IA CONVERSACION NO DISPONIBLE | Macro= | Locked=Verdadero | Placement=1 | ZOrder=15
+Nombre=estado_users | Tipo=AutoShape | Visible=-1 | Left=693 | Top=275 | Width=227 | Height=20 | Texto=USUARIOS OK | Macro= | Locked=Verdadero | Placement=1 | ZOrder=16
+Nombre=estado_wbv | Tipo=AutoShape | Visible=-1 | Left=693 | Top=238 | Width=227 | Height=20 | Texto=WBV ENGINE | Macro= | Locked=Verdadero | Placement=1 | ZOrder=17
+Nombre=estado sistema | Tipo=AutoShape | Visible=-1 | Left=668 | Top=195 | Width=270 | Height=34 | Texto=ESTADO SISTEMA | Macro= | Locked=Verdadero | Placement=1 | ZOrder=18
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: USUARIOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=TextBox 1 | Tipo=TextBox | Visible=-1 | Left=374 | Top=67 | Width=256 | Height=41 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 2 | Tipo=Imagen | Visible=-1 | Left=669 | Top=3 | Width=120 | Height=105 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=activardesactivar | Tipo=AutoShape | Visible=-1 | Left=176 | Top=18 | Width=143 | Height=74 | Texto=DESACTIVAR | Macro='190714.xlsm'!ActivarDesactivarUsuario | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 7 | Tipo=AutoShape | Visible=-1 | Left=389 | Top=7 | Width=183 | Height=53 | Texto=USUARIOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=414 | Top=58 | Width=77 | Height=31 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=521 | Top=56 | Width=35 | Height=35 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=204 | Top=178 | Width=606 | Height=276 | Texto=Formulario para dar de alta un nuevo cliente.
+1. Rellena todos los campos obligatorios, cuanto màs mejor.
+2. Pulsa ALTA CLIENTE para guardarlo.
+3. Después pulsa IR A BASE DE DATOS para continuar. Tambièn puedes pulsar FACTURA DIRECTA para saltarte el paso de hacer un presupuesto. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=21 | Top=15 | Width=123 | Height=81 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=814 | Top=10 | Width=133 | Height=87 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=9
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: WBV CLOUD
+------------------------------------------------------------------------------------------------------------------------
+Nombre=botonactualizardatos | Tipo=AutoShape | Visible=-1 | Left=760 | Top=455 | Width=175 | Height=33 | Texto=DIAGNÓSTICO WBV | Macro='190714.xlsm'!ActualizarDatosEmpresa_ColumnaI_SoloI | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 2 | Tipo=AutoShape | Visible=-1 | Left=385 | Top=38 | Width=263 | Height=61 | Texto=WBV CLOUD | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=177 | Top=168 | Width=589 | Height=328 | Texto=Cumplimenta tus datos para hacer funcionar el software de gestiòn.
+
+Contraseña Software: Para darte acceso, se bloquea tras tres intentos fallidos y solo el desarrollador del programa podrà solucionarlo. 
+
+Contraseña Email: Facilitada por Google tras solicitud, sirve para que Excel pueda conectar con Gmail para enviar Email a clientes y gestorìa. 
+
+MI ENLACE DRIVE PARA GESTORÌA: Necesario para que la gestorìa acceda a ver las facturas que tienes subidas a Google DRIVE. Cuando envìes el informe trimestral a la gestorìa podrà descargarlas. Solo puede acceder a la carpeta que contiene las facturas, no puede ver el resto de tu contenido.  
+
+ | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=669 | Top=54 | Width=36 | Height=27 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=242 | Top=55 | Width=92 | Height=60 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=27 | Top=19 | Width=176 | Height=100 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=748 | Top=16 | Width=199 | Height=103 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=estado_wbv | Tipo=AutoShape | Visible=-1 | Left=772 | Top=421 | Width=151 | Height=20 | Texto=ESTADO WBV | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=estado_dispositivos | Tipo=AutoShape | Visible=-1 | Left=772 | Top=352 | Width=151 | Height=20 | Texto=DISPOSITIVOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=estado_suscripcion | Tipo=AutoShape | Visible=-1 | Left=771 | Top=277 | Width=151 | Height=20 | Texto=SUSCRIPCIÓN | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=estado_productos | Tipo=AutoShape | Visible=-1 | Left=771 | Top=315 | Width=151 | Height=20 | Texto=PRODUCTOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=estado_sincronizacion | Tipo=AutoShape | Visible=-1 | Left=771 | Top=387 | Width=151 | Height=20 | Texto=SINCRONIZACIÓN | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=estado_cloud | Tipo=AutoShape | Visible=-1 | Left=770 | Top=241 | Width=151 | Height=20 | Texto=CLOUD | Macro= | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=estado_licencia | Tipo=AutoShape | Visible=-1 | Left=771 | Top=204 | Width=151 | Height=20 | Texto=LICENCIA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=estado sistema | Tipo=AutoShape | Visible=-1 | Left=747 | Top=162 | Width=200 | Height=31 | Texto=ESTADO SISTEMA | Macro='190714.xlsm'!ActualizarDatosEmpresa_ColumnaI_SoloI | Locked=Verdadero | Placement=3 | ZOrder=15
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: ALTA CLIENTE
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 68 | Tipo=AutoShape | Visible=-1 | Left=279 | Top=99 | Width=407 | Height=41 | Texto=N U E V O   C L I E N T E | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 1 | Tipo=Imagen | Visible=-1 | Left=753 | Top=113 | Width=205 | Height=207 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_ALTA_LIENTE | Tipo=AutoShape | Visible=-1 | Left=28 | Top=434 | Width=236 | Height=82 | Texto=ALTA CLIENTE | Macro='190714.xlsm'!Guardar_Alta_Cliente | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_LIMPIAR_FORMULARIO | Tipo=AutoShape | Visible=-1 | Left=283 | Top=434 | Width=318 | Height=83 | Texto=LIMPIAR  FORMULARIO | Macro='190714.xlsm'!Limpiar_Alta_Cliente | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_IR_A_BASE_DE_DATOS | Tipo=AutoShape | Visible=-1 | Left=623 | Top=433 | Width=316 | Height=85 | Texto=IR A BASE DE DATOS | Macro='190714.xlsm'!Ir_A_Base_Datos | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=222 | Top=45 | Width=77 | Height=43 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=numerocliente | Tipo=AutoShape | Visible=-1 | Left=587 | Top=29 | Width=103 | Height=53 | Texto=6 | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=413 | Top=29 | Width=44 | Height=43 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=206 | Top=179 | Width=606 | Height=284 | Texto=Formulario para dar de alta un nuevo cliente.
+1. Rellena todos los campos obligatorios, cuanto màs mejor.
+2. Pulsa ALTA CLIENTE para guardarlo.
+3. Después pulsa IR A BASE DE DATOS para continuar. Tambièn puedes pulsar FACTURA DIRECTA para saltarte el paso de hacer un presupuesto. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=20 | Top=15 | Width=170 | Height=81 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=760 | Top=16 | Width=186 | Height=90 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=11
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: CLIENTES
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 25 | Tipo=AutoShape | Visible=-1 | Left=449 | Top=8 | Width=204 | Height=54 | Texto=CLIENTES | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 27 | Tipo=Imagen | Visible=-1 | Left=671 | Top=15 | Width=127 | Height=102 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_HISTORIAL_CLIENTES | Tipo=AutoShape | Visible=-1 | Left=296 | Top=15 | Width=134 | Height=94 | Texto=VER HISTORIAL | Macro='190714.xlsm'!VerHistorialCliente | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=474 | Top=76 | Width=35 | Height=28 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=567 | Top=79 | Width=80 | Height=28 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 30 | Tipo=AutoShape | Visible=-1 | Left=22 | Top=150 | Width=165 | Height=19 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=6
+Nombre=Rounded Rectangle 31 | Tipo=AutoShape | Visible=-1 | Left=203 | Top=147 | Width=59 | Height=21 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=7
+Nombre=Rounded Rectangle 32 | Tipo=AutoShape | Visible=-1 | Left=279 | Top=149 | Width=61 | Height=20 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=8
+Nombre=Rounded Rectangle 34 | Tipo=AutoShape | Visible=-1 | Left=352 | Top=148 | Width=218 | Height=20 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=9
+Nombre=Rounded Rectangle 36 | Tipo=AutoShape | Visible=-1 | Left=592 | Top=149 | Width=105 | Height=19 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=10
+Nombre=Rounded Rectangle 38 | Tipo=AutoShape | Visible=-1 | Left=711 | Top=148 | Width=74 | Height=20 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=11
+Nombre=Rounded Rectangle 40 | Tipo=AutoShape | Visible=-1 | Left=787 | Top=149 | Width=100 | Height=19 | Texto=   | Macro= | Locked=Verdadero | Placement=2 | ZOrder=12
+Nombre=Rounded Rectangle 4 | Tipo=AutoShape | Visible=-1 | Left=899 | Top=148 | Width=62 | Height=20 | Texto=   | Macro= | Locked=Falso | Placement=2 | ZOrder=13
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=508 | Top=260 | Width=510 | Height=281 | Texto=Esta es la base de datos de tus clientes, aquì puedes consultar su telèfono, email, direcciòn…y sus vehìculos.  Anota en la columna OBSERVACIONES cualquier dato que consideres. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_BUSCAR | Tipo=AutoShape | Visible=-1 | Left=168 | Top=14 | Width=103 | Height=93 | Texto=BUSCAR | Macro='190714.xlsm'!Abrir_Buscador_Sencillo | Locked=Verdadero | Placement=1 | ZOrder=15
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=15 | Top=14 | Width=141 | Height=94 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=816 | Top=15 | Width=133 | Height=98 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=17
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: ALTA INCIDENCIA
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 1 | Tipo=AutoShape | Visible=-1 | Left=275 | Top=90 | Width=407 | Height=41 | Texto=N U E V A   INCIDENCIA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 2 | Tipo=Imagen | Visible=-1 | Left=753 | Top=113 | Width=205 | Height=207 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 3 | Tipo=AutoShape | Visible=-1 | Left=28 | Top=453 | Width=236 | Height=63 | Texto=ALTA INCIDENCIA | Macro='190714.xlsm'!Registrar_Incidencia | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 4 | Tipo=AutoShape | Visible=-1 | Left=283 | Top=454 | Width=318 | Height=64 | Texto=LIMPIAR  FORMULARIO | Macro='190714.xlsm'!Limpiar_Alta_Incidencia | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=623 | Top=453 | Width=316 | Height=65 | Texto=IR A INCIDENCIAS | Macro='190714.xlsm'!Ir_A_Incidencias | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=248 | Top=38 | Width=134 | Height=37 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=numeroincidencia | Tipo=AutoShape | Visible=-1 | Left=404 | Top=146 | Width=154 | Height=21 | Texto=INC00003 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=442 | Top=29 | Width=44 | Height=43 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=206 | Top=179 | Width=606 | Height=284 | Texto=Formulario para dar de alta un nuevo cliente.
+1. Rellena todos los campos obligatorios, cuanto màs mejor.
+2. Pulsa ALTA CLIENTE para guardarlo.
+3. Después pulsa IR A BASE DE DATOS para continuar. Tambièn puedes pulsar FACTURA DIRECTA para saltarte el paso de hacer un presupuesto. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=20 | Top=15 | Width=170 | Height=81 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=760 | Top=16 | Width=186 | Height=90 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=11
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: VEHÍCULOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 47 | Tipo=AutoShape | Visible=-1 | Left=18 | Top=139 | Width=81 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 48 | Tipo=AutoShape | Visible=-1 | Left=115 | Top=139 | Width=70 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 49 | Tipo=AutoShape | Visible=-1 | Left=200 | Top=139 | Width=78 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 50 | Tipo=AutoShape | Visible=-1 | Left=294 | Top=139 | Width=128 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 51 | Tipo=AutoShape | Visible=-1 | Left=438 | Top=140 | Width=95 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 53 | Tipo=AutoShape | Visible=-1 | Left=545 | Top=140 | Width=86 | Height=19 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=6
+Nombre=Rounded Rectangle 54 | Tipo=AutoShape | Visible=-1 | Left=639 | Top=139 | Width=146 | Height=20 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 56 | Tipo=AutoShape | Visible=-1 | Left=791 | Top=140 | Width=163 | Height=18 | Texto=   | Macro= | Locked=Falso | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 11 | Tipo=AutoShape | Visible=-1 | Left=186 | Top=14 | Width=277 | Height=48 | Texto=V E H Ì C U L O S | Macro= | Locked=Falso | Placement=3 | ZOrder=9
+Nombre=Picture 12 | Tipo=Imagen | Visible=-1 | Left=484 | Top=17 | Width=125 | Height=107 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Falso | Placement=3 | ZOrder=10
+Nombre=BTN_HISTORIAL_VEHÌCULOS | Tipo=AutoShape | Visible=-1 | Left=647 | Top=21 | Width=121 | Height=103 | Texto=VER HISTORIAL | Macro='190714.xlsm'!Historial_Vehiculo_Desde_Vehiculos | Locked=Falso | Placement=3 | ZOrder=11
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=641 | Top=168 | Width=607 | Height=280 | Texto=                                 SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO.  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=381 | Top=77 | Width=41 | Height=30 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=219 | Top=71 | Width=106 | Height=38 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=27 | Top=16 | Width=112 | Height=101 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=819 | Top=20 | Width=118 | Height=105 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=16
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: BASE DE DATOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=BTN_GENERAR_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=567 | Top=21 | Width=124 | Height=98 | Texto=GENERAR PRESUPUESTO | Macro='190714.xlsm'!GenerarPresupuestoDesdeBaseDatos | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 40 | Tipo=AutoShape | Visible=-1 | Left=13 | Top=201 | Width=40 | Height=27 | Texto=   | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 41 | Tipo=AutoShape | Visible=-1 | Left=54 | Top=202 | Width=54 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 42 | Tipo=AutoShape | Visible=-1 | Left=110 | Top=203 | Width=50 | Height=27 | Texto=                                 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 43 | Tipo=AutoShape | Visible=-1 | Left=163 | Top=203 | Width=49 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 44 | Tipo=AutoShape | Visible=-1 | Left=216 | Top=203 | Width=85 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=Rounded Rectangle 45 | Tipo=AutoShape | Visible=-1 | Left=305 | Top=203 | Width=90 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 63 | Tipo=AutoShape | Visible=-1 | Left=400 | Top=203 | Width=123 | Height=27 | Texto=   | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 64 | Tipo=AutoShape | Visible=-1 | Left=526 | Top=202 | Width=52 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=Rounded Rectangle 65 | Tipo=AutoShape | Visible=-1 | Left=582 | Top=203 | Width=184 | Height=27 | Texto=                                 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Rounded Rectangle 66 | Tipo=AutoShape | Visible=-1 | Left=773 | Top=203 | Width=58 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=Rounded Rectangle 67 | Tipo=AutoShape | Visible=-1 | Left=839 | Top=203 | Width=99 | Height=27 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_BUSCAR | Tipo=AutoShape | Visible=-1 | Left=129 | Top=22 | Width=99 | Height=94 | Texto=BUSCAR | Macro='190714.xlsm'!Abrir_Buscador_Sencillo | Locked=Falso | Placement=3 | ZOrder=13
+Nombre=Rounded Rectangle 6 | Tipo=AutoShape | Visible=-1 | Left=342 | Top=16 | Width=223 | Height=60 | Texto=BASE  DE  DATOS | Macro= | Locked=Falso | Placement=3 | ZOrder=14
+Nombre=Picture 7 | Tipo=Imagen | Visible=-1 | Left=704 | Top=16 | Width=122 | Height=108 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Falso | Placement=3 | ZOrder=15
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=507 | Top=79 | Width=42 | Height=21 | Macro='190714.xlsm'!ToggleKiosko | Locked=Falso | Placement=3 | ZOrder=16
+Nombre=BTN_EXPORTAR_CLIENTE_Y_VEHÌCULO | Tipo=AutoShape | Visible=-1 | Left=237 | Top=23 | Width=109 | Height=94 | Texto=EXPORTAR CLIENTE Y VEHÌCULO | Macro='190714.xlsm'!Exportar_Desde_Base_Datos | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=357 | Top=74 | Width=113 | Height=41 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=18
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=639 | Top=168 | Width=607 | Height=280 | Texto=                                 SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO.  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=16 | Top=23 | Width=102 | Height=91 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=20
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=837 | Top=18 | Width=112 | Height=105 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=21
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: PRESUPUESTOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=SHAPE_FECHA_ENTRADA_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=13 | Top=176 | Width=341 | Height=96 | Texto=FECHA REGISTRADA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 28 | Tipo=Imagen | Visible=0 | Left=1019 | Top=159 | Width=0 | Height=128 | Macro='190714.xlsm'!ActivarBoton | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=TextBox 15 | Tipo=TextBox | Visible=-1 | Left=1019 | Top=398 | Width=0 | Height=21 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 13 | Tipo=AutoShape | Visible=-1 | Left=823 | Top=707 | Width=160 | Height=33 | Texto= | Macro='190714.xlsm'!AlternarIVA | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_IMPRIMIR_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=248 | Top=444 | Width=102 | Height=72 | Texto=IMPRIMIR | Macro='190714.xlsm'!Imprimir_Desde_Presupuestos | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_REGISTRAR_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=49 | Top=272 | Width=275 | Height=59 | Texto=REGISTRAR  PRESUPUESTO | Macro='190714.xlsm'!Boton_RegistrarPresupuesto_Click | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=BTN_LIMPIAR_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=21 | Top=444 | Width=92 | Height=70 | Texto=LIMPIAR  | Macro='190714.xlsm'!LimpiarPresupuesto | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 79 | Tipo=AutoShape | Visible=-1 | Left=58 | Top=23 | Width=252 | Height=36 | Texto=PRESUPUESTOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=165 | Top=82 | Width=43 | Height=31 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=Picture 84 | Tipo=Imagen | Visible=-1 | Left=125 | Top=419 | Width=114 | Height=102 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=SHAPE_ESTADO_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=70 | Top=360 | Width=231 | Height=31 | Texto=PENDIENTE | Macro='190714.xlsm'!Toggle_Aceptar_Presupuesto | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=152 | Top=138 | Width=64 | Height=36 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=197 | Top=295 | Width=611 | Height=280 | Texto=Aquì empieza la funciòn.  Es imprescindible que rellenes la fecha prevista de entrada a taller enla celda verde y después rellena los conceptos pulsando directamente en la hoja.  Pincha debajo de Unidades para añadir la cantidad y luego pulsa debajo de Precio para añadir el precio unitario y ya està, el presupuesto se calcula automàticamente.  
+IMPORTANTE, si quieres imprimir un presupuesto meramente informativo, puedes pulsar en la casilla donde està la cantidad del IVA 21% y veràs como desaparece. 
+Para imprimir el presupuesto, simplemente pulsa el botòn IMPRIMIR y te preguntarà si quieres una o dos copias.  RECUERDA registrar el presupuesto pulsando el botòn REGISTRAR PRESUPUESTO, pero antes pulsa el botòn PENDIENTE para que cambie a ACEPTADO, luego pulsa el botòn de la flecha para avanzar a la siguiente pàgina y comprueba que se ha guardado correctamente.  Vuelve a esta pàgina y cambia su estado a PENDIENTE si aùn no ha sido aceptado.  Quedarà registrado como PENDIENTE hasta que el cliente te dè una respuesta. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=23 | Top=88 | Width=114 | Height=88 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=232 | Top=89 | Width=118 | Height=89 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=logofactura | Tipo=AutoShape | Visible=-1 | Left=454 | Top=36 | Width=145 | Height=107 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=16
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: REGISTRO PRESUPUESTOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Picture 30 | Tipo=Imagen | Visible=-1 | Left=1925 | Top=97 | Width=112 | Height=72 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 41 | Tipo=AutoShape | Visible=-1 | Left=14 | Top=188 | Width=45 | Height=28 | Texto=ID | Macro= | Locked=Falso | Placement=1 | ZOrder=2
+Nombre=Rounded Rectangle 42 | Tipo=AutoShape | Visible=-1 | Left=74 | Top=188 | Width=131 | Height=28 | Texto=TITULAR  | Macro= | Locked=Falso | Placement=1 | ZOrder=3
+Nombre=Rounded Rectangle 43 | Tipo=AutoShape | Visible=-1 | Left=214 | Top=188 | Width=76 | Height=28 | Texto=MATRÌCULA                                 | Macro= | Locked=Falso | Placement=1 | ZOrder=4
+Nombre=Rounded Rectangle 44 | Tipo=AutoShape | Visible=-1 | Left=294 | Top=189 | Width=81 | Height=28 | Texto=MARCA | Macro= | Locked=Falso | Placement=1 | ZOrder=5
+Nombre=Rounded Rectangle 45 | Tipo=AutoShape | Visible=-1 | Left=380 | Top=188 | Width=63 | Height=28 | Texto=MODELO | Macro= | Locked=Falso | Placement=1 | ZOrder=6
+Nombre=Rounded Rectangle 46 | Tipo=AutoShape | Visible=-1 | Left=454 | Top=188 | Width=127 | Height=28 | Texto=CONCEPTO | Macro= | Locked=Falso | Placement=1 | ZOrder=7
+Nombre=Rounded Rectangle 47 | Tipo=AutoShape | Visible=-1 | Left=587 | Top=187 | Width=53 | Height=28 | Texto=UD | Macro= | Locked=Falso | Placement=1 | ZOrder=8
+Nombre=Rounded Rectangle 49 | Tipo=AutoShape | Visible=-1 | Left=652 | Top=189 | Width=57 | Height=28 | Texto=PRECIO | Macro= | Locked=Falso | Placement=1 | ZOrder=9
+Nombre=Rounded Rectangle 50 | Tipo=AutoShape | Visible=-1 | Left=713 | Top=185 | Width=99 | Height=32 | Texto=IMPORTE SIN IVA | Macro= | Locked=Falso | Placement=1 | ZOrder=10
+Nombre=Rounded Rectangle 51 | Tipo=AutoShape | Visible=-1 | Left=817 | Top=188 | Width=58 | Height=28 | Texto=FECHA | Macro= | Locked=Falso | Placement=1 | ZOrder=11
+Nombre=BTN_GENERAR_CITA | Tipo=AutoShape | Visible=-1 | Left=136 | Top=21 | Width=113 | Height=101 | Texto=GENERAR  CITA | Macro='190714.xlsm'!Generar_Cita | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_VER_PRESUPUESTO | Tipo=AutoShape | Visible=-1 | Left=526 | Top=26 | Width=139 | Height=101 | Texto=VER  PRESUPUESTO  | Macro='190714.xlsm'!Ver_Presupuesto_Desde_Registro | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=Rounded Rectangle 97 | Tipo=AutoShape | Visible=-1 | Left=251 | Top=12 | Width=282 | Height=52 | Texto=REGISTRO DE PRESUPUESTOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=Picture 15 | Tipo=Imagen | Visible=-1 | Left=683 | Top=21 | Width=127 | Height=111 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=440 | Top=88 | Width=50 | Height=25 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=289 | Top=71 | Width=115 | Height=52 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=Rounded Rectangle 2 | Tipo=AutoShape | Visible=-1 | Left=882 | Top=187 | Width=76 | Height=28 | Texto=ESTADO | Macro= | Locked=Falso | Placement=1 | ZOrder=18
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=571 | Top=218 | Width=605 | Height=283 | Texto=Aquì puedes ver todos tus presupuestos registrados y el estado en el que se encuentran (ACEPTADO/PENDIENTE). Cuando tu presupuesto està PENDIENTE y el cliente te da el OK, selecciònalo y pulsa el botòn VER PRESUPUESTO, te redirigirà a la pàgina PRESUPUESTOS donde lo puedes comprobar y cambiar su estado a ACEPTADO. Vuelve a esta pàgina y selecciònalo de nuevo y pulsa GENERAR CITA. El presupuesto se registrarà en tu agenda de taller CITAS. Avanza a esa pàgina para comprobar su registro. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=17 | Top=20 | Width=109 | Height=103 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=20
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=828 | Top=26 | Width=121 | Height=103 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=21
+Nombre=POPOVER_CITA_OK | Tipo=AutoShape | Visible=-1 | Left=81 | Top=401 | Width=460 | Height=220 | Texto=CITA REGISTRADA | Macro= | Locked=Verdadero | Placement=1 | ZOrder=22
+Nombre=POPOVER_CITA_OK_BTN1 | Tipo=AutoShape | Visible=-1 | Left=221 | Top=561 | Width=180 | Height=36 | Texto=IR A CITAS | Macro=POPOVER_CITA_OK_BTN1 | Locked=Verdadero | Placement=1 | ZOrder=23
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: CITAS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 34 | Tipo=AutoShape | Visible=-1 | Left=734 | Top=196 | Width=208 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=BTN_ENVIAR_A_TALLER | Tipo=AutoShape | Visible=-1 | Left=126 | Top=36 | Width=103 | Height=83 | Texto=ENVIAR   A  TALLER | Macro='190714.xlsm'!Enviar_A_Reparaciones | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 35 | Tipo=AutoShape | Visible=-1 | Left=21 | Top=194 | Width=67 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 36 | Tipo=AutoShape | Visible=-1 | Left=94 | Top=195 | Width=89 | Height=35 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 37 | Tipo=AutoShape | Visible=-1 | Left=191 | Top=195 | Width=38 | Height=35 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 40 | Tipo=AutoShape | Visible=-1 | Left=236 | Top=195 | Width=68 | Height=37 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=Rounded Rectangle 41 | Tipo=AutoShape | Visible=-1 | Left=666 | Top=196 | Width=60 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 42 | Tipo=AutoShape | Visible=-1 | Left=556 | Top=195 | Width=103 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 43 | Tipo=AutoShape | Visible=-1 | Left=471 | Top=195 | Width=78 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=Rounded Rectangle 45 | Tipo=AutoShape | Visible=-1 | Left=389 | Top=195 | Width=76 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Rounded Rectangle 47 | Tipo=AutoShape | Visible=-1 | Left=310 | Top=195 | Width=69 | Height=36 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=383 | Top=20 | Width=143 | Height=55 | Texto=C  I  T  A  S | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=Picture 8 | Tipo=Imagen | Visible=-1 | Left=560 | Top=31 | Width=124 | Height=94 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=493 | Top=83 | Width=43 | Height=38 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=386 | Top=81 | Width=81 | Height=40 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=643 | Top=168 | Width=597 | Height=282 | Texto=                                 SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO.  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=BTN_MOSTRAR_IMAGENES | Tipo=AutoShape | Visible=-1 | Left=699 | Top=36 | Width=119 | Height=84 | Texto=MOSTRAR IMÀGENES | Macro='190714.xlsm'!VerImagenesCita | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=15 | Top=35 | Width=99 | Height=86 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=18
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=836 | Top=33 | Width=109 | Height=92 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=BTN_SUBIR_IMAGENES | Tipo=AutoShape | Visible=-1 | Left=248 | Top=37 | Width=108 | Height=82 | Texto=SUBIR IMÀGENES | Macro= | Locked=Verdadero | Placement=3 | ZOrder=20
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: REPARACIONES
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 56 | Tipo=AutoShape | Visible=-1 | Left=559 | Top=134 | Width=96 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 58 | Tipo=AutoShape | Visible=-1 | Left=661 | Top=134 | Width=105 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 59 | Tipo=AutoShape | Visible=-1 | Left=60 | Top=135 | Width=47 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=Rounded Rectangle 60 | Tipo=AutoShape | Visible=-1 | Left=114 | Top=134 | Width=91 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 61 | Tipo=AutoShape | Visible=-1 | Left=211 | Top=135 | Width=112 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 62 | Tipo=AutoShape | Visible=-1 | Left=329 | Top=134 | Width=220 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=Straight Connector 67 | Tipo=Linea | Visible=-1 | Left=8 | Top=283 | Width=116 | Height=15 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 8 | Tipo=AutoShape | Visible=-1 | Left=773 | Top=134 | Width=97 | Height=30 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 114 | Tipo=AutoShape | Visible=-1 | Left=443 | Top=49 | Width=92 | Height=65 | Texto=MOSTRAR TODO | Macro='190714.xlsm'!MostrarTodo_Reparaciones | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=generarfactura | Tipo=AutoShape | Visible=-1 | Left=117 | Top=53 | Width=87 | Height=65 | Texto=GENERAR FACTURA | Macro='190714.xlsm'!Generar_Factura | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Rounded Rectangle 22 | Tipo=AutoShape | Visible=-1 | Left=218 | Top=82 | Width=88 | Height=35 | Texto=FILTRAR | Macro='190714.xlsm'!buscardato | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=486 | Top=252 | Width=603 | Height=281 | Texto=Esta pàgina es un registro de los vehìculos que tienes en reparaciòn. Observa la columna Estado, los vehículos que estàn siendo reparados se muestran "En proceso", cuando se finalice pulsa esa celda para cambiar a "Terminado". Entonces podràs generar la factura, pulsa GENERAR FACTURA para avanzar.  Para cerrar esta ventana, pulsa de nuevo la "i". | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=Rounded Rectangle 28 | Tipo=AutoShape | Visible=-1 | Left=221 | Top=37 | Width=253 | Height=47 | Texto=REPARACIONES | Macro= | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=Picture 30 | Tipo=Imagen | Visible=-1 | Left=761 | Top=47 | Width=93 | Height=76 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=398 | Top=85 | Width=27 | Height=30 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=319 | Top=82 | Width=64 | Height=33 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=verimagenesdespues | Tipo=AutoShape | Visible=-1 | Left=1103 | Top=47 | Width=0 | Height=133 | Texto=MOSTRAR IMÀGENES | Macro='190714.xlsm'!VerImagenesReparacion | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=26 | Top=52 | Width=80 | Height=66 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=18
+Nombre=Rounded Rectangle 14 | Tipo=AutoShape | Visible=-1 | Left=1103 | Top=46 | Width=0 | Height=139 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=BTN_SUBIR_IMAGENES | Tipo=AutoShape | Visible=-1 | Left=549 | Top=51 | Width=95 | Height=62 | Texto=SUBIR
+IMÀGENES | Macro='190714.xlsm'!FotosReparacion | Locked=Verdadero | Placement=3 | ZOrder=20
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=864 | Top=49 | Width=84 | Height=71 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=21
+Nombre=BTN_MOSTRAR_IMAGENES | Tipo=AutoShape | Visible=-1 | Left=658 | Top=51 | Width=93 | Height=67 | Texto=MOSTRAR IMÀGENES | Macro='190714.xlsm'!VerImagenesCita | Locked=Verdadero | Placement=3 | ZOrder=22
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: FACTURAS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 15 | Tipo=AutoShape | Visible=-1 | Left=59 | Top=27 | Width=264 | Height=40 | Texto=F A C T U R A S | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=BTN_IR_A_BALANCES | Tipo=AutoShape | Visible=-1 | Left=142 | Top=277 | Width=99 | Height=53 | Texto=IR A BALANCES | Macro='190714.xlsm'!Ir_A_Balances | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_IMPRIMIR_FACTURA | Tipo=AutoShape | Visible=-1 | Left=26 | Top=277 | Width=104 | Height=56 | Texto=IMPRIMIR FACTURA | Macro='190714.xlsm'!Imprimir_Factura_Desde_Visor | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_ENVIAR_FACTURA_EMAIL_CLIENTE | Tipo=AutoShape | Visible=-1 | Left=254 | Top=277 | Width=102 | Height=55 | Texto=ENVIAR  POR EMAIL | Macro='190714.xlsm'!Enviar_Factura_Email_Cliente | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 55 | Tipo=AutoShape | Visible=-1 | Left=26 | Top=186 | Width=331 | Height=76 | Texto=ESTADO | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=175 | Top=87 | Width=36 | Height=25 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=SHAPE_ESTADO_FACTURA | Tipo=AutoShape | Visible=-1 | Left=48 | Top=221 | Width=287 | Height=22 | Texto=ABONADA | Macro='190714.xlsm'!CambiarEstadoFactura | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Picture 61 | Tipo=Imagen | Visible=-1 | Left=30 | Top=414 | Width=130 | Height=117 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_REGISTRAR_FACTURA | Tipo=AutoShape | Visible=-1 | Left=29 | Top=347 | Width=325 | Height=54 | Texto=REGISTRAR FACTURA | Macro='190714.xlsm'!Registrar_Factura_Desde_Facturas | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=145 | Top=133 | Width=95 | Height=33 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=45 | Top=283 | Width=604 | Height=281 | Texto=Aquì te aparece la factura que acabas de generar en la pàgina REPARACIONES, comprueba sus datos e imprime o envìa por email a tu cliente para ahorrar papel. No te olvides de registrarla pulsando REGISTRAR FACTURA, pero antes recuerda marcar como ABONADA si te la han pagado. Tambièn podràs registrarla como abonada parcialmente "PARCIAL" o ponerla como IMPAGADA cuando corresponda. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=25 | Top=88 | Width=103 | Height=81 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=257 | Top=90 | Width=101 | Height=79 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=logofactura | Tipo=AutoShape | Visible=-1 | Left=514 | Top=44 | Width=113 | Height=79 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=14
+Nombre=BTN_MODIFICAR_FACTURA | Tipo=AutoShape | Visible=-1 | Left=172 | Top=421 | Width=180 | Height=52 | Texto=FACTURA MODIFICADA | Macro='190714.xlsm'!Modificar_Factura | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=SHAPE_VERSION_FACTURA | Tipo=AutoShape | Visible=-1 | Left=171 | Top=488 | Width=181 | Height=35 | Texto=VERSIÓN  B | Macro= | Locked=Verdadero | Placement=3 | ZOrder=16
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: REGISTRO FACTURAS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=SHAPE_MARCO_DORADO | Tipo=AutoShape | Visible=-1 | Left=221 | Top=67 | Width=265 | Height=34 | Texto= | Macro='190714.xlsm'!Enviar_Factura_Email_DMCar | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 3 | Tipo=Imagen | Visible=-1 | Left=2080 | Top=50 | Width=129 | Height=80 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_FILTRAR_POR_MATRÌCULA | Tipo=AutoShape | Visible=-1 | Left=229 | Top=73 | Width=141 | Height=22 | Texto=FILTRAR POR MATRICULA | Macro='190714.xlsm'!Buscar_Filtrar_General | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_CARGAR_FACTURA | Tipo=AutoShape | Visible=-1 | Left=127 | Top=27 | Width=84 | Height=69 | Texto=CARGAR FACTURA  | Macro='190714.xlsm'!Cargar_Factura | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_ABRIR_CARPETA_IMÀGENES | Tipo=AutoShape | Visible=-1 | Left=726 | Top=27 | Width=102 | Height=77 | Texto=ABRIR CARPETA PC | Macro='190714.xlsm'!Abrir_Carpeta_Facturas | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 19 | Tipo=AutoShape | Visible=-1 | Left=379 | Top=22 | Width=261 | Height=38 | Texto=REGISTRO DE FACTURAS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=Picture 22 | Tipo=Imagen | Visible=-1 | Left=615 | Top=24 | Width=100 | Height=84 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=577 | Top=70 | Width=21 | Height=24 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 32 | Tipo=AutoShape | Visible=-1 | Left=661 | Top=148 | Width=59 | Height=31 | Texto=IMPORTE | Macro= | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=Rounded Rectangle 33 | Tipo=AutoShape | Visible=-1 | Left=727 | Top=148 | Width=50 | Height=31 | Texto=FECHA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Rounded Rectangle 35 | Tipo=AutoShape | Visible=-1 | Left=784 | Top=147 | Width=39 | Height=31 | Texto=EST | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=Rounded Rectangle 11275 | Tipo=AutoShape | Visible=-1 | Left=16 | Top=149 | Width=39 | Height=31 | Texto= ID  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=Rounded Rectangle 11276 | Tipo=AutoShape | Visible=-1 | Left=68 | Top=149 | Width=120 | Height=31 | Texto=TITULAR | Macro= | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=Rounded Rectangle 11277 | Tipo=AutoShape | Visible=-1 | Left=197 | Top=149 | Width=74 | Height=31 | Texto=MATRÌCULA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=Rounded Rectangle 11278 | Tipo=AutoShape | Visible=-1 | Left=278 | Top=149 | Width=58 | Height=31 | Texto=MARCA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=Rounded Rectangle 11279 | Tipo=AutoShape | Visible=-1 | Left=343 | Top=149 | Width=62 | Height=31 | Texto=MODELO | Macro= | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=Rounded Rectangle 11280 | Tipo=AutoShape | Visible=-1 | Left=413 | Top=148 | Width=135 | Height=31 | Texto=CONCEPTO | Macro= | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=Rounded Rectangle 11281 | Tipo=AutoShape | Visible=-1 | Left=557 | Top=148 | Width=36 | Height=31 | Texto=UD | Macro= | Locked=Verdadero | Placement=3 | ZOrder=18
+Nombre=Rounded Rectangle 11282 | Tipo=AutoShape | Visible=-1 | Left=600 | Top=148 | Width=55 | Height=31 | Texto=PRECIO | Macro= | Locked=Verdadero | Placement=3 | ZOrder=19
+Nombre=Rounded Rectangle 8 | Tipo=AutoShape | Visible=-1 | Left=831 | Top=142 | Width=38 | Height=39 | Texto=Nº PR | Macro= | Locked=Verdadero | Placement=3 | ZOrder=20
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=501 | Top=68 | Width=62 | Height=32 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=21
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=876 | Top=142 | Width=76 | Height=38 | Texto=FACTURA ENTREGADA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=22
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=514 | Top=236 | Width=605 | Height=284 | Texto=Aquí verás las facturas registradas y su estado. Puedes buscar una factura determinada pulsando FILTRAR POR MATRÍCULA  y ver el trabajo realizado pulsando VER TRABAJO. Selecciona y pulsa CARGAR FACTURA para ver el documento completo. El botón ABRIR CARPETA PC te llevará directamente a la carpeta guardada donde están todas tus facturas emitidas. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=23
+Nombre=BTN_MOSTRAR_TODO | Tipo=AutoShape | Visible=-1 | Left=381 | Top=74 | Width=98 | Height=22 | Texto=MOSTRAR TODO | Macro='190714.xlsm'!Mostrar_Todo | Locked=Verdadero | Placement=1 | ZOrder=24
+Nombre=BTN_VER_TRABAJO_SELECCIONADO | Tipo=AutoShape | Visible=-1 | Left=227 | Top=29 | Width=136 | Height=30 | Texto=VER TRABAJO | Macro='190714.xlsm'!VerTrabajo | Locked=Verdadero | Placement=3 | ZOrder=25
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=15 | Top=26 | Width=102 | Height=69 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=26
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=844 | Top=24 | Width=101 | Height=82 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=27
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: TRABAJOS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=SHAPE_MATRÌCULA | Tipo=AutoShape | Visible=-1 | Left=154 | Top=64 | Width=113 | Height=27 | Texto=4584KXX | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Picture 4 | Tipo=Imagen | Visible=-1 | Left=402 | Top=14 | Width=124 | Height=101 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=364 | Top=69 | Width=28 | Height=13 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=286 | Top=62 | Width=59 | Height=27 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 10 | Tipo=AutoShape | Visible=-1 | Left=133 | Top=16 | Width=270 | Height=37 | Texto=TRABAJOS REALIZADOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 8 | Tipo=AutoShape | Visible=-1 | Left=347 | Top=222 | Width=89 | Height=25 | Texto=FECHA | Macro= | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=Rounded Rectangle 11 | Tipo=AutoShape | Visible=-1 | Left=447 | Top=222 | Width=316 | Height=25 | Texto=CONCEPTOS | Macro= | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 12 | Tipo=AutoShape | Visible=-1 | Left=205 | Top=222 | Width=128 | Height=25 | Texto=ID | Macro= | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_IR_A_REGISTRO_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=539 | Top=15 | Width=131 | Height=96 | Texto=IR A REGISTRO FACTURAS | Macro='190714.xlsm'!Ir_A_Registro_Facturas | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=27 | Top=14 | Width=111 | Height=89 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=832 | Top=14 | Width=120 | Height=99 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=BTN_MOSTRAR_IMÀGENES | Tipo=AutoShape | Visible=-1 | Left=687 | Top=16 | Width=129 | Height=92 | Texto=MOSTRAR IMÀGENES | Macro='190714.xlsm'!VerImagenesTrabajo | Locked=Verdadero | Placement=3 | ZOrder=12
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: BALANCES
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Picture 3 | Tipo=Imagen | Visible=-1 | Left=676 | Top=11 | Width=97 | Height=89 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=311 | Top=151 | Width=128 | Height=31 | Texto=BALANCE IVA | Macro='190714.xlsm'!Rectánguloesquinasredondeadas61_Haga_clic_en | Locked=Verdadero | Placement=1 | ZOrder=2
+Nombre=Rounded Rectangle 6 | Tipo=AutoShape | Visible=-1 | Left=319 | Top=238 | Width=271 | Height=46 | Texto=FILTRA POR TRIMESTRE, GENERA INFORME FISCAL Y ENVÍALO POR EMAIL  A TU GESTORÍA | Macro= | Locked=Verdadero | Placement=1 | ZOrder=3
+Nombre=Rounded Rectangle 7 | Tipo=AutoShape | Visible=-1 | Left=449 | Top=152 | Width=152 | Height=33 | Texto=BALANCE INGRESOS/GASTOS | Macro= | Locked=Verdadero | Placement=1 | ZOrder=4
+Nombre=Rounded Rectangle 13 | Tipo=AutoShape | Visible=-1 | Left=469 | Top=361 | Width=119 | Height=12 | Texto=AÑO | Macro= | Locked=Verdadero | Placement=1 | ZOrder=5
+Nombre=BTN_GENERAR_INFORME_TRIMESTRAL | Tipo=AutoShape | Visible=-1 | Left=313 | Top=312 | Width=137 | Height=22 | Texto=GENERAR INFORME | Macro='190714.xlsm'!Generar_Informe_IVA_Trimestral | Locked=Verdadero | Placement=1 | ZOrder=6
+Nombre=Rounded Rectangle 16 | Tipo=AutoShape | Visible=-1 | Left=324 | Top=393 | Width=129 | Height=19 | Texto=FILTRAR | Macro='190714.xlsm'!FiltrarBalanceTrimestral | Locked=Verdadero | Placement=1 | ZOrder=7
+Nombre=BTN_VER_FACTURA_EN_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=308 | Top=87 | Width=87 | Height=47 | Texto=VER  FACTURA | Macro='190714.xlsm'!VerFacturaDesdeBalances | Locked=Verdadero | Placement=1 | ZOrder=8
+Nombre=BTN_BUSCAR | Tipo=AutoShape | Visible=-1 | Left=410 | Top=86 | Width=85 | Height=49 | Texto=BUSCAR  FACTURA | Macro='190714.xlsm'!Abrir_Buscador_Sencillo | Locked=Verdadero | Placement=1 | ZOrder=9
+Nombre=Rounded Rectangle 21 | Tipo=AutoShape | Visible=-1 | Left=315 | Top=35 | Width=281 | Height=39 | Texto=B A L A N C E S | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=TextBox 22 | Tipo=TextBox | Visible=-1 | Left=679 | Top=391 | Width=103 | Height=21 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=Rectangle 23 | Tipo=AutoShape | Visible=-1 | Left=709 | Top=450 | Width=88 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=TextBox 37 | Tipo=TextBox | Visible=-1 | Left=1073 | Top=335 | Width=15 | Height=21 | Texto= | Macro= | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=623 | Top=35 | Width=27 | Height=33 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_RESETEAR | Tipo=AutoShape | Visible=-1 | Left=519 | Top=457 | Width=63 | Height=26 | Texto=RESET | Macro='190714.xlsm'!ResetearDatosBalances | Locked=Verdadero | Placement=1 | ZOrder=15
+Nombre=BTN_FILTRAR_FACTURAS_POR_ESTADO | Tipo=AutoShape | Visible=-1 | Left=510 | Top=87 | Width=90 | Height=50 | Texto=FILTRO ESTADO | Macro='190714.xlsm'!CicloFiltroEstadoBalances | Locked=Verdadero | Placement=1 | ZOrder=16
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=188 | Top=34 | Width=74 | Height=33 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=BTN_ENVIAR_INFORME | Tipo=AutoShape | Visible=-1 | Left=336 | Top=445 | Width=160 | Height=43 | Texto=ENVIA  EL INFORME
+ A TU GESTORIA | Macro='190714.xlsm'!Enviar_Trimestre_Gestoria | Locked=Verdadero | Placement=1 | ZOrder=18
+Nombre=Rounded Rectangle 44 | Tipo=AutoShape | Visible=-1 | Left=313 | Top=349 | Width=285 | Height=74 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=19
+Nombre=Rounded Rectangle 45 | Tipo=AutoShape | Visible=-1 | Left=325 | Top=361 | Width=126 | Height=12 | Texto=TRIMESTRE | Macro= | Locked=Verdadero | Placement=1 | ZOrder=20
+Nombre=BTN_ABRIR_INFORME_TRIMESTRAL | Tipo=AutoShape | Visible=-1 | Left=468 | Top=312 | Width=129 | Height=22 | Texto=ABRIR INFORME | Macro='190714.xlsm'!AbrirInforme_Click | Locked=Verdadero | Placement=1 | ZOrder=21
+Nombre=mostrartodo | Tipo=AutoShape | Visible=-1 | Left=467 | Top=393 | Width=120 | Height=19 | Texto=MOSTRAR TODO | Macro='190714.xlsm'!MostrarTodoBalances | Locked=Verdadero | Placement=1 | ZOrder=22
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=414 | Top=269 | Width=577 | Height=743 | Texto=Esta pàgina es donde el programa analiza la economìa de la empresa. 
+Tienes dos columnas diferenciadas a cada lado y un panel central de informaciòn ràpida.  
+La columna de la izquierda muestra todas tus facturas emitidas, su estado, importe e iva y total. 
+La columna de la derecha lo mismo pero de las facturas que tù pagas, ahì anotaràs los importes de las facturas de tus gastos.
+En el panel central veràs que hay Balance de IVA y Balance de ingresos/gastos.   
+Podràs buscar y ver facturas seleccionando la celda de la factura y pulsando el botòn correspondiente. Tambièn podràs filtrar para ver el listado de facturas segùn su estado, ABONADAS, PARCIALMENTE ABONADAS, IMPAGADAS y PENDIENTE. 
+Hay un botòn de RESETEO, este botòn elimina todos los datos guardados por la actividad generada, se requiere doble validaciòn antes de ello.  Màs abajo veràs el botòn Trimestre y Año, justo debajo introduce el trimestre 1,2,3 ò 4 y justo al lado el año y pulsa FILTRAR, veràs como solo se muestran las facturas de ese trimestre y los calculos de los balances se actualizan. Para salir de esta funciòn pulsa LIMPIAR y volveràs a ver todas las facturas. Genera un informe trimestral para la gestorìa cuando le entregues todas las facturas, sòlo pulsa INFORME y se te generarà. 
+Detalle: En la carpeta destino de las facturas se generan automaticamente informes de IVA  trimestrales en pdf que quedan guardados. Todas tus facturas se guardan en las carpetas correspondientes por trimestre y año para que no las pierdas. 
+ | Macro= | Locked=Verdadero | Placement=3 | ZOrder=23
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=21 | Top=17 | Width=128 | Height=68 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=24
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=820 | Top=19 | Width=125 | Height=66 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=25
+Nombre=BTN_IR_A_RFP | Tipo=AutoShape | Visible=-1 | Left=653 | Top=111 | Width=248 | Height=25 | Texto=FACTURAS RECIBIDAS | Macro='190714.xlsm'!IrARegistro | Locked=Verdadero | Placement=1 | ZOrder=26
+Nombre=BTN_IR_A_REGISTRO_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=35 | Top=108 | Width=248 | Height=25 | Texto=FACTURAS EMITIDAS | Macro='190714.xlsm'!Ir_A_Registro_Facturas | Locked=Verdadero | Placement=1 | ZOrder=27
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: PROVEEDORES
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 12 | Tipo=AutoShape | Visible=-1 | Left=69 | Top=175 | Width=191 | Height=19 | Texto=PROVEEDOR  | Macro= | Locked=Falso | Placement=3 | ZOrder=1
+Nombre=IR_RFP | Tipo=AutoShape | Visible=-1 | Left=922 | Top=17 | Width=149 | Height=114 | Texto=IR AL REGISTRO DE FACTURAS DE PROVEEDORES | Macro='190714.xlsm'!IrARegistro | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_INCORPORAR_FACTURA_PROVEEDOR | Tipo=AutoShape | Visible=-1 | Left=637 | Top=19 | Width=132 | Height=109 | Texto=INCORPORAR FACTURA | Macro='190714.xlsm'!incorporarfactura | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_BUSCAR | Tipo=AutoShape | Visible=-1 | Left=780 | Top=19 | Width=130 | Height=111 | Texto=BUSCAR PROVEEDOR | Macro='190714.xlsm'!buscardato | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 16 | Tipo=AutoShape | Visible=-1 | Left=190 | Top=3 | Width=448 | Height=68 | Texto=PROVEEDORES | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 24 | Tipo=AutoShape | Visible=-1 | Left=289 | Top=175 | Width=97 | Height=19 | Texto=CIF | Macro= | Locked=Falso | Placement=3 | ZOrder=6
+Nombre=Rounded Rectangle 26 | Tipo=AutoShape | Visible=-1 | Left=402 | Top=178 | Width=185 | Height=19 | Texto=Email | Macro= | Locked=Falso | Placement=3 | ZOrder=7
+Nombre=Rounded Rectangle 27 | Tipo=AutoShape | Visible=-1 | Left=610 | Top=179 | Width=112 | Height=19 | Texto=Teléfono  | Macro= | Locked=Falso | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 2 | Tipo=AutoShape | Visible=-1 | Left=751 | Top=179 | Width=564 | Height=19 | Texto=Domicilio  | Macro= | Locked=Falso | Placement=3 | ZOrder=9
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=575 | Top=208 | Width=593 | Height=283 | Texto=Listado de tus proveedores,cumplimenta los campos para dar de alta a cualquier proveedor.  Para guardar las facturas de tus proveedores selecciona el proveedor en la lista,  pulsa el botón INCORPORAR FACTURA. Se cargarán sus datos en la ventana REGISTRO FACTURAS PROVEEDORES donde podrás añadir el resto de datos de la factura a incorporar. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Picture 3 | Tipo=Imagen | Visible=-1 | Left=1088 | Top=6 | Width=161 | Height=145 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=484 | Top=86 | Width=42 | Height=31 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=275 | Top=78 | Width=116 | Height=54 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=18 | Top=15 | Width=187 | Height=120 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=1258 | Top=16 | Width=186 | Height=117 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=15
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: REGISTRO FACTURAS PROVEEDORES
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 1 | Tipo=AutoShape | Visible=-1 | Left=234 | Top=132 | Width=140 | Height=18 | Texto=PROVEEDOR  | Macro= | Locked=Falso | Placement=1 | ZOrder=1
+Nombre=BTN_VALIDAR_FACTURA_PROVEEDOR | Tipo=AutoShape | Visible=-1 | Left=366 | Top=49 | Width=87 | Height=56 | Texto=VALIDAR FACTURA | Macro='190714.xlsm'!ValidarFactura | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_INCORPORAR_FACTURA_PROVEEDOR | Tipo=AutoShape | Visible=-1 | Left=232 | Top=48 | Width=107 | Height=59 | Texto=INCORPORAR FACTURA | Macro='190714.xlsm'!incorporarfactura2 | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_BUSCAR | Tipo=AutoShape | Visible=-1 | Left=483 | Top=49 | Width=91 | Height=57 | Texto=BUSCAR FACTURA | Macro='190714.xlsm'!buscardato | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=201 | Top=6 | Width=524 | Height=47 | Texto=REGISTRO FACTURAS PROVEEDORES | Macro= | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=Rounded Rectangle 12 | Tipo=AutoShape | Visible=-1 | Left=398 | Top=132 | Width=107 | Height=19 | Texto=BASE IMPONIBLE | Macro= | Locked=Falso | Placement=1 | ZOrder=6
+Nombre=Rounded Rectangle 13 | Tipo=AutoShape | Visible=-1 | Left=527 | Top=133 | Width=55 | Height=19 | Texto=IVA | Macro= | Locked=Falso | Placement=1 | ZOrder=7
+Nombre=Rounded Rectangle 14 | Tipo=AutoShape | Visible=-1 | Left=627 | Top=134 | Width=73 | Height=19 | Texto=TOTAL | Macro= | Locked=Falso | Placement=1 | ZOrder=8
+Nombre=Rounded Rectangle 16 | Tipo=AutoShape | Visible=-1 | Left=54 | Top=132 | Width=69 | Height=19 | Texto=FACTURA | Macro= | Locked=Falso | Placement=1 | ZOrder=9
+Nombre=Rounded Rectangle 18 | Tipo=AutoShape | Visible=-1 | Left=143 | Top=131 | Width=68 | Height=19 | Texto=FECHA | Macro= | Locked=Falso | Placement=1 | ZOrder=10
+Nombre=Rounded Rectangle 22 | Tipo=AutoShape | Visible=-1 | Left=743 | Top=133 | Width=106 | Height=19 | Texto=ESTADO | Macro= | Locked=Falso | Placement=1 | ZOrder=11
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=118 | Top=248 | Width=607 | Height=283 | Texto=Listado de todas tus facturas recibidas, para incorporar una nueva factura pulsa el botón INCORPORAR FACTURA y te llevará al listado de proveedores para que lo selecciones. Después rellena todos los datos que faltan y finalmente tras comprobar que son correctos pulsa el botón VALIDAR para validar la factura, fíjate que cambia la celda de Pendiente a Validada, tu factura se habrá registrado correctamente para la gestoría.
+Puedes detraer facturas de BALANCES seleccionando aquí la factura previamente validada y pulsando VALIDAR, te aparecerá un mensaje de confirmación "FACTURA DETRAÍDA". Pulsando de nuevo VALIDAR podrás volver a registrarla. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_IR_A_BALANCES | Tipo=AutoShape | Visible=-1 | Left=603 | Top=49 | Width=98 | Height=60 | Texto=IR A BALANCES | Macro='190714.xlsm'!Ir_A_Balances | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=Picture 27 | Tipo=Imagen | Visible=-1 | Left=720 | Top=38 | Width=95 | Height=86 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=154 | Top=25 | Width=29 | Height=17 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=134 | Top=62 | Width=72 | Height=41 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=16
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=14 | Top=29 | Width=100 | Height=76 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=17
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=835 | Top=32 | Width=107 | Height=79 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=18
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: INCIDENCIAS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Rounded Rectangle 12 | Tipo=AutoShape | Visible=-1 | Left=275 | Top=108 | Width=116 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=1
+Nombre=Rounded Rectangle 20 | Tipo=AutoShape | Visible=-1 | Left=83 | Top=108 | Width=80 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=2
+Nombre=Rounded Rectangle 22 | Tipo=AutoShape | Visible=-1 | Left=177 | Top=107 | Width=75 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=3
+Nombre=Rounded Rectangle 26 | Tipo=AutoShape | Visible=-1 | Left=895 | Top=107 | Width=65 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=4
+Nombre=Rounded Rectangle 28 | Tipo=AutoShape | Visible=-1 | Left=29 | Top=109 | Width=38 | Height=24 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=5
+Nombre=Picture 68 | Tipo=Imagen | Visible=-1 | Left=1510 | Top=63 | Width=31 | Height=0 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=BTN_IR_BASE_DATOS | Tipo=AutoShape | Visible=-1 | Left=281 | Top=56 | Width=163 | Height=31 | Texto=BASE DE DATOS | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_IR_ALTA_INCIDENCIA | Tipo=AutoShape | Visible=-1 | Left=464 | Top=55 | Width=234 | Height=31 | Texto=IR  A  ALTA  INCIDENCIA | Macro='190714.xlsm'!IrAAltaIncidencia | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=Rounded Rectangle 19 | Tipo=AutoShape | Visible=-1 | Left=294 | Top=6 | Width=302 | Height=39 | Texto=INCIDENCIAS | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=578 | Top=245 | Width=613 | Height=283 | Texto=Aquí puedes anotar lo que quieras para recordar o para que te avise más adelante, por ejemplo una cita particular o profesional.  Rellena la columna FECHA con el día que quieras que te avise, el botón INCIDENCIAS se iluminará en la hoja INICIO, simplemente pulsa sobre él para que te redirija al origen del aviso. | Macro= | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=Picture 14 | Tipo=Imagen | Visible=-1 | Left=717 | Top=10 | Width=92 | Height=88 | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=213 | Top=14 | Width=42 | Height=31 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=182 | Top=55 | Width=81 | Height=29 | Texto=i | Macro=TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=13
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=26 | Top=12 | Width=136 | Height=76 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=14
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=828 | Top=15 | Width=133 | Height=73 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=15
+Nombre=Rounded Rectangle 1 | Tipo=AutoShape | Visible=-1 | Left=413 | Top=107 | Width=64 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=16
+Nombre=Rounded Rectangle 3 | Tipo=AutoShape | Visible=-1 | Left=487 | Top=108 | Width=99 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=17
+Nombre=Rounded Rectangle 5 | Tipo=AutoShape | Visible=-1 | Left=598 | Top=107 | Width=85 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=18
+Nombre=Rounded Rectangle 7 | Tipo=AutoShape | Visible=-1 | Left=699 | Top=107 | Width=82 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=19
+Nombre=Rounded Rectangle 8 | Tipo=AutoShape | Visible=-1 | Left=789 | Top=107 | Width=92 | Height=29 | Texto= | Macro= | Locked=Verdadero | Placement=1 | ZOrder=20
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: TOOLTIPS
+------------------------------------------------------------------------------------------------------------------------
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=639 | Top=166 | Width=608 | Height=281 | Texto=                                 SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO.  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 4 | Tipo=AutoShape | Visible=-1 | Left=1248 | Top=44 | Width=99 | Height=21 | Texto=>> | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=Rounded Rectangle 6 | Tipo=AutoShape | Visible=-1 | Left=1129 | Top=42 | Width=111 | Height=21 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=boton_info | Tipo=AutoShape | Visible=-1 | Left=168 | Top=15 | Width=45 | Height=24 | Texto=i | Macro='190714.xlsm'!TooltipDM | Locked=Verdadero | Placement=3 | ZOrder=4
+
+------------------------------------------------------------------------------------------------------------------------
+HOJA: GUÍA OPERATIVA
+------------------------------------------------------------------------------------------------------------------------
+Nombre=Picture 10 | Tipo=Imagen | Visible=-1 | Left=0 | Top=0 | Width=1425 | Height=743 | Macro= | Locked=Verdadero | Placement=3 | ZOrder=1
+Nombre=Rounded Rectangle 12 | Tipo=AutoShape | Visible=-1 | Left=11 | Top=618 | Width=185 | Height=34 | Texto= | Macro='190714.xlsm'!Volver_Atras | Locked=Verdadero | Placement=3 | ZOrder=2
+Nombre=BTN_IR_BASE_DATOS | Tipo=AutoShape | Visible=-1 | Left=219 | Top=107 | Width=211 | Height=286 | Texto= | Macro='190714.xlsm'!Ir_A_Base_Datos | Locked=Verdadero | Placement=3 | ZOrder=3
+Nombre=BTN_IR_REPARACIONES | Tipo=AutoShape | Visible=-1 | Left=694 | Top=108 | Width=221 | Height=286 | Texto= | Macro='190714.xlsm'!Ir_A_Reparaciones | Locked=Verdadero | Placement=3 | ZOrder=4
+Nombre=BTN_IR_ALTA_CLIENTE | Tipo=AutoShape | Visible=-1 | Left=16 | Top=110 | Width=166 | Height=283 | Texto= | Macro='190714.xlsm'!Ir_A_Alta_Cliente | Locked=Verdadero | Placement=3 | ZOrder=5
+Nombre=BTN_IR_INICIO | Tipo=AutoShape | Visible=-1 | Left=36 | Top=8 | Width=148 | Height=82 | Texto= | Macro='190714.xlsm'!Ir_A_Inicio | Locked=Verdadero | Placement=3 | ZOrder=6
+Nombre=BTN_IR_FACTURAS | Tipo=AutoShape | Visible=-1 | Left=945 | Top=110 | Width=201 | Height=284 | Texto= | Macro='190714.xlsm'!Ir_A_Registro_Facturas | Locked=Verdadero | Placement=3 | ZOrder=7
+Nombre=BTN_IR_BALANCES | Tipo=AutoShape | Visible=-1 | Left=1187 | Top=108 | Width=222 | Height=286 | Texto= | Macro='190714.xlsm'!Ir_A_Balances | Locked=Verdadero | Placement=3 | ZOrder=8
+Nombre=BTN_HOJA_ANTERIOR | Tipo=AutoShape | Visible=-1 | Left=207 | Top=51 | Width=71 | Height=29 | Texto=<< | Macro='190714.xlsm'!Ir_a_Hoja_Anterior_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=9
+Nombre=BTN_HOJA_SIGUIENTE | Tipo=AutoShape | Visible=-1 | Left=537 | Top=51 | Width=77 | Height=30 | Texto=>> | Macro='190714.xlsm'!Ir_a_Hoja_Siguiente_Ciclica | Locked=Verdadero | Placement=3 | ZOrder=10
+Nombre=BTN_ALTERNAR_FULLSCREEN | Tipo=Imagen | Visible=-1 | Left=666 | Top=71 | Width=28 | Height=16 | Macro='190714.xlsm'!ToggleKiosko | Locked=Verdadero | Placement=3 | ZOrder=11
+Nombre=tooltip_info | Tipo=AutoShape | Visible=0 | Left=615 | Top=160 | Width=580 | Height=268 | Texto=                                 SOFTWARE PROPIEDAD DE DM CAR.   
+   Prohibida su reproducciòn total o parcial sin consentimiento del titular.
+
+Desde aquí accedes a todas las pantallas pulsando en los botones de abajo, incluso puedes escuchar los 40 principales online...y si no te lo crees haz clic en la radio y disfruta.  
+Cuando visites las pàginas veràs que en todas hay botones con  flechas para ir a la siguiente y el Logo DM CAR, pulsando ese logo siempre regresaràs a esta pantalla, INICIO.  | Macro= | Locked=Verdadero | Placement=3 | ZOrder=12
+Nombre=BTN_IR_CITAS | Tipo=AutoShape | Visible=-1 | Left=458 | Top=110 | Width=210 | Height=282 | Texto= | Macro='190714.xlsm'!Ir_A_Citas | Locked=Verdadero | Placement=3 | ZOrder=13

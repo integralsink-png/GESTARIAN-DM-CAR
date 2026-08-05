@@ -1,0 +1,532 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Increase small text sizes by 50% ── */
+.text-xs { font-size: 1.125rem !important; line-height: 1.4 !important; }
+.text-sm { font-size: 1.3125rem !important; line-height: 1.4 !important; }
+
+:root {
+  --color-fondo: #1c1c1e;
+  --color-texto: #f5f5f7;
+  --color-glow: #40e0d0;
+  --color-linea: #8e8e93;
+  --color-relleno: #2c2c2e;
+  --color-relleno-btn: #2c2c2e;
+  --color-relleno-paneles: #2c2c2e;
+  --modo-diurno: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: 'Calibri Light', Calibri, 'Segoe UI', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #48484a; }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Force all text color utilities to use the configurable --color-texto ── */
+.text-white, .text-white\/30, .text-white\/40, .text-white\/50, .text-white\/60,
+.text-slate-400, .text-slate-500, .text-slate-600,
+.text-gray-400, .text-gray-500, .text-gray-600, .text-gray-800,
+.text-black {
+  color: var(--color-texto) !important;
+}
+
+/* ── GESTARIAN button system ── */
+.gestarian-btn {
+  --btn-glow: var(--color-glow);
+  --btn-line: var(--color-linea);
+  background: var(--color-relleno-btn);
+}
+
+.gestarian-btn-primary {
+  background: var(--color-relleno-btn);
+  color: var(--color-texto);
+  border: 1px solid var(--color-linea);
+  box-shadow: 0 0 8px -1px var(--color-glow);
+}
+.gestarian-btn-primary:hover {
+  border-color: var(--color-glow);
+  box-shadow: 0 0 16px -1px var(--color-glow);
+}
+
+/* ── Form fields use the relleno color ── */
+.gestarian-field {
+  background: var(--color-relleno);
+  border: 1px solid #3a3a3c;
+  color: var(--color-texto);
+}
+.gestarian-field:focus {
+  border-color: var(--color-glow);
+}
+
+/* ── RoadFlow step states ── */
+.gestarian-step-done { color: var(--color-glow); }
+.gestarian-step-done > div:first-child {
+  border-color: var(--color-glow);
+  color: var(--color-glow);
+}
+.gestarian-step-current { color: var(--color-glow); }
+.gestarian-step-current > div:first-child {
+  border-color: var(--color-glow);
+  color: var(--color-glow);
+  box-shadow: 0 0 12px -2px var(--color-glow);
+}
+.gestarian-step-blocked { color: #ff453a; }
+.gestarian-step-blocked > div:first-child {
+  border-color: #ff453a;
+  color: #ff453a;
+}
+.gestarian-step-pending { color: #636366; }
+.gestarian-step-pending > div:first-child {
+  border-color: #3a3a3c;
+  color: #636366;
+}
+
+/* ── Animations ── */
+.gestarian-bubble { animation: gestarian-slide-in 0.3s ease-out; }
+.gestarian-dock { animation: gestarian-dock-in 0.4s ease-out; }
+.gestarian-fade-in { animation: gestarian-fade-in 0.25s ease-out; }
+
+@keyframes gestarian-slide-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes gestarian-dock-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+@keyframes gestarian-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── No-animation mode ── */
+.gestarian-no-anim * {
+  animation: none !important;
+  transition: none !important;
+}
+
+/* ── TITANIUM SERIES special title ── */
+.titanium-series {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+}
+.titanium-series .titanium {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: center;
+}
+.titanium-series .series {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.5em;
+  text-align: center;
+  margin-top: 0.25rem;
+  padding-left: 0.5em;
+}
+
+/* ── Floating icon system ── */
+.gestarian-icon {
+  background: rgba(28, 28, 30, 0.85);
+  border: 1px solid var(--color-linea);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: var(--color-linea);
+}
+.gestarian-icon:hover {
+  border-color: var(--color-glow);
+  color: var(--color-glow);
+  box-shadow: 0 0 12px -2px var(--color-glow);
+}
+.gestarian-icon-round {
+  border-radius: 50%;
+}
+.gestarian-icon-glow-white {
+  box-shadow: 0 0 10px -1px rgba(255,255,255,0.4);
+}
+.gestarian-icon-glow-turquoise {
+  border-color: #afeeee;
+  color: #afeeee;
+  box-shadow: 0 0 10px -1px #40e0d0;
+}
+.gestarian-icon-glow-lilac {
+  border-color: #c8a2c8;
+  color: #c8a2c8;
+  box-shadow: 0 0 10px -1px #c8a2c8;
+}
+
+/* ── Mobile line thickness override ── */
+@media (max-width: 767px) {
+  .gestarian-icon {
+    border-width: 0.5px;
+  }
+  .gestarian-nav-btn {
+    border-width: 0.5px;
+  }
+}
+
+/* ── Navigation buttons (Avanzar/Retroceder) ── */
+.gestarian-nav-btn {
+  background: rgba(28, 28, 30, 0.85);
+  border: 1px solid #8e8e93;
+  border-radius: 8px;
+  color: #8e8e93;
+  box-shadow: 0 0 8px -1px rgba(255,255,255,0.3);
+  transition: all 0.2s ease;
+}
+.gestarian-nav-btn:hover {
+  border-color: #f5f5f7;
+  color: #f5f5f7;
+  box-shadow: 0 0 12px -1px rgba(255,255,255,0.5);
+}
+
+/* ── Power button ── */
+.gestarian-power-btn {
+  background: rgba(28, 28, 30, 0.85);
+  border: 1px solid #afeeee;
+  border-radius: 50%;
+  color: #afeeee;
+  box-shadow: 0 0 12px -1px #40e0d0;
+  transition: all 0.2s ease;
+}
+.gestarian-power-btn:hover {
+  box-shadow: 0 0 20px -1px #40e0d0;
+}
+
+/* ── Mobile full-screen mode ── */
+.mobile-mode {
+  height: 100dvh;
+  overflow: hidden;
+}
+.mobile-mode main {
+  height: 100dvh;
+  padding-bottom: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-mode main > div {
+  padding-top: 0.5rem;
+  padding-bottom: 5rem;
+}
+.mobile-mode::-webkit-scrollbar {
+  display: none;
+}
+.mobile-mode main::-webkit-scrollbar {
+  display: none;
+}
+.mobile-mode {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.mobile-mode main {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Panel background (cards, containers with buttons) ── */
+.gestarian-panel {
+  background: var(--color-relleno-paneles);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Background image overlay ── */
+.gestarian-bg-image {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  object-fit: cover;
+  object-position: bottom center;
+  width: 100%;
+  height: 100%;
+}
+.gestarian-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(to bottom, rgba(28,28,30,0.4), rgba(28,28,30,0.7));
+  pointer-events: none;
+}
+
+/* ── Footer nav text buttons (PC / Tablet landscape) ── */
+.gestarian-footer-text-btn {
+  background: rgba(28, 28, 30, 0.85);
+  border: 1px solid #8e8e93;
+  border-radius: 6px;
+  color: #8e8e93;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.55rem 1.1rem;
+  aspect-ratio: 3 / 1;
+  min-width: 7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+.gestarian-footer-text-btn:hover {
+  border-color: var(--color-glow);
+  color: var(--color-glow);
+  box-shadow: 0 0 8px -1px var(--color-glow);
+}
+.gestarian-footer-text-btn.active {
+  border-color: var(--color-glow);
+  color: var(--color-glow);
+  box-shadow: 0 0 8px -1px var(--color-glow);
+}
+
+/* ── Button variant classes (all use button fill) ── */
+.gestarian-btn-secondary {
+  background: var(--color-relleno-btn) !important;
+  color: var(--color-texto);
+  border: 1px solid var(--color-linea);
+}
+.gestarian-btn-secondary:hover {
+  border-color: var(--color-glow);
+  box-shadow: 0 0 8px -2px var(--color-glow);
+}
+.gestarian-btn-danger {
+  background: var(--color-relleno-btn) !important;
+  color: #ff453a;
+  border: 1px solid rgba(255, 69, 58, 0.4);
+}
+.gestarian-btn-danger:hover {
+  border-color: #ff453a;
+  box-shadow: 0 0 8px -2px #ff453a;
+}
+.gestarian-btn-ghost {
+  background: var(--color-relleno-btn) !important;
+  color: var(--color-texto);
+  opacity: 0.55;
+  border: 1px solid transparent;
+}
+.gestarian-btn-ghost:hover {
+  opacity: 1;
+  border-color: var(--color-linea);
+}
+
+/* ── Force panel fill on ALL panel-like containers ── */
+div[class*="bg-bg-700"],
+div[class*="bg-bg-800"],
+div[class*="bg-bg-900"],
+div[class*="bg-bg-950"],
+nav[class*="bg-bg"] {
+  background-color: var(--color-relleno-paneles) !important;
+}
+
+/* ── Force field fill on ALL form elements ── */
+input:not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+textarea,
+select,
+option {
+  background-color: var(--color-relleno) !important;
+  color: var(--color-texto) !important;
+  border: 1px solid var(--color-linea) !important;
+}
+input:not([type="color"]):not([type="checkbox"]):not([type="radio"]):focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-glow) !important;
+}
+
+/* ── Auto-show/hide header and footer ── */
+.gestarian-header-bar {
+  transform: translateY(-100%);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+.gestarian-header-bar.visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.gestarian-footer-bar {
+  transform: translateY(100%);
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+.gestarian-footer-bar.visible {
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* ── Footer gray background (when not on Inicio) ── */
+.gestarian-footer-gray {
+  background: rgba(128, 128, 128, 0.7);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Day / Night mode overlays ── */
+.gestarian-day-mode::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.08);
+  mix-blend-mode: screen;
+}
+.gestarian-night-mode::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.15);
+  mix-blend-mode: multiply;
+}
+
+/* ── Paper document (presupuestos / facturas) — always white bg, black text ── */
+.gestarian-paper {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+.gestarian-paper h1,
+.gestarian-paper h2,
+.gestarian-paper h3,
+.gestarian-paper p,
+.gestarian-paper span,
+.gestarian-paper td,
+.gestarian-paper th,
+.gestarian-paper div {
+  color: #1a1a1a !important;
+}
+.gestarian-paper .gestarian-paper-muted {
+  color: #666666 !important;
+}
+.gestarian-paper input,
+.gestarian-paper select,
+.gestarian-paper textarea {
+  background: #fafafa !important;
+  color: #000000 !important;
+  border: 1px solid #d4d4d4 !important;
+}
+.gestarian-paper input:focus,
+.gestarian-paper select:focus,
+.gestarian-paper textarea:focus {
+  background: #f5f5f5 !important;
+  border-color: #999999 !important;
+}
+.gestarian-paper .gestarian-paper-btn {
+  background: #ffffff !important;
+  color: #1a1a1a !important;
+  border: 1px solid #d4d4d4 !important;
+}
+.gestarian-paper .gestarian-paper-btn:hover {
+  background: #f5f5f5 !important;
+}
+.gestarian-paper .gestarian-paper-btn-primary {
+  background: #f0f0f0 !important;
+  color: #000000 !important;
+  border: 1px solid #b0b0b0 !important;
+}
+.gestarian-paper .gestarian-paper-btn-primary:hover {
+  background: #e8e8e8 !important;
+}
+
+/* ── Mobile/tablet portrait menu panel — light gray bg, dark bold text ── */
+.gestarian-mobile-menu {
+  background: #f0f0f0 !important;
+}
+.gestarian-mobile-menu a,
+.gestarian-mobile-menu button {
+  color: #333333 !important;
+  font-weight: 700 !important;
+}
+.gestarian-mobile-menu a:hover,
+.gestarian-mobile-menu button:hover {
+  background: #e0e0e0 !important;
+}
+.gestarian-mobile-menu .gestarian-mobile-menu-active {
+  background: #dcdcdc !important;
+  color: #1a1a1a !important;
+}
+
+/* ── METIS assistant ── */
+.gestarian-metis-panel {
+  background-color: rgba(44, 44, 46, 0.95) !important;
+}
+.gestarian-metis-btn {
+  animation: metis-pulse 2s ease-in-out infinite;
+}
+@keyframes metis-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(34, 211, 238, 0); }
+}
+
+/* ── Mobile Dropdown Menu styling & Cascade Animation ── */
+.gestarian-mobile-menu-overlay {
+  background-color: rgba(0, 0, 0, 0.8) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+@keyframes menuCascadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(35px) scale(0.65);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.gestarian-menu-item-cascade {
+  animation: menuCascadeUp 2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.gestarian-menu-text-glow {
+  color: #ffffff !important;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 1), 0 0 30px rgba(255, 255, 255, 0.7);
+  font-size: 1.5rem !important;
+  line-height: 1.3 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.25em !important;
+  font-weight: 100 !important;
+  border-width: 1px !important;
+}
+
+/* Animated border lines for control panel cards */
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(64, 224, 208, 0.3);
+    box-shadow: 0 0 5px rgba(64, 224, 208, 0.2);
+  }
+  50% {
+    border-color: rgba(64, 224, 208, 0.6);
+    box-shadow: 0 0 15px rgba(64, 224, 208, 0.4);
+  }
+}
+
+.gestarian-animated-border {
+  animation: borderGlow 3s ease-in-out infinite;
+}

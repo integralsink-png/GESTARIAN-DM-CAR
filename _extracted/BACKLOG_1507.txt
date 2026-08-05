@@ -1,0 +1,121 @@
+GESTARIAN BACKLOG v0.1
+Última actualización: 15/07/2026
+
+====================================================================
+PRIORIDAD ALTA
+====================================================================
+
+BL-0001
+Auditoría completa del XLSM del piloto DM CAR.
+
+BL-0002
+Clasificación de funcionalidades CORE y específicas del piloto.
+
+BL-0003
+Documentación funcional del sistema actual.
+
+BL-0004
+Consolidación del repositorio documental GESTARIAN.
+
+BL-0005
+Implantación y mantenimiento del sistema:
+BACKLOG + DECISIONES + ROADMAP.
+
+BL-0006
+Diseño del flujo vertical de información.
+
+BL-0007
+Diseño del flujo transversal de información.
+
+BL-0008
+Diseño del sistema de atribuciones y competencias.
+
+BL-0009
+Diseño del sistema de escalado automático.
+
+BL-0010
+Diseño del sistema de auditoría y trazabilidad.
+
+====================================================================
+PRIORIDAD MEDIA
+====================================================================
+
+BL-0011
+Diseño de la arquitectura OCR.
+
+BL-0012
+Diseño de la arquitectura MOBILE.
+
+BL-0013
+Diseño de la arquitectura AI ENGINE.
+
+BL-0014
+Diseño del modelo multiorganización.
+
+BL-0015
+Integración con organismos supervisores.
+
+BL-0016
+Diseño del modelo UTE y consorcios.
+
+BL-0017
+Diseño del modelo de concursos públicos.
+
+BL-0018
+Diseño del modelo de candidaturas complejas.
+
+====================================================================
+PRIORIDAD BAJA
+====================================================================
+
+BL-0019
+Sincronización automática con Google Drive.
+
+BL-0020
+Actualización automática del backlog mediante IA.
+
+BL-0021
+Actualización automática del roadmap mediante IA.
+
+BL-0022
+Panel ejecutivo de estado del proyecto.
+
+BL-0023
+Arquitectura SaaS.
+
+BL-0024
+Arquitectura Cloud.
+
+BL-0025
+API pública para integraciones externas.
+
+====================================================================
+DECISIONES ESTRATÉGICAS YA ADOPTADAS
+====================================================================
+
+DEC-0001
+GESTARIAN es el producto principal.
+
+DEC-0002
+DM CAR queda definido como taller piloto y banco de pruebas.
+
+DEC-0003
+La estructura documental se organiza mediante numeración.
+
+DEC-0004
+Google Drive será el repositorio documental principal.
+
+DEC-0005
+La raíz documental del proyecto queda definida como:
+
+00_DIRECCION
+01_IDENTIDAD
+02_CORE
+03_MOBILE
+04_OCR_ENGINE
+05_AI_ENGINE
+06_PILOTOS
+07_CLIENTES
+08_DEPLOYMENTS
+99_BACKUP
+

@@ -1,0 +1,125 @@
+GESTARIAN ROADMAP v0.1
+Última actualización: 15/07/2026
+
+====================================================================
+FASE 0 - FUNDACIÓN DEL PROYECTO
+====================================================================
+
+[X] Definición de GESTARIAN como producto principal.
+[X] Definición de DM CAR como taller piloto.
+[X] Creación de la estructura documental en Drive.
+[X] Definición de CORE, MOBILE, OCR y AI ENGINE.
+[X] Implantación del sistema BACKLOG, DECISIONES y ROADMAP.
+[ ] Auditoría técnica completa del XLSM piloto.
+[ ] Identificación del núcleo funcional reutilizable.
+
+====================================================================
+FASE 1 - CONSOLIDACIÓN DEL PILOTO DM CAR
+====================================================================
+
+[ ] Auditoría de módulos VBA.
+[ ] Auditoría de UserForms.
+[ ] Auditoría de macros activas.
+[ ] Auditoría de Shapes y objetos.
+[ ] Clasificación CORE vs funcionalidades específicas.
+[ ] Limpieza y consolidación del código heredado.
+[ ] Documentación funcional del sistema actual.
+
+====================================================================
+FASE 2 - OCR ENGINE
+====================================================================
+
+[X] OCR de matrículas.
+[ ] OCR de permisos de circulación.
+[ ] OCR de fichas técnicas.
+[X] OCR de facturas.
+[ ] OCR de albaranes.
+[ ] OCR documental genérico.
+[ ] Clasificación automática documental.
+[ ] OCR sobre imágenes técnicas.
+
+====================================================================
+FASE 3 - MOBILE
+====================================================================
+
+[X] Desarrollo base de aplicación Flutter.
+[ ] Captura automática de matrículas.
+[ ] Captura documental.
+[X] Captura fotográfica.
+[ ] Sincronización con CORE.
+[ ] Trabajo offline.
+[ ] Sincronización en la nube.
+
+====================================================================
+FASE 4 - AI ENGINE
+====================================================================
+
+[ ] Clasificación automática de información.
+[X] Asistente operativo inteligente.
+[ ] Automatización documental.
+[ ] Agentes especializados.
+[ ] Generación automática de informes.
+[ ] Recomendaciones operativas.
+[ ] Detección de incidencias.
+
+====================================================================
+FASE 5 - GOVERNANCE CORE
+====================================================================
+
+[ ] Definición del flujo vertical de información.
+[ ] Definición del flujo transversal de información.
+[ ] Matriz de responsabilidades.
+[ ] Definición de atribuciones y competencias.
+[ ] Límites de decisión.
+[ ] Escalado automático de incidencias.
+[ ] Escalado automático de decisiones.
+[ ] Confirmación de recepción.
+[ ] Confirmación de resolución.
+[ ] Auditoría y trazabilidad completa.
+
+====================================================================
+FASE 6 - MULTIORGANIZACIÓN
+====================================================================
+
+[ ] Coordinación entre empresas privadas.
+[ ] Coordinación entre administraciones públicas.
+[ ] Soporte para UTEs.
+[ ] Organismos supervisores.
+[ ] Diputaciones.
+[ ] Ayuntamientos.
+[ ] Ministerios.
+[ ] Organismos internacionales.
+
+====================================================================
+FASE 7 - LICITACIONES Y CANDIDATURAS
+====================================================================
+
+[ ] Gestión de concursos públicos.
+[ ] Gestión de licitaciones.
+[ ] Gestión de grandes proyectos públicos.
+[ ] Gestión de parques y obras públicas.
+[ ] Gestión de candidaturas internacionales.
+[ ] Gestión de grandes eventos.
+[ ] Gestión de candidaturas olímpicas.
+
+====================================================================
+FASE 8 - PRIMER CLIENTE REAL
+====================================================================
+
+[ ] Implantación fuera del entorno piloto.
+[ ] Validación comercial.
+[ ] Formación de usuarios.
+[ ] Soporte técnico.
+[ ] Ajustes operativos.
+
+====================================================================
+FASE 9 - ESCALADO
+====================================================================
+
+[ ] Soporte multiempresa.
+[ ] Soporte multicliente.
+[ ] Arquitectura SaaS.
+[ ] Arquitectura Cloud.
+[ ] API pública.
+[ ] Ecosistema abierto.
+

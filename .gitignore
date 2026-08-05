@@ -1,0 +1,22 @@
+# dependencies
+node_modules/
+
+# build outputs
+dist/
+
+# environment
+.env
+.env.*
+.firebase/
+
+# misc
+.DS_Store
+*.log
+*.zip
+*.tgz
+*.tsbuildinfo
+.vscode/
+.idea/
+
+# OS files
+Thumbs.db

@@ -1,0 +1,406 @@
+================================================================================
+
+GESTARIAN
+
+00_LEEME_PRIMERO.txt
+
+INSTRUCCIONES GENERALES PARA LA IA DE DESARROLLO
+
+Versión 1.0
+
+================================================================================
+
+BIENVENIDO AL PROYECTO GESTARIAN
+
+Este paquete contiene toda la información necesaria para comprender y
+desarrollar GESTARIAN.
+
+GESTARIAN NO es una aplicación sencilla.
+
+Es una plataforma profesional de gestión empresarial que nace a partir
+de un proyecto piloto desarrollado en Microsoft Excel VBA denominado
+DM CAR.
+
+El objetivo NO consiste en convertir el archivo Excel en una aplicación.
+
+El objetivo consiste en ANALIZAR el sistema actual y RECONSTRUIRLO con
+una arquitectura moderna, escalable y preparada para evolucionar durante
+años.
+
+================================================================================
+
+ANTES DE ESCRIBIR UNA SOLA LÍNEA DE CÓDIGO
+
+Debes actuar como:
+
+• Arquitecto de Software.
+
+• Analista Funcional.
+
+• Diseñador de Base de Datos.
+
+• Especialista UX/UI.
+
+• Desarrollador Senior.
+
+No debes comenzar el desarrollo inmediatamente.
+
+Primero debes comprender completamente el proyecto.
+
+================================================================================
+
+ORDEN OBLIGATORIO DE ANÁLISIS
+
+FASE 1
+
+Leer completamente el DOCUMENT MASTER.
+
+Comprender:
+
+• Filosofía del proyecto.
+
+• Arquitectura.
+
+• Objetivos.
+
+• Estrategia.
+
+• METIS.
+
+• Desktop.
+
+• Mobile.
+
+• Cloud.
+
+• Modelo comercial.
+
+• Principios de desarrollo.
+
+================================================================================
+
+FASE 2
+
+Leer el ROADMAP.
+
+Comprender:
+
+• Orden de desarrollo.
+
+• Prioridades.
+
+• Evolución prevista.
+
+================================================================================
+
+FASE 3
+
+Leer el BACKLOG.
+
+Comprender:
+
+• Funciones pendientes.
+
+• Mejoras.
+
+• Automatizaciones.
+
+• Evolución futura.
+
+================================================================================
+
+FASE 4
+
+Analizar el archivo XLSM.
+
+No copiar el Excel.
+
+Analizar:
+
+• Flujo de trabajo.
+
+• Lógica de negocio.
+
+• Relaciones entre datos.
+
+• Procesos administrativos.
+
+• Automatizaciones.
+
+================================================================================
+
+FASE 5
+
+Analizar el código VBA.
+
+Extraer únicamente:
+
+• Reglas de negocio.
+
+• Procesos.
+
+• Automatizaciones.
+
+• Validaciones.
+
+• Relaciones entre módulos.
+
+No trasladar literalmente el código VBA.
+
+================================================================================
+
+FASE 6
+
+Analizar el inventario de objetos.
+
+Comprender:
+
+• Interfaz actual.
+
+• Formularios.
+
+• Botones.
+
+• Controles.
+
+• Organización visual.
+
+================================================================================
+
+FASE 7
+
+Construir una propuesta de arquitectura completamente nueva basada en:
+
+GESTARIAN
+
+↓
+
+GESTARIAN CORE
+
+↓
+
+METIS
+
+↓
+
+Desktop
+
+↓
+
+Mobile
+
+↓
+
+Cloud
+
+================================================================================
+
+IMPORTANTE
+
+El Excel actual representa únicamente un prototipo funcional.
+
+No debe convertirse directamente.
+
+Debe servir únicamente para comprender el funcionamiento del negocio.
+
+================================================================================
+
+OBJETIVO PRINCIPAL
+
+Crear una plataforma profesional.
+
+Escalable.
+
+Modular.
+
+Preparada para varios sectores profesionales.
+
+Preparada para integrar Inteligencia Artificial.
+
+Preparada para evolucionar durante muchos años.
+
+================================================================================
+
+ANTES DE DESARROLLAR
+
+Debes entregar primero un informe indicando:
+
+1. Qué has entendido del proyecto.
+
+2. Qué arquitectura propones.
+
+3. Qué modelo de datos utilizarás.
+
+4. Qué módulos crearás.
+
+5. Qué pantallas tendrá el sistema.
+
+6. Qué posibles problemas has detectado.
+
+7. Qué mejoras propones.
+
+NO debes comenzar el desarrollo hasta completar este análisis.
+
+================================================================================
+
+TECNOLOGÍA OBJETIVO
+
+Framework principal:
+
+Flutter.
+
+Entorno de desarrollo:
+
+Cursor.
+
+La aplicación deberá poder evolucionar hacia:
+
+• Android.
+
+• iOS.
+
+• Web.
+
+• Desktop.
+
+Compartiendo la misma arquitectura.
+
+================================================================================
+
+OBJETIVO FINAL
+
+No desarrollar una simple aplicación.
+
+Construir el ecosistema GESTARIAN.
+
+================================================================================
+
+FIN DEL DOCUMENTO
+
+================================================================================
+
+GESTARIAN ROADMAP v0.1
+Última actualización: 15/07/2026
+
+====================================================================
+FASE 0 - FUNDACIÓN DEL PROYECTO
+====================================================================
+
+[X] Definición de GESTARIAN como producto principal.
+[X] Definición de DM CAR como taller piloto.
+[X] Creación de la estructura documental en Drive.
+[X] Definición de CORE, MOBILE, OCR y AI ENGINE.
+[X] Implantación del sistema BACKLOG, DECISIONES y ROADMAP.
+[ ] Auditoría técnica completa del XLSM piloto.
+[ ] Identificación del núcleo funcional reutilizable.
+
+====================================================================
+FASE 1 - CONSOLIDACIÓN DEL PILOTO DM CAR
+====================================================================
+
+[ ] Auditoría de módulos VBA.
+[ ] Auditoría de UserForms.
+[ ] Auditoría de macros activas.
+[ ] Auditoría de Shapes y objetos.
+[ ] Clasificación CORE vs funcionalidades específicas.
+[ ] Limpieza y consolidación del código heredado.
+[ ] Documentación funcional del sistema actual.
+
+====================================================================
+FASE 2 - OCR ENGINE
+====================================================================
+
+[ ] OCR de matrículas.
+[ ] OCR de permisos de circulación.
+[ ] OCR de fichas técnicas.
+[ ] OCR de facturas.
+[ ] OCR de albaranes.
+[ ] OCR documental genérico.
+[ ] Clasificación automática documental.
+[ ] OCR sobre imágenes técnicas.
+
+====================================================================
+FASE 3 - MOBILE
+====================================================================
+
+[ ] Desarrollo base de aplicación Flutter.
+[ ] Captura automática de matrículas.
+[ ] Captura documental.
+[ ] Captura fotográfica.
+[ ] Sincronización con CORE.
+[ ] Trabajo offline.
+[ ] Sincronización en la nube.
+
+====================================================================
+FASE 4 - AI ENGINE
+====================================================================
+
+[ ] Clasificación automática de información.
+[ ] Asistente operativo inteligente.
+[ ] Automatización documental.
+[ ] Agentes especializados.
+[ ] Generación automática de informes.
+[ ] Recomendaciones operativas.
+[ ] Detección de incidencias.
+
+====================================================================
+FASE 5 - GOVERNANCE CORE
+====================================================================
+
+[ ] Definición del flujo vertical de información.
+[ ] Definición del flujo transversal de información.
+[ ] Matriz de responsabilidades.
+[ ] Definición de atribuciones y competencias.
+[ ] Límites de decisión.
+[ ] Escalado automático de incidencias.
+[ ] Escalado automático de decisiones.
+[ ] Confirmación de recepción.
+[ ] Confirmación de resolución.
+[ ] Auditoría y trazabilidad completa.
+
+====================================================================
+FASE 6 - MULTIORGANIZACIÓN
+====================================================================
+
+[ ] Coordinación entre empresas privadas.
+[ ] Coordinación entre administraciones públicas.
+[ ] Soporte para UTEs.
+[ ] Organismos supervisores.
+[ ] Diputaciones.
+[ ] Ayuntamientos.
+[ ] Ministerios.
+[ ] Organismos internacionales.
+
+====================================================================
+FASE 7 - LICITACIONES Y CANDIDATURAS
+====================================================================
+
+[ ] Gestión de concursos públicos.
+[ ] Gestión de licitaciones.
+[ ] Gestión de grandes proyectos públicos.
+[ ] Gestión de parques y obras públicas.
+[ ] Gestión de candidaturas internacionales.
+[ ] Gestión de grandes eventos.
+[ ] Gestión de candidaturas olímpicas.
+
+====================================================================
+FASE 8 - PRIMER CLIENTE REAL
+====================================================================
+
+[ ] Implantación fuera del entorno piloto.
+[ ] Validación comercial.
+[ ] Formación de usuarios.
+[ ] Soporte técnico.
+[ ] Ajustes operativos.
+
+====================================================================
+FASE 9 - ESCALADO
+====================================================================
+
+[ ] Soporte multiempresa.
+[ ] Soporte multicliente.
+[ ] Arquitectura SaaS.
+[ ] Arquitectura Cloud.
+[ ] API pública.
+[ ] Ecosistema abierto.
+
