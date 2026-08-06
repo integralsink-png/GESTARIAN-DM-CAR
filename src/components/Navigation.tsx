@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Camera, Mic, Power, ChevronLeft, ChevronRight, Minimize2 } from 'lucide-react'
+import { Menu, X, Camera, Mic, Power, ChevronLeft, ChevronRight, Minimize2, Smartphone } from 'lucide-react'
 import { useState } from 'react'
 import { NAV_ITEMS, FOOTER_NAV, openCameraWithoutPlate } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
@@ -40,7 +40,7 @@ export function DesktopHeader() {
   const navigate = useNavigate()
   const location = useLocation()
   const { playSound, themeSettings } = useTheme()
-  const { headerVisible, setHeaderHover, exitFullscreen } = useUIState()
+  const { setHeaderHover, exitFullscreen } = useUIState()
   const { mobileMode } = useMobileMode()
   const isInicio = location.pathname === '/'
 
@@ -55,7 +55,7 @@ export function DesktopHeader() {
     <header
       onMouseEnter={() => setHeaderHover(true)}
       onMouseLeave={() => setHeaderHover(false)}
-      className={`hidden lg:flex gestarian-header-bar ${headerVisible ? 'visible' : ''} gestarian-panel fixed top-0 left-0 right-0 z-50 items-center gap-2 px-4 py-2.5 border-b border-bg-700`}
+      className="hidden md:flex gestarian-header-bar visible gestarian-panel fixed top-0 left-0 right-0 z-50 items-center gap-2 px-4 py-2.5 border-b border-bg-700"
     >
       {!isInicio && (
         <button
@@ -127,13 +127,14 @@ export function DesktopHeader() {
 export function MobileFooter() {
   const { playSound } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
+  const navigate = useNavigate()
 
   return (
     <>
       <nav className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex items-center justify-between px-6 gap-2">
         {/* OCR Camera (Izquierda) */}
         <button
-          onClick={() => { playSound('click'); openCameraWithoutPlate() }}
+          onClick={() => { playSound('click'); navigate('/presupuesto-hibrido', { state: { startCamera: true } }) }}
           className="w-16 h-16 rounded-full bg-transparent text-[#40e0d0] shadow-[0_0_20px_rgba(64,224,208,0.4),inset_0_0_20px_rgba(64,224,208,0.2)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0"
           style={{ filter: 'drop-shadow(0 0 5px rgba(64,224,208,1))' }}
           aria-label="Cámara"

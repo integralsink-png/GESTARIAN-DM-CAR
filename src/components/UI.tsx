@@ -67,6 +67,8 @@ export function Input({
   type = 'text',
   placeholder,
   addonRight,
+  className = '',
+  inputClassName = '',
 }: {
   label: string
   value: string

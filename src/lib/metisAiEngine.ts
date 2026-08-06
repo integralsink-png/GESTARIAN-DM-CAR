@@ -93,16 +93,98 @@ export async function processMetisMessage(
   userText: string,
   context?: MetisContext
 ): Promise<MetisResponse> {
-  const apiKey = localStorage.getItem('gestarian_groq_api_key')?.trim() || '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'
-  if (apiKey) {
+  // Prefer Hugging Face Inference API if configured (free tier available).
+  const hfKey = localStorage.getItem('gestarian_hf_api_key')?.trim()
+  if (hfKey) {
     try {
-      return await processWithGroq(apiKey, userText, context)
+      return await processWithHuggingFace(hfKey, userText, context)
     } catch (e: any) {
-      console.error('Error con Groq API:', e)
-      return { text: "Tengo la API Key configurada, pero ha fallado la conexión con Groq: " + (e.message || "Error desconocido") + ". Por favor, revisa que la clave sea correcta." }
+      console.error('Error with Hugging Face Inference API:', e)
+      // fallthrough to other engines
     }
   }
+
+  // Next preference: Groq (Llama 3) if API key present
+  const groqKey = localStorage.getItem('gestarian_groq_api_key')?.trim() || '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'
+  if (groqKey) {
+    try {
+      return await processWithGroq(groqKey, userText, context)
+    } catch (e: any) {
+      console.error('Error con Groq API:', e)
+      // fallthrough to basic engine
+    }
+  }
+
   return processWithBasicEngine(userText, context)
+}
+
+
+// ── HUGGING FACE INFERENCE ENGINE ──
+async function processWithHuggingFace(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
+  // Choose a sensible default model that is widely available on Hugging Face.
+  // `meta-llama/Llama-2-7b-chat` is a high quality open-source chat model (may require acceptance of license on HF).
+  // If you prefer a smaller model, override via `gestarian_hf_model` in localStorage.
+  const defaultModel = localStorage.getItem('gestarian_hf_model') || 'meta-llama/Llama-2-7b-chat'
+
+  const systemInstruction = `Eres METIS, un asistente experto en gestión empresarial y fiscalidad en España. Responde siempre en español de España y, cuando proceda, produce una salida JSON con la estructura esperada por la app (campo \"text\" y opcional \"action\`). Sé conciso, directo y profesional.`
+
+  // Build a compact prompt combining system + UI context + user text
+  const matriculaDetected = extractMatricula(userText) || context?.matricula
+  const dbInfoParts: string[] = []
+  if (matriculaDetected) dbInfoParts.push(`Matrícula detectada: ${matriculaDetected}`)
+  if (context) dbInfoParts.push(`Contexto UI: ${JSON.stringify(context)}`)
+  const prompt = `${systemInstruction}\n\n${dbInfoParts.join(' | ')}\n\nUsuario: ${userText}`
+
+  const url = `https://api-inference.huggingface.co/models/${defaultModel}`
+  const body = {
+    inputs: prompt,
+    parameters: { max_new_tokens: 512, temperature: 0.2 },
+  }
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const txt = await res.text()
+    throw new Error(`Hugging Face API error: ${res.status} ${txt}`)
+  }
+
+  const data = await res.json()
+  // HF can respond with an array or object; try the common fields
+  let textOutput = ''
+  if (Array.isArray(data) && data.length > 0 && data[0].generated_text) {
+    textOutput = data[0].generated_text
+  } else if (data.generated_text) {
+    textOutput = data.generated_text
+  } else if (typeof data === 'string') {
+    textOutput = data
+  } else if (Array.isArray(data) && data[0]?.body) {
+    textOutput = data[0].body
+  } else {
+    textOutput = JSON.stringify(data)
+  }
+
+  // Try to parse a JSON response from the model; otherwise return plain text
+  let parsed: any
+  try {
+    parsed = JSON.parse(textOutput)
+  } catch (e) {
+    // If the model didn't return JSON, wrap the reply as text
+    return { text: textOutput }
+  }
+
+  const text = parsed.text || parsed.respuesta || parsed.mensaje || (typeof parsed === 'string' ? parsed : '')
+  const action = parsed.action
+  if (action && action.type === 'navigate' && typeof window !== 'undefined' && action.navigationPath) {
+    window.dispatchEvent(new CustomEvent('metis-navigate', { detail: { path: action.navigationPath } }))
+  }
+  return { text: text || (typeof parsed === 'string' ? parsed : 'Entendido.'), actionResult: parsed.actionResult }
 }
 
 // ── GROQ ADVANCED ENGINE (Llama 3) ──

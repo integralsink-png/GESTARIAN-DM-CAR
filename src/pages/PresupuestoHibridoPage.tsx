@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { Camera, Check, Upload, Mic, ArrowLeft, Send, X, Loader2, PlusCircle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useSpeechSynthesis } from '../lib/useSpeechSynthesis'
 import { useVoice, parseVoiceToConceptos } from '../lib/useVoice'
 import { fetchVehicleImages, addVehicleImage } from '../lib/vehicleImages'
 import { PageHeader, Button } from '../components/UI'
+import { Box, Chip, Stack, TextField, Typography } from '@mui/material'
 import { extractTextFromImage } from '../lib/ocrService'
 import type { Cliente, Concepto, Vehiculo } from '../lib/types'
 
@@ -53,7 +54,7 @@ export function PresupuestoHibridoPage() {
   })
   const [concepto, setConcepto] = useState<Concepto>({ descripcion: '', cantidad: 1, precio: 0 })
   const [conceptos, setConceptos] = useState<Concepto[]>([])
-  const [voiceIntent, setVoiceIntent] = useState<'descripcion' | 'cantidad' | 'precio' | 'decision' | 'none'>('none')
+  const [voiceIntent, setVoiceIntent] = useState<'descripcion' | 'cantidad' | 'precio' | 'decision' | 'cliente' | 'none'>('none')
   const [sending, setSending] = useState(false)
   const [whatsappUrl, setWhatsappUrl] = useState('')
   const [smsFeedback, setSmsFeedback] = useState('')
@@ -68,6 +69,13 @@ export function PresupuestoHibridoPage() {
     () => conceptos.reduce((sum, c) => sum + c.cantidad * c.precio, 0),
     [conceptos],
   )
+
+  const sharedFieldProps = {
+    fullWidth: true,
+    variant: 'filled' as const,
+    InputProps: { sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } },
+    InputLabelProps: { sx: { color: '#94a3b8' } },
+  }
 
   const playSound = useCallback(() => {
     if (typeof window === 'undefined') return
@@ -141,8 +149,7 @@ export function PresupuestoHibridoPage() {
 
   useEffect(() => {
     if (phase === 'matricula') {
-      speak('Capturando matrícula')
-      startCamera()
+      speak('Pulsa iniciar cámara para capturar la matrícula')
     }
     if (phase === 'burst') {
       playSound()
@@ -164,11 +171,22 @@ export function PresupuestoHibridoPage() {
         voiceTimerRef.current = null
       }
     }
-  }, [phase, speak, startCamera, playSound])
+  }, [phase, speak, playSound])
 
   useEffect(() => {
     return () => stopCamera()
   }, [stopCamera])
+
+  // Auto-start camera if navigation state requests it (e.g., footer camera button)
+  const location = useLocation()
+  useEffect(() => {
+    // location.state may be a plain object; guard access
+    const state: any = (location as any)?.state
+    if (state && state.startCamera) {
+      // startCamera is called in response to a user gesture that triggered navigation
+      startCamera()
+    }
+  }, [location, startCamera])
 
   const captureFrame = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return null
@@ -360,28 +378,94 @@ export function PresupuestoHibridoPage() {
     setPhase('review')
   }, [concepto, conceptos])
 
+  const applyClientVoiceTranscript = useCallback((text: string) => {
+    const normalized = text.toLowerCase()
+    const updateField = (field: keyof typeof clientForm, value: string) => {
+      setClientForm((prev) => ({ ...prev, [field]: value }))
+    }
+
+    if (/nombre|llamo|llama|cliente/.test(normalized)) {
+      const match = normalized.match(/nombre(?: es|:)?\s*([a-zñáéíóúü\s]+)/i)
+      if (match) updateField('nombre', match[1].trim())
+    }
+    if (/tel[eé]fono|m[oó]vil|celular/.test(normalized)) {
+      const match = normalized.match(/(\+?\d[\d\s\-]{6,}\d)/)
+      if (match) updateField('telefono', match[1].replace(/\D/g, ''))
+    }
+    if (/email|correo/.test(normalized)) {
+      const match = normalized.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
+      if (match) updateField('email', match[1].trim())
+    }
+    if (/calle/.test(normalized)) {
+      const match = normalized.match(/calle(?:\s+)?([a-zñáéíóúü\s0-9]+)/i)
+      if (match) updateField('calle', match[1].trim())
+    }
+    if (/n[uú]mero/.test(normalized)) {
+      const match = normalized.match(/n[uú]mero(?:\s+)?(\d+)/i)
+      if (match) updateField('numero', match[1].trim())
+    }
+    if (/c[oó]digo postal|cp/.test(normalized)) {
+      const match = normalized.match(/(\d{4,5})/)
+      if (match) updateField('cp', match[1])
+    }
+    if (/localidad/.test(normalized)) {
+      const match = normalized.match(/localidad(?:\s+)?([a-zñáéíóúü\s]+)/i)
+      if (match) updateField('localidad', match[1].trim())
+    }
+    if (/provincia/.test(normalized)) {
+      const match = normalized.match(/provincia(?:\s+)?([a-zñáéíóúü\s]+)/i)
+      if (match) updateField('provincia', match[1].trim())
+    }
+  }, [])
+
   const handleListenConcept = useCallback(() => {
     if (!sttSupported) return
+    if (phase === 'cliente') {
+      setVoiceIntent('cliente')
+    } else {
+      setVoiceIntent('descripcion')
+    }
     reset()
     stop()
     start()
-  }, [reset, start, stop, sttSupported])
+  }, [phase, reset, start, stop, sttSupported])
 
   useEffect(() => {
     if (!listening && voiceIntent !== 'none' && transcript.trim()) {
       const text = `${transcript} ${interim}`.trim()
-      const parsed = parseVoiceToConceptos(text)
-      if (parsed.length > 0) {
-        const first = parsed[0]
-        if (voiceIntent === 'descripcion') {
-          setConcepto((prev) => ({ ...prev, descripcion: first.descripcion || prev.descripcion, cantidad: first.cantidad || prev.cantidad, precio: first.precio || prev.precio }))
-          setVoiceIntent('decision')
-          speak('Dime si quieres añadir otro concepto o finalizar.')
+      if (voiceIntent === 'cliente') {
+        applyClientVoiceTranscript(text)
+        speak('He actualizado los datos según tu dictado. Revisa y guarda.')
+        setVoiceIntent('none')
+      } else {
+        const parsed = parseVoiceToConceptos(text)
+        if (parsed.length > 0) {
+          const first = parsed[0]
+          if (voiceIntent === 'descripcion') {
+            setConcepto((prev) => ({
+              ...prev,
+              descripcion: first.descripcion || prev.descripcion,
+              cantidad: first.cantidad || prev.cantidad,
+              precio: first.precio || prev.precio,
+            }))
+            setVoiceIntent('decision')
+            speak('Dime si quieres añadir otro concepto o finalizar.')
+          } else if (voiceIntent === 'decision') {
+            const normalized = text.toLowerCase()
+            if (/finaliz|termin|enviar|ya basta/.test(normalized)) {
+              handleFinishConcepts()
+            } else if (/otro|siguiente|añadir/.test(normalized)) {
+              handleAddConcept()
+            } else {
+              setVoiceIntent('descripcion')
+              speak('He guardado el concepto. Di uno nuevo o pulsa Añadir concepto.')
+            }
+          }
         }
       }
       reset()
     }
-  }, [interim, listening, transcript, voiceIntent, reset, speak])
+  }, [interim, listening, transcript, voiceIntent, reset, speak, applyClientVoiceTranscript, handleFinishConcepts, handleAddConcept])
 
   const handleSendWhatsApp = useCallback(async () => {
     if (sending || !clientData || conceptos.length === 0) return
@@ -448,35 +532,54 @@ export function PresupuestoHibridoPage() {
         )}
 
         {phase === 'matricula' && (
-          <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-black/80">
-              <video ref={videoRef} className="w-full min-h-[320px] object-cover" autoPlay muted playsInline />
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="border-2 border-cyan-400/80 bg-black/20" style={{ width: '80%', aspectRatio: '4 / 1' }} />
-              </div>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <label className="block text-sm text-slate-200">
-                <span className="sr-only">Matrícula manual</span>
-                <input
-                  value={manualPlate}
-                  onChange={(e) => setManualPlate(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                  placeholder="Escribe la matrícula manualmente"
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none"
-                />
-              </label>
-              <div className="flex flex-wrap gap-2 justify-end">
-                <Button onClick={handleCapturePlate}>
+          <Box className="space-y-4">
+            <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center" className="mb-2">
+              <Chip label="Paso 1 de 5" color="info" size="small" className="bg-cyan-500/10 text-cyan-200 border border-cyan-500/20" />
+              <Typography variant="subtitle2" className="text-slate-300">Captura la matrícula con la cámara o escríbela manualmente.</Typography>
+            </Stack>
+            <Box className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-black/80">
+              {!cameraOn ? (
+                <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 py-16 text-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-300">
+                    <Camera className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <Typography variant="h6" className="text-white">Inicia cámara para detectar matrícula</Typography>
+                    <Typography variant="body2" className="text-slate-400">Pulsa el botón para activar la cámara en tu móvil.</Typography>
+                  </div>
+                  <Button onClick={startCamera} className="inline-flex items-center gap-2 px-6 py-3">
+                    <Camera className="w-4 h-4" /> Iniciar cámara
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <video ref={videoRef} className="w-full min-h-[320px] object-cover" autoPlay muted playsInline />
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <div className="border-2 border-cyan-400/80 bg-black/20" style={{ width: '80%', aspectRatio: '4 / 1' }} />
+                  </div>
+                </>
+              )}
+            </Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
+              <TextField
+                label="Matrícula manual"
+                value={manualPlate}
+                onChange={(e) => setManualPlate(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                placeholder="Ej: 1234ABC"
+                {...sharedFieldProps}
+              />
+              <Stack direction="row" spacing={2} className="w-full sm:w-auto">
+                <Button onClick={handleCapturePlate} className="inline-flex items-center gap-2">
                   <Camera className="w-4 h-4" /> Capturar matrícula
                 </Button>
-                <Button variant="secondary" onClick={handleConfirmPlate} disabled={!manualPlate}>
+                <Button variant="secondary" onClick={handleConfirmPlate} disabled={!manualPlate} className="inline-flex items-center gap-2">
                   <Check className="w-4 h-4" /> Usar matrícula
                 </Button>
-              </div>
-            </div>
-            <p className="text-sm text-slate-400">Coloca la matrícula dentro del rectángulo 4:1 y pulsa el botón de captura. También puedes escribirla manualmente si no se detecta.</p>
+              </Stack>
+            </Stack>
+            <Typography variant="caption" className="text-slate-400">Coloca la matrícula dentro del rectángulo 4:1 y pulsa el botón de captura. También puedes escribirla manualmente si no se detecta.</Typography>
             <canvas ref={canvasRef} className="hidden" />
-          </div>
+          </Box>
         )}
 
         {phase === 'confirmPlate' && (
@@ -539,185 +642,174 @@ export function PresupuestoHibridoPage() {
         )}
 
         {phase === 'cliente' && (
-          <div className="grid gap-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Nombre</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    value={clientForm.nombre}
-                    onChange={(e) => handleClientField('nombre', e.target.value)}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                  />
-                  {sttSupported && (
-                    <button type="button" onClick={handleListenConcept} className="rounded-2xl bg-cyan-500/20 px-3 py-2 text-cyan-100 hover:bg-cyan-500/30">
-                      <Mic className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>DNI / NIF</span>
-                <input
+          <Box className="space-y-4">
+            <Stack spacing={3}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Nombre"
+                  value={clientForm.nombre}
+                  onChange={(e) => handleClientField('nombre', e.target.value)}
+                  {...sharedFieldProps}
+                />
+                <TextField
+                  label="DNI / NIF"
                   value={clientForm.dni}
                   onChange={(e) => handleClientField('dni', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Calle</span>
-                <input
+              </Stack>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                <TextField
+                  label="Calle"
                   value={clientForm.calle}
                   onChange={(e) => handleClientField('calle', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Número</span>
-                <input
+                <TextField
+                  label="Número"
                   value={clientForm.numero}
                   onChange={(e) => handleClientField('numero', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Código Postal</span>
-                <input
+                <TextField
+                  label="Código Postal"
                   value={clientForm.cp}
                   onChange={(e) => handleClientField('cp', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Localidad</span>
-                <input
+              </Stack>
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+                <TextField
+                  label="Localidad"
                   value={clientForm.localidad}
                   onChange={(e) => handleClientField('localidad', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Provincia</span>
-                <input
+                <TextField
+                  label="Provincia"
                   value={clientForm.provincia}
                   onChange={(e) => handleClientField('provincia', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-            </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Teléfono</span>
-                <input
+              </Stack>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  label="Teléfono"
                   value={clientForm.telefono}
                   onChange={(e) => handleClientField('telefono', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Email</span>
-                <input
+                <TextField
+                  label="Email"
                   value={clientForm.email}
                   onChange={(e) => handleClientField('email', e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button variant="ghost" onClick={() => setPhase('burst')}>
-                <X className="w-4 h-4" /> Volver atrás
-              </Button>
-              <Button onClick={handleSaveNewClient} disabled={uploading}>
-                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Guardar cliente
-              </Button>
-            </div>
-            {cpLoading && <p className="text-xs text-slate-400">Consultando localidad y provincia...</p>}
-          </div>
+              </Stack>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
+              <Stack direction="row" spacing={2} alignItems="center" className="text-sm text-slate-400">
+                {sttSupported && (
+                  <Button variant="ghost" onClick={handleListenConcept} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 text-cyan-100 hover:bg-cyan-500/20">
+                    <Mic className="w-4 h-4" /> Dictar datos
+                  </Button>
+                )}
+                <Typography variant="caption" className="text-slate-400">Pulsa para dictar datos del cliente en esta sección.</Typography>
+              </Stack>
+              <Stack direction="row" spacing={2} className="w-full sm:w-auto">
+                <Button variant="ghost" onClick={() => setPhase('burst')}>
+                  <X className="w-4 h-4" /> Volver atrás
+                </Button>
+                <Button onClick={handleSaveNewClient} disabled={uploading}>
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Guardar cliente
+                </Button>
+              </Stack>
+            </Stack>
+            {cpLoading && <Typography variant="caption" className="text-slate-400">Consultando localidad y provincia...</Typography>}
+          </Box>
         )}
 
         {phase === 'conceptos' && (
-          <div className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-4">
-              <label className="block space-y-1 text-sm text-slate-200 col-span-2">
-                <span>Concepto / Repuesto</span>
-                <input
+          <Box className="space-y-4">
+            <Stack spacing={3}>
+              <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+                <TextField
+                  label="Concepto / Repuesto"
                   value={concepto.descripcion}
                   onChange={(e) => setConcepto((prev) => ({ ...prev, descripcion: e.target.value }))}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
+                  className="lg:col-span-2"
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Cantidad</span>
-                <input
+                <TextField
                   type="number"
+                  label="Cantidad"
                   value={concepto.cantidad || ''}
                   min={1}
                   onChange={(e) => setConcepto((prev) => ({ ...prev, cantidad: Number(e.target.value) || 1 }))}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-              <label className="block space-y-1 text-sm text-slate-200">
-                <span>Precio unitario €</span>
-                <input
+                <TextField
                   type="number"
+                  label="Precio unitario €"
                   value={concepto.precio || ''}
                   min={0}
                   onChange={(e) => setConcepto((prev) => ({ ...prev, precio: Number(e.target.value) || 0 }))}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                  {...sharedFieldProps}
                 />
-              </label>
-            </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">
-                {sttSupported ? (
-                  <button type="button" onClick={handleListenConcept} className="inline-flex items-center gap-2 rounded-2xl bg-white/5 px-4 py-2 text-slate-100 hover:bg-white/10">
-                    <Mic className="w-4 h-4" /> Dictar concepto
-                  </button>
-                ) : (
-                  <span>Dictado por voz no disponible en este navegador.</span>
-                )}
-                <span className="text-xs">Pulsa cuando quieras dictar el concepto completo.</span>
-              </div>
-              <div className="flex gap-2 flex-wrap">
-                <Button onClick={handleAddConcept}>
-                  <PlusCircle className="w-4 h-4" /> Añadir concepto
-                </Button>
-                <Button variant="secondary" onClick={handleFinishConcepts}>
-                  <Send className="w-4 h-4" /> Finalizar
-                </Button>
-              </div>
-            </div>
+              </Stack>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
+                <Stack direction="row" spacing={2} alignItems="center" className="text-sm text-slate-400">
+                  {sttSupported ? (
+                    <Button variant="ghost" onClick={handleListenConcept} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 text-cyan-100 hover:bg-cyan-500/20">
+                      <Mic className="w-4 h-4" /> Dictar concepto
+                    </Button>
+                  ) : (
+                    <Typography variant="caption" className="text-slate-400">Dictado por voz no disponible en este navegador.</Typography>
+                  )}
+                  <Typography variant="caption" className="text-slate-400">Pulsa cuando quieras dictar el concepto completo o dictar campos si estás en cliente.</Typography>
+                </Stack>
+
+                <Stack direction="row" spacing={2} flexWrap="wrap">
+                  <Button onClick={handleAddConcept}>
+                    <PlusCircle className="w-4 h-4" /> Añadir concepto
+                  </Button>
+                  <Button variant="secondary" onClick={handleFinishConcepts}>
+                    <Send className="w-4 h-4" /> Finalizar
+                  </Button>
+                </Stack>
+              </Stack>
+            </Stack>
+
             {listening && (
-              <div className="rounded-3xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm text-cyan-100">
+              <Box className="rounded-3xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm text-cyan-100">
                 Escuchando: {(transcript || interim).trim() || '...'}
-              </div>
+              </Box>
             )}
+
             {!!conceptos.length && (
-              <div className="rounded-3xl border border-slate-700 bg-slate-950/70 p-4">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <p className="text-sm uppercase tracking-[.2em] text-slate-400">Conceptos añadidos</p>
-                  <p className="text-sm text-slate-300">Total {formatMoney(total)} €</p>
+              <Box className="rounded-3xl border border-slate-700 bg-slate-950/70 p-4">
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <Typography variant="caption" className="uppercase tracking-[.2em] text-slate-400">Conceptos añadidos</Typography>
+                  <Typography variant="body2" className="text-slate-300">Total {formatMoney(total)} €</Typography>
                 </div>
-                <div className="space-y-3">
+                <Stack spacing={3}>
                   {conceptos.map((item, index) => (
-                    <div key={index} className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-                      <div className="flex items-start justify-between gap-4">
+                    <Box key={index} className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold text-white">{item.descripcion}</p>
-                          <p className="text-xs text-slate-400">{item.cantidad} x {formatMoney(item.precio)} €</p>
+                          <Typography variant="body2" className="font-semibold text-white">{item.descripcion}</Typography>
+                          <Typography variant="caption" className="text-slate-400">{item.cantidad} x {formatMoney(item.precio)} €</Typography>
                         </div>
-                        <p className="text-right text-sm font-semibold text-white">{formatMoney(item.cantidad * item.precio)} €</p>
+                        <Typography variant="body2" className="text-right font-semibold text-white">{formatMoney(item.cantidad * item.precio)} €</Typography>
                       </div>
-                    </div>
+                    </Box>
                   ))}
-                </div>
-              </div>
+                </Stack>
+              </Box>
             )}
-          </div>
+          </Box>
         )}
 
         {phase === 'review' && (

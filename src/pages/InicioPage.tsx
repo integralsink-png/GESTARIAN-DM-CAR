@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
   TrendingUp, Calendar, Wrench, FileText, Users,
   Clock, CheckCircle2, AlertCircle, Euro, ArrowRight,
-  CarFront, BarChart3, Activity, Triangle
+  CarFront, BarChart3, Activity, Triangle, Camera
 } from 'lucide-react'
 
 interface KPIs {
@@ -175,10 +175,10 @@ export function InicioPage() {
       <div className={`relative z-10 space-y-6 pb-24 transition-all duration-700 transform ${showPanel ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
 
       {/* CABECERA */}
-      <div className="gestarian-glass rounded-2xl p-5 border border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 gestarian-animated-border">
+      <div className="gestarian-glass gestarian-metis-card rounded-2xl p-5 border border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <Activity className="w-5 h-5 text-violet-400 animate-pulse drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
+            <Activity className="w-5 h-5 text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
             <span className="text-xs font-medium uppercase tracking-widest text-white/50">Panel de Control</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold text-white">{empresa}</h1>
@@ -196,7 +196,7 @@ export function InicioPage() {
             }`}
             title={mostrarAvisos ? "Ocultar Avisos METIS" : "Mostrar Avisos METIS"}
           >
-            <Triangle className={`w-5 h-5 fill-current transition-transform duration-300 ${mostrarAvisos ? 'rotate-180' : ''} drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]`} />
+            <Triangle className={`w-5 h-5 fill-current ${mostrarAvisos ? 'rotate-180' : ''} drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]`} />
           </button>
 
           {/* BOTÓN AVISOS METIS - PC / LANDSCAPE (RECTANGULAR) */}
@@ -213,14 +213,16 @@ export function InicioPage() {
           </button>
 
           <div className="text-right">
-            <div className="text-4xl font-bold text-white tabular-nums">{horaStr}</div>
+              <div className="text-4xl font-bold text-white tabular-nums">{horaStr}</div>
             <div className="text-xs text-white/40 mt-1 flex items-center justify-end gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
               Sistema activo
             </div>
           </div>
         </div>
       </div>
+
+      {/* Quick access card removed as requested */}
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -268,7 +270,7 @@ export function InicioPage() {
 
       {/* AVISOS Y ALERTAS METIS (DESPLEGABLES) */}
       {mostrarAvisos && (
-        <div className="gestarian-glass rounded-2xl p-4 border border-white/10 animate-in fade-in slide-in-from-top-2 duration-300 space-y-3 bg-white/80">
+        <div className="gestarian-glass gestarian-metis-card rounded-2xl p-4 border border-white/100 space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Triangle className={`w-4 h-4 fill-current ${totalAvisos > 0 ? 'text-orange-400' : 'text-emerald-400'}`} />
@@ -287,7 +289,7 @@ export function InicioPage() {
               label="Presupuestos pendientes"
               count={kpis.presupuestosPendientes}
               color="text-orange-400"
-              borderColor="border-orange-500/30"
+              borderColor="border-orange-500"
               onClick={() => navigate('/presupuestos')}
             />
             <AlertCard
@@ -295,7 +297,7 @@ export function InicioPage() {
               label="Facturas sin cobrar"
               count={kpis.facturasPendienteCobro}
               color="text-red-400"
-              borderColor="border-red-500/30"
+              borderColor="border-red-500"
               onClick={() => navigate('/facturas')}
             />
             <AlertCard
@@ -303,7 +305,7 @@ export function InicioPage() {
               label="Total clientes"
               count={kpis.totalClientes}
               color="text-cyan-400"
-              borderColor="border-cyan-500/30"
+              borderColor="border-cyan-500"
               onClick={() => navigate('/clientes')}
             />
           </div>
@@ -312,7 +314,7 @@ export function InicioPage() {
 
       {/* CITAS + REPARACIONES */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80 gestarian-animated-border">
+        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80">
           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-400" />
@@ -350,7 +352,7 @@ export function InicioPage() {
           </div>
         </div>
 
-        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80 gestarian-animated-border">
+        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80">
           <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
             <div className="flex items-center gap-2">
               <Wrench className="w-4 h-4 text-amber-400" />
@@ -394,10 +396,11 @@ export function InicioPage() {
         <h2 className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-3">Acceso rápido</h2>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { icon: Users,      label: 'Clientes',     path: '/clientes',     color: 'bg-cyan-500/80 border-cyan-500/20 text-cyan-400' },
-            { icon: FileText,   label: 'Presupuestos', path: '/presupuestos', color: 'bg-violet-500/80 border-violet-500/20 text-violet-400' },
-            { icon: Wrench,     label: 'Reparaciones', path: '/reparaciones', color: 'bg-amber-500/80 border-amber-500/20 text-amber-400' },
-            { icon: TrendingUp, label: 'Balances',     path: '/balances',     color: 'bg-emerald-500/80 border-emerald-500/20 text-emerald-400' },
+            { icon: Users,      label: 'Clientes',     path: '/clientes',          color: 'bg-cyan-500/80 border-cyan-500/20 text-cyan-400' },
+            { icon: Camera,     label: 'Presupuesto híbrido', path: '/presupuesto-hibrido', color: 'bg-fuchsia-500/80 border-fuchsia-500/20 text-fuchsia-400' },
+            { icon: FileText,   label: 'Presupuestos', path: '/presupuestos',      color: 'bg-violet-500/80 border-violet-500/20 text-violet-400' },
+            { icon: Wrench,     label: 'Reparaciones', path: '/reparaciones',     color: 'bg-amber-500/80 border-amber-500/20 text-amber-400' },
+            { icon: TrendingUp, label: 'Balances',     path: '/balances',         color: 'bg-emerald-500/80 border-emerald-500/20 text-emerald-400' },
           ].map(({ icon: Icon, label, path, color }) => (
             <button
               key={path}
@@ -424,7 +427,7 @@ function KpiCard({
   return (
     <button
       onClick={onClick}
-      className={`gestarian-glass rounded-2xl p-4 text-left bg-gradient-to-br ${color} hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full group shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)] gestarian-animated-border`}
+      className={`gestarian-glass rounded-2xl p-4 text-left bg-gradient-to-br ${color} hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full group shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)]`}
     >
       <div className={`${iconColor} mb-3 opacity-80 group-hover:opacity-100 transition drop-shadow-[0_0_8px_rgba(64,224,208,0.8)]`}>{icon}</div>
       <div className="text-2xl font-bold text-white tabular-nums leading-[0.75] mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{value}</div>
@@ -443,7 +446,7 @@ function AlertCard({
   return (
     <button
       onClick={onClick}
-      className={`gestarian-glass rounded-xl px-4 py-3 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full text-left shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)] gestarian-animated-border`}
+      className={`gestarian-glass rounded-xl px-4 py-3 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full text-left shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)]`}
     >
       <span className={`${color} flex-shrink-0 drop-shadow-[0_0_8px_rgba(64,224,208,0.8)]`}>{icon}</span>
       <span className="flex-1 text-sm text-white/70 leading-[0.75] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{label}</span>

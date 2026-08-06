@@ -1,12 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
+interface SpeechRecognitionResultItem {
+  transcript: string
+}
+
+interface SpeechRecognitionResult {
+  length: number
+  [index: number]: SpeechRecognitionResultItem
+  isFinal: boolean
+}
+
 interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
   results: {
     length: number
-    [index: number]: {
-      length: number
-      [index: number]: { transcript: string }
-    }
+    [index: number]: SpeechRecognitionResult
   }
 }
 
@@ -41,17 +49,26 @@ export function useVoice() {
     r.continuous = true
     r.interimResults = true
     r.onresult = (e: SpeechRecognitionEvent) => {
-      let fullText = ''
-      for (let i = 0; i < e.results.length; i++) {
-        fullText += e.results[i][0].transcript
+      let interimTranscript = ''
+      let finalTranscript = finalRef.current
+
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const transcript = e.results[i][0].transcript
+        if (e.results[i].isFinal) {
+          finalTranscript = `${finalTranscript}${finalTranscript ? ' ' : ''}${transcript}`.trim()
+        } else {
+          interimTranscript += transcript
+        }
       }
-      finalRef.current = fullText
-      setTranscript(fullText)
-      setInterim(fullText)
+
+      finalRef.current = finalTranscript
+      setTranscript(`${finalTranscript}${interimTranscript ? ` ${interimTranscript}` : ''}`.trim())
+      setInterim(interimTranscript.trim())
     }
     r.onend = () => {
       setListening(false)
       setInterim('')
+      setTranscript(finalRef.current)
     }
     r.onerror = () => {
       setListening(false)

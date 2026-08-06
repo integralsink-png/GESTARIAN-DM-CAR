@@ -25,7 +25,7 @@ export const useUIState = () => useContext(UIStateContext)
 
 export function UIStateProvider({ children }: { children: ReactNode }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [headerVisible, setHeaderVisible] = useState(false)
+  const [headerVisible, setHeaderVisible] = useState(true)
   const [footerVisible, setFooterVisible] = useState(false)
   const headerHoverRef = useRef(false)
   const footerHoverRef = useRef(false)

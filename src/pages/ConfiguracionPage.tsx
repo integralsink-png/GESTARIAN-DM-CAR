@@ -1,18 +1,29 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Configuracion } from '../lib/types'
-import { PageHeader, Card, Button, Input } from '../components/UI'
-import { useTheme } from '../lib/theme'
+import type { Configuracion, ThemePreset, ThemeSettings } from '../lib/types'
+import { PageHeader, Card, Button } from '../components/UI'
+import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
+import { Box, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
 import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, LayoutTemplate, Type } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 export function ConfiguracionPage() {
   const [config, setConfig] = useState<Configuracion | null>(null)
   const [apiKey, setApiKey] = useState(localStorage.getItem('gestarian_groq_api_key') || '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')
+  const [hfKey, setHfKey] = useState(localStorage.getItem('gestarian_hf_api_key') || '')
+  const [hfModel, setHfModel] = useState(localStorage.getItem('gestarian_hf_model') || 'meta-llama/Llama-2-7b-chat')
+  const [themePreset, setThemePreset] = useState<ThemePreset>(DEFAULT_THEME_SETTINGS.theme_preset)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance, setAppearance } = useTheme()
+
+  const sharedTextFieldProps = {
+    fullWidth: true,
+    variant: 'filled' as const,
+    InputProps: { sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } },
+    InputLabelProps: { sx: { color: '#94a3b8' } },
+  }
 
   useEffect(() => {
     loadConfig()
@@ -40,6 +51,31 @@ export function ConfiguracionPage() {
     }
   }
 
+  const handlePresetChange = useCallback((preset: ThemePreset) => {
+    setThemePreset(preset)
+    if (preset === 'classic') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'classic' })
+    }
+    if (preset === 'professional') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'professional', primary_color: '#0f172a', secondary_color: '#1e293b', button_color: '#059669', dashboard_color: '#0f172a', card_color: '#111827' })
+    }
+    if (preset === 'dark') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'dark', primary_color: '#0f172a', secondary_color: '#0f172a', button_color: '#8b5cf6', card_color: '#111827', dashboard_color: '#0b1220' })
+    }
+    if (preset === 'blue') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'blue', primary_color: '#1d4ed8', secondary_color: '#2563eb', button_color: '#0ea5e9', dashboard_color: '#0f172a', card_color: '#1e3a8a' })
+    }
+    if (preset === 'green') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'green', primary_color: '#047857', secondary_color: '#065f46', button_color: '#10b981', dashboard_color: '#0f172a', card_color: '#064e3b' })
+    }
+    if (preset === 'orange') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'orange', primary_color: '#ea580c', secondary_color: '#c2410c', button_color: '#f97316', dashboard_color: '#111827', card_color: '#78350f' })
+    }
+    if (preset === 'premium') {
+      setThemeSettings({ ...DEFAULT_THEME_SETTINGS, theme_preset: 'premium', primary_color: '#0f172a', secondary_color: '#1c1917', button_color: '#f59e0b', card_color: '#111827', dashboard_color: '#111827' })
+    }
+  }, [setThemeSettings])
+
   async function handleSave() {
     if (!config) return
     setSaving(true)
@@ -56,12 +92,6 @@ export function ConfiguracionPage() {
       fondo_landscape: config.fondo_landscape,
       fondo_portrait: config.fondo_portrait,
       tipo_empresa: config.tipo_empresa,
-    }).eq('id', 1)
-    
-    await saveThemeToDB(themeSettings)
-    // Legacy theme save for fallback
-    await supabase.from('configuracion').upsert({
-      id: 1,
       color_fondo: appearance.color_fondo,
       color_texto: appearance.color_texto,
       color_glow_botones: appearance.color_glow_botones,
@@ -73,6 +103,8 @@ export function ConfiguracionPage() {
       animaciones_activadas: appearance.animaciones_activadas,
       sonido_activado: appearance.sonido_activado,
     }).eq('id', 1)
+
+    await saveThemeToDB(themeSettings)
 
     setSaving(false)
     setSaved(true)
@@ -98,35 +130,76 @@ export function ConfiguracionPage() {
             <h2 className="text-lg font-semibold text-white">Datos Fiscales</h2>
           </div>
           <div className="space-y-3">
-            <Input label="Nombre empresa" value={config.nombre_empresa} onChange={(v) => setConfig({ ...config, nombre_empresa: v })} />
-            <Input label="CIF / NIF" value={config.cif} onChange={(v) => setConfig({ ...config, cif: v })} />
-            <Input label="Dirección" value={config.direccion} onChange={(v) => setConfig({ ...config, direccion: v })} />
-            <Input label="Teléfono" value={config.telefono ?? ''} onChange={(v) => setConfig({ ...config, telefono: v })} />
-            <Input label="Email" value={config.email ?? ''} onChange={(v) => setConfig({ ...config, email: v })} type="email" />
+            <TextField
+              label="Nombre empresa"
+              value={config.nombre_empresa}
+              onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
+              fullWidth
+              variant="filled"
+              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
+              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+            />
+            <TextField
+              label="CIF / NIF"
+              value={config.cif}
+              onChange={(e) => setConfig({ ...config, cif: e.target.value })}
+              fullWidth
+              variant="filled"
+              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
+              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+            />
+            <TextField
+              label="Dirección"
+              value={config.direccion}
+              onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
+              fullWidth
+              variant="filled"
+              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
+              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+            />
+            <TextField
+              label="Teléfono"
+              value={config.telefono ?? ''}
+              onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
+              fullWidth
+              variant="filled"
+              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
+              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+            />
+            <TextField
+              label="Email"
+              value={config.email ?? ''}
+              onChange={(e) => setConfig({ ...config, email: e.target.value })}
+              fullWidth
+              type="email"
+              variant="filled"
+              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
+              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+            />
             <div>
               <label className="block text-sm text-slate-400 mb-2">Tipo de empresa</label>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setConfig({ ...config, tipo_empresa: 'autonomo' })}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    config.tipo_empresa === 'autonomo'
-                      ? 'gestarian-btn-primary gestarian-btn bg-[var(--btn-color)] text-white border-[var(--btn-color)]'
-                      : 'gestarian-btn gestarian-btn-secondary border-slate-700'
-                  }`}
+              <ToggleButtonGroup
+                value={config.tipo_empresa || 'autonomo'}
+                exclusive
+                onChange={(_, value) => value && setConfig({ ...config, tipo_empresa: value })}
+                className="rounded-3xl bg-slate-900 p-1"
+                fullWidth
+              >
+                <ToggleButton
+                  value="autonomo"
+                  className="text-white rounded-2xl bg-slate-950 border border-slate-700"
+                  sx={{ '&.Mui-selected': { bgcolor: 'primary.main', color: 'white' } }}
                 >
                   Autónomo
-                </button>
-                <button
-                  onClick={() => setConfig({ ...config, tipo_empresa: 'sociedad_limitada' })}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                    config.tipo_empresa === 'sociedad_limitada'
-                      ? 'gestarian-btn-primary gestarian-btn bg-[var(--btn-color)] text-white border-[var(--btn-color)]'
-                      : 'gestarian-btn gestarian-btn-secondary border-slate-700'
-                  }`}
+                </ToggleButton>
+                <ToggleButton
+                  value="sociedad_limitada"
+                  className="text-white rounded-2xl bg-slate-950 border border-slate-700"
+                  sx={{ '&.Mui-selected': { bgcolor: 'primary.main', color: 'white' } }}
                 >
                   Sociedad Limitada
-                </button>
-              </div>
+                </ToggleButton>
+              </ToggleButtonGroup>
             </div>
           </div>
         </Card>
@@ -147,7 +220,14 @@ export function ConfiguracionPage() {
             </button>
           </div>
           <div className="space-y-3">
-            <Input label="Email gestoría" value={config.email_gestoria ?? ''} onChange={(v) => setConfig({ ...config, email_gestoria: v })} type="email" placeholder="gestoria@asessoria.es" />
+            <TextField
+              label="Email gestoría"
+              type="email"
+              value={config.email_gestoria ?? ''}
+              onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
+              placeholder="gestoria@asessoria.es"
+              {...sharedTextFieldProps}
+            />
             <p className="text-xs text-slate-500">
               A este email se enviarán automáticamente las facturas y los informes trimestrales.
             </p>
@@ -166,19 +246,37 @@ export function ConfiguracionPage() {
             <h2 className="text-lg font-semibold text-white">Inteligencia Artificial METIS</h2>
           </div>
           <div className="space-y-3">
-            <Input
+            <TextField
               label="Clave API de Groq (Llama 3)"
               value={apiKey}
-              onChange={(v) => {
-                setApiKey(v)
-                localStorage.setItem('gestarian_groq_api_key', v)
+              onChange={(e) => {
+                setApiKey(e.target.value)
+                localStorage.setItem('gestarian_groq_api_key', e.target.value)
               }}
               type="text"
               placeholder="gsk_..."
+              {...sharedTextFieldProps}
             />
             <p className="text-xs text-slate-400">
               METIS funciona de forma ultrarrápida utilizando el modelo Llama 3 a través de Groq. Puedes obtener tu clave gratuita en <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="text-cyan-400 underline">console.groq.com</a>.
             </p>
+            <TextField
+              label="Clave API Hugging Face (opcional)"
+              value={hfKey}
+              onChange={(e) => { setHfKey(e.target.value); localStorage.setItem('gestarian_hf_api_key', e.target.value) }}
+              type="text"
+              placeholder="hf_..."
+              {...sharedTextFieldProps}
+            />
+            <TextField
+              label="Modelo Hugging Face (opcional)"
+              value={hfModel}
+              onChange={(e) => { setHfModel(e.target.value); localStorage.setItem('gestarian_hf_model', e.target.value) }}
+              type="text"
+              placeholder="meta-llama/Llama-2-7b-chat"
+              helperText="Si no se especifica, se usará meta-llama/Llama-2-7b-chat. Puedes elegir un modelo smaller si lo deseas."
+              {...sharedTextFieldProps}
+            />
           </div>
         </Card>
 
@@ -191,30 +289,66 @@ export function ConfiguracionPage() {
           <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
             <div>
               <p className="text-sm text-slate-400 mb-2">Nombre comercial (mostrado en interfaz)</p>
-              <Input label="" value={themeSettings.commercial_name ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, commercial_name: v })} placeholder="Ej: Talleres Paco" />
+              <TextField
+                label=""
+                placeholder="Ej: Talleres Paco"
+                value={themeSettings.commercial_name ?? ''}
+                onChange={(e) => setThemeSettings({ ...themeSettings, commercial_name: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Logo del taller (Principal)</p>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {themeSettings.logo_url && <img src={themeSettings.logo_url} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white/10" />}
-                <Input label="" value={themeSettings.logo_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, logo_url: v })} placeholder="URL del logo" />
+                <TextField
+                  label=""
+                  placeholder="URL del logo"
+                  value={themeSettings.logo_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
               </div>
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Logo pantalla de inicio</p>
-              <Input label="" value={themeSettings.logo_inicio_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, logo_inicio_url: v })} placeholder="URL del logo para el inicio" />
+              <TextField
+                label=""
+                placeholder="URL del logo para el inicio"
+                value={themeSettings.logo_inicio_url ?? ''}
+                onChange={(e) => setThemeSettings({ ...themeSettings, logo_inicio_url: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Imagen de Dashboard</p>
-              <Input label="" value={themeSettings.dashboard_image_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, dashboard_image_url: v })} placeholder="URL de la imagen" />
+              <TextField
+                label=""
+                placeholder="URL de la imagen"
+                value={themeSettings.dashboard_image_url ?? ''}
+                onChange={(e) => setThemeSettings({ ...themeSettings, dashboard_image_url: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Imagen de fondo</p>
-              <Input label="" value={themeSettings.background_image_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, background_image_url: v })} placeholder="URL de la imagen de fondo" />
+              <TextField
+                label=""
+                placeholder="URL de la imagen de fondo"
+                value={themeSettings.background_image_url ?? ''}
+                onChange={(e) => setThemeSettings({ ...themeSettings, background_image_url: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Favicon (Icono pestaña)</p>
-              <Input label="" value={themeSettings.favicon_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, favicon_url: v })} placeholder="URL del favicon (.ico o .png)" />
+              <TextField
+                label=""
+                placeholder="URL del favicon (.ico o .png)"
+                value={themeSettings.favicon_url ?? ''}
+                onChange={(e) => setThemeSettings({ ...themeSettings, favicon_url: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             
             <hr className="border-slate-800" />
@@ -222,11 +356,23 @@ export function ConfiguracionPage() {
             {/* Legacy Logos */}
             <div>
               <p className="text-sm text-slate-400 mb-2">Logo a color (Documentos)</p>
-              <Input label="" value={config.logo_color ?? ''} onChange={(v) => setConfig({ ...config, logo_color: v })} placeholder="URL del logo a color" />
+              <TextField
+                label=""
+                placeholder="URL del logo a color"
+                value={config.logo_color ?? ''}
+                onChange={(e) => setConfig({ ...config, logo_color: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
             <div>
               <p className="text-sm text-slate-400 mb-2">Logo blanco y negro (Documentos)</p>
-              <Input label="" value={config.logo_bn ?? ''} onChange={(v) => setConfig({ ...config, logo_bn: v })} placeholder="URL del logo B/N" />
+              <TextField
+                label=""
+                placeholder="URL del logo B/N"
+                value={config.logo_bn ?? ''}
+                onChange={(e) => setConfig({ ...config, logo_bn: e.target.value })}
+                {...sharedTextFieldProps}
+              />
             </div>
           </div>
         </Card>
@@ -239,72 +385,160 @@ export function ConfiguracionPage() {
           </div>
           
           <div className="space-y-8">
+            <Box className="p-4 rounded-3xl border border-bg-600 bg-bg-700">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <Typography variant="subtitle1" className="text-white">Previsualización rápida</Typography>
+                  <Typography variant="body2" className="text-slate-400">Observa cómo cambia la paleta y el modo antes de guardar.</Typography>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Chip label="Botón primario" color="primary" />
+                  <Chip label="Etiqueta" variant="outlined" className="text-white border-slate-600" />
+                  <Chip label={themeSettings.is_dark_mode ? 'Modo noche' : 'Modo día'} color="default" />
+                </div>
+              </div>
+            </Box>
             {/* Global Settings */}
             <div>
               <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><LayoutTemplate className="w-4 h-4" /> Layout y Estilo Global</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <ToggleRow
-                  icon={themeSettings.is_dark_mode ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
-                  label={themeSettings.is_dark_mode ? 'Modo Oscuro' : 'Modo Claro'}
-                  description=""
-                  checked={themeSettings.is_dark_mode}
-                  onChange={(v) => { setThemeSettings({ ...themeSettings, is_dark_mode: v }); setAppearance({ ...appearance, modo_diurno: !v }); playSound('click') }}
-                />
-                
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Bordes (Radius)</label>
-                  <select 
-                    value={themeSettings.border_radius} 
+              <div className="space-y-4">
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} className="items-end">
+                  <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                    <InputLabel className="text-slate-400">Preset de tema</InputLabel>
+                    <Select
+                      value={themePreset}
+                      label="Preset de tema"
+                      onChange={(e) => handlePresetChange(e.target.value as ThemePreset)}
+                      className="text-sm text-white"
+                      sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
+                    >
+                      <MenuItem value="classic">Clásico</MenuItem>
+                      <MenuItem value="professional">Profesional</MenuItem>
+                      <MenuItem value="dark">Oscuro</MenuItem>
+                      <MenuItem value="blue">Azul</MenuItem>
+                      <MenuItem value="green">Verde</MenuItem>
+                      <MenuItem value="orange">Naranja</MenuItem>
+                      <MenuItem value="premium">Premium</MenuItem>
+                      <MenuItem value="custom">Personalizado</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setThemeSettings(DEFAULT_THEME_SETTINGS)
+                      setThemePreset(DEFAULT_THEME_SETTINGS.theme_preset)
+                      playSound('click')
+                    }}
+                    className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-white"
+                  >
+                    Restaurar valor por defecto
+                  </Button>
+                </Stack>
+
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
+                    <Chip
+                      key={preset}
+                      label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
+                      clickable
+                      color={themePreset === preset ? 'primary' : 'default'}
+                      onClick={() => handlePresetChange(preset)}
+                      variant={themePreset === preset ? 'filled' : 'outlined'}
+                      className="text-xs rounded-full"
+                    />
+                  ))}
+                </Stack>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
+                    <div>
+                      <Typography variant="subtitle2" className="text-white">Modo Oscuro</Typography>
+                      <Typography variant="caption" className="text-slate-400">Activa el modo noche y ajusta el contraste general.</Typography>
+                    </div>
+                    <Switch
+                      checked={themeSettings.is_dark_mode}
+                      onChange={(e) => {
+                        const value = e.target.checked
+                        setThemeSettings({ ...themeSettings, is_dark_mode: value })
+                        setAppearance({ ...appearance, modo_diurno: !value })
+                        playSound('click')
+                      }}
+                      color="primary"
+                    />
+                  </Box>
+
+                  <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
+                    <div>
+                      <Typography variant="subtitle2" className="text-white">Visualización actual</Typography>
+                      <Typography variant="caption" className="text-slate-400">Preset: {themePreset === 'custom' ? 'Personalizado' : themePreset}</Typography>
+                    </div>
+                    <Chip label={themeSettings.is_dark_mode ? 'Noche' : 'Día'} size="small" color={themeSettings.is_dark_mode ? 'default' : 'primary'} />
+                  </Box>
+                </div>
+
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Bordes (Radius)</InputLabel>
+                  <Select
+                    value={themeSettings.border_radius}
+                    label="Bordes (Radius)"
                     onChange={(e) => setThemeSettings({ ...themeSettings, border_radius: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="0">Cuadrado (0px)</option>
-                    <option value="0.25rem">Suave (4px)</option>
-                    <option value="0.5rem">Normal (8px)</option>
-                    <option value="1rem">Redondeado (16px)</option>
-                    <option value="9999px">Píldora</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Sombras</label>
-                  <select 
-                    value={themeSettings.shadows} 
+                    <MenuItem value="0">Cuadrado (0px)</MenuItem>
+                    <MenuItem value="0.25rem">Suave (4px)</MenuItem>
+                    <MenuItem value="0.5rem">Normal (8px)</MenuItem>
+                    <MenuItem value="1rem">Redondeado (16px)</MenuItem>
+                    <MenuItem value="9999px">Píldora</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Sombras</InputLabel>
+                  <Select
+                    value={themeSettings.shadows}
+                    label="Sombras"
                     onChange={(e) => setThemeSettings({ ...themeSettings, shadows: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="none">Sin sombra</option>
-                    <option value="sm">Pequeña</option>
-                    <option value="md">Media</option>
-                    <option value="lg">Grande</option>
-                  </select>
-                </div>
+                    <MenuItem value="none">Sin sombra</MenuItem>
+                    <MenuItem value="sm">Pequeña</MenuItem>
+                    <MenuItem value="md">Media</MenuItem>
+                    <MenuItem value="lg">Grande</MenuItem>
+                  </Select>
+                </FormControl>
 
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Espaciado General</label>
-                  <select 
-                    value={themeSettings.spacing} 
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Espaciado General</InputLabel>
+                  <Select
+                    value={themeSettings.spacing}
+                    label="Espaciado General"
                     onChange={(e) => setThemeSettings({ ...themeSettings, spacing: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="compact">Compacto</option>
-                    <option value="normal">Normal</option>
-                    <option value="relaxed">Relajado</option>
-                  </select>
-                </div>
+                    <MenuItem value="compact">Compacto</MenuItem>
+                    <MenuItem value="normal">Normal</MenuItem>
+                    <MenuItem value="relaxed">Relajado</MenuItem>
+                  </Select>
+                </FormControl>
 
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Densidad Visual</label>
-                  <select 
-                    value={themeSettings.visual_density} 
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Densidad Visual</InputLabel>
+                  <Select
+                    value={themeSettings.visual_density}
+                    label="Densidad Visual"
                     onChange={(e) => setThemeSettings({ ...themeSettings, visual_density: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="compact">Compacta</option>
-                    <option value="normal">Normal</option>
-                    <option value="comfortable">Cómoda</option>
-                  </select>
-                </div>
+                    <MenuItem value="compact">Compacta</MenuItem>
+                    <MenuItem value="normal">Normal</MenuItem>
+                    <MenuItem value="comfortable">Cómoda</MenuItem>
+                  </Select>
+                </FormControl>
               </div>
             </div>
 
@@ -312,32 +546,37 @@ export function ConfiguracionPage() {
             <div>
               <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><Type className="w-4 h-4" /> Tipografía</h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Fuente Principal</label>
-                  <select 
-                    value={themeSettings.typography} 
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Fuente Principal</InputLabel>
+                  <Select
+                    value={themeSettings.typography}
+                    label="Fuente Principal"
                     onChange={(e) => setThemeSettings({ ...themeSettings, typography: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="Inter, sans-serif">Inter</option>
-                    <option value="Roboto, sans-serif">Roboto</option>
-                    <option value="'Open Sans', sans-serif">Open Sans</option>
-                    <option value="'Segoe UI', sans-serif">Segoe UI</option>
-                    <option value="system-ui, sans-serif">System UI</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-2">Tamaño Base</label>
-                  <select 
-                    value={themeSettings.font_size} 
+                    <MenuItem value="Inter, sans-serif">Inter</MenuItem>
+                    <MenuItem value="Roboto, sans-serif">Roboto</MenuItem>
+                    <MenuItem value="'Open Sans', sans-serif">Open Sans</MenuItem>
+                    <MenuItem value="'Segoe UI', sans-serif">Segoe UI</MenuItem>
+                    <MenuItem value="system-ui, sans-serif">System UI</MenuItem>
+                  </Select>
+                </FormControl>
+
+                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
+                  <InputLabel className="text-slate-400">Tamaño Base</InputLabel>
+                  <Select
+                    value={themeSettings.font_size}
+                    label="Tamaño Base"
                     onChange={(e) => setThemeSettings({ ...themeSettings, font_size: e.target.value })}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-sm text-white"
+                    className="text-sm text-white"
+                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
                   >
-                    <option value="12px">Pequeño (12px)</option>
-                    <option value="14px">Normal (14px)</option>
-                    <option value="16px">Grande (16px)</option>
-                  </select>
-                </div>
+                    <MenuItem value="12px">Pequeño (12px)</MenuItem>
+                    <MenuItem value="14px">Normal (14px)</MenuItem>
+                    <MenuItem value="16px">Grande (16px)</MenuItem>
+                  </Select>
+                </FormControl>
               </div>
             </div>
 
@@ -345,12 +584,42 @@ export function ConfiguracionPage() {
             <div>
               <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Imágenes y Marca (Theming)</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Nombre Comercial Mostrado" value={themeSettings.commercial_name ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, commercial_name: v })} />
-                <Input label="Logo del Taller (URL)" value={themeSettings.logo_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, logo_url: v })} />
-                <Input label="Logo Pantalla de Inicio (URL)" value={themeSettings.logo_inicio_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, logo_inicio_url: v })} />
-                <Input label="Imagen del Dashboard (URL)" value={themeSettings.dashboard_image_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, dashboard_image_url: v })} />
-                <Input label="Imagen de Fondo (URL)" value={themeSettings.background_image_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, background_image_url: v })} />
-                <Input label="Favicon (URL)" value={themeSettings.favicon_url ?? ''} onChange={(v) => setThemeSettings({ ...themeSettings, favicon_url: v })} />
+                <TextField
+                  label="Nombre Comercial Mostrado"
+                  value={themeSettings.commercial_name ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, commercial_name: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Logo del Taller (URL)"
+                  value={themeSettings.logo_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Logo Pantalla de Inicio (URL)"
+                  value={themeSettings.logo_inicio_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_inicio_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Imagen del Dashboard (URL)"
+                  value={themeSettings.dashboard_image_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, dashboard_image_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Imagen de Fondo (URL)"
+                  value={themeSettings.background_image_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, background_image_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Favicon (URL)"
+                  value={themeSettings.favicon_url ?? ''}
+                  onChange={(e) => setThemeSettings({ ...themeSettings, favicon_url: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
               </div>
             </div>
 
@@ -475,23 +744,28 @@ export function ConfiguracionPage() {
 
 function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <div>
-      <label className="block text-xs text-slate-400 mb-1">{label}</label>
-      <div className="flex items-center gap-2">
-        <input
+    <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-2xl p-3">
+      <InputLabel shrink className="text-slate-400">{label}</InputLabel>
+      <Box className="flex items-center gap-3 mt-2">
+        <TextField
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-8 h-8 rounded-md cursor-pointer bg-transparent border border-bg-600 shrink-0"
+          variant="filled"
+          sx={{ width: 56, minWidth: 56, padding: 0, '& .MuiInputBase-input': { padding: 0, minHeight: 56, borderRadius: '16px' } }}
+          InputProps={{ sx: { bgcolor: 'transparent', borderRadius: '16px', border: '1px solid rgba(148,163,184,0.2)' } }}
         />
-        <input
-          type="text"
+        <TextField
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full bg-bg-700 border border-bg-600 rounded-md px-2 py-1.5 text-xs text-white focus:outline-none focus:border-[var(--primary)]"
+          variant="filled"
+          size="small"
+          placeholder="#123456"
+          className="w-full"
+          InputProps={{ sx: { color: '#fff', borderRadius: '16px' } }}
         />
-      </div>
-    </div>
+      </Box>
+    </FormControl>
   )
 }
 

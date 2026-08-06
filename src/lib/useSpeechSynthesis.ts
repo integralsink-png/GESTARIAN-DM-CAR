@@ -25,40 +25,34 @@ export function useSpeechSynthesis() {
 
     const utterance = new SpeechSynthesisUtterance(cleanText)
     utterance.lang = 'es-ES'
-    // Configurar voz más agradable y natural
-    utterance.rate = 1.05 // Un poco más rápido para fluidez
-    utterance.pitch = 1.1 // Ligeramente más agudo para sonar menos robótico
+    // Ajustes más naturales y comprensibles
+    utterance.rate = 1.0
+    utterance.pitch = 1.0
+    utterance.volume = 1.0
 
-    // Buscar voces naturales, preferiblemente femeninas
     const voices = window.speechSynthesis.getVoices()
-    
-    // Primero filtramos SÓLO las voces que sean explícitamente en español (es-ES, es-US, es-MX, etc)
-    const spanishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('es'))
-    
-    // 1. Priorizar voces online/naturales españolas de España o neutrales (Microsoft Elena/Laura Online, Google español)
-    let esVoice = spanishVoices.find(v => 
-      v.name.includes('Online') || 
-      v.name.includes('Natural') || 
-      v.name.includes('Google español')
-    )
-    
-    // 2. Si no hay online, usar voces femeninas estándar (Elena, Laura, Monica, Helena)
-    if (!esVoice) {
-      esVoice = spanishVoices.find(v => 
-        v.name.includes('Elena') || 
-        v.name.includes('Laura') || 
-        v.name.includes('Monica') || 
-        v.name.includes('Helena')
-      )
-    }
-    
-    // 3. Fallback a la primera voz en español que encontremos (para evitar que agarre voces inglesas u orientales)
-    if (!esVoice && spanishVoices.length > 0) {
-      esVoice = spanishVoices[0]
-    }
+    const spanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith('es'))
 
-    if (esVoice) {
-      utterance.voice = esVoice
+    const preferredVoice = spanishVoices.find((v) => {
+      const name = v.name.toLowerCase()
+      return (
+        name.includes('espa') ||
+        name.includes('spanish') ||
+        name.includes('elena') ||
+        name.includes('laura') ||
+        name.includes('monica') ||
+        name.includes('lucia') ||
+        name.includes('sofia') ||
+        name.includes('isabel') ||
+        name.includes('celia') ||
+        name.includes('natalia') ||
+        name.includes('paola') ||
+        name.includes('anna')
+      )
+    }) || spanishVoices[0]
+
+    if (preferredVoice) {
+      utterance.voice = preferredVoice
     }
 
     utterance.onstart = () => setSpeaking(true)
