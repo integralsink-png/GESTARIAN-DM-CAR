@@ -1,10 +1,11 @@
+// src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useCallback, TouchEvent } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ThemeProvider } from './lib/theme'
 import { MobileModeContext } from './lib/mobileMode'
 import { UIStateProvider } from './lib/uiState'
 import { supabase } from './lib/supabase'
-import { PowerButton, DesktopHeader, MobileFooter, DesktopFooter, FullscreenExitButton } from './components/Navigation'
+import { DesktopHeader, MobileFooter, DesktopFooter, FullscreenExitButton } from './components/Navigation'
 import { MetisAssistant } from './components/MetisAssistant'
 import { CameraModal } from './components/CameraModal'
 import { InicioPage } from './pages/InicioPage'
@@ -19,9 +20,13 @@ import { BalancesPage } from './pages/BalancesPage'
 import { ConfiguracionPage } from './pages/ConfiguracionPage'
 import { NAV_ITEMS } from './lib/navigation'
 import {
-  FacturasRecibidasPage, ProveedoresPage,
+  ProveedoresPage,
   IncidenciasPage, UsuariosPage,
 } from './pages/Pages'
+import { motion, AnimatePresence } from 'framer-motion'
+
+// NUEVO IMPORT: Añadimos tu componente de animación
+import { IntroAnimation } from './components/IntroAnimation'
 
 function BackgroundImage() {
   const [fondoLandscape, setFondoLandscape] = useState('/images/backgrounds/background_landscape.jpg')
@@ -50,12 +55,9 @@ function BackgroundImage() {
         className="gestarian-bg-image lg:hidden"
         aria-hidden
       />
-      {/* Capa oscurecedora eliminada para mostrar la imagen con su contraste y resolución original */}
     </>
   )
 }
-
-import { motion, AnimatePresence } from 'framer-motion'
 
 function Layout() {
   const location = useLocation()
@@ -66,24 +68,40 @@ function Layout() {
   const [mobileMode, setMobileMode] = useState(false)
   const [direction, setDirection] = useState(0)
 
-  const handleSwipe = (newDirection: number) => {
-    const currentIndex = NAV_ITEMS.findIndex(item => item.path === location.pathname)
+  // Scroll to top on every page change
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    document.documentElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }, [location.pathname])
+
+  const swipeRoutes = NAV_ITEMS.map(item => item.path)
+
+  const handleSwipe = useCallback((newDirection: number) => {
+    const currentIndex = swipeRoutes.indexOf(location.pathname)
     if (currentIndex !== -1) {
-      if (newDirection === 1 && currentIndex < NAV_ITEMS.length - 1) {
+      if (newDirection === 1) {
+        // Avanzar (+1), si estamos al final vuelve a la primera
+        const nextIndex = (currentIndex + 1) % swipeRoutes.length
         setDirection(1)
-        navigate(NAV_ITEMS[currentIndex + 1].path)
-      }
-      if (newDirection === -1 && currentIndex > 0) {
+        navigate(swipeRoutes[nextIndex])
+      } else if (newDirection === -1) {
+        // Retroceder (-1), si estamos al principio va a la última
+        const prevIndex = (currentIndex - 1 + swipeRoutes.length) % swipeRoutes.length
         setDirection(-1)
-        navigate(NAV_ITEMS[currentIndex - 1].path)
+        navigate(swipeRoutes[prevIndex])
       }
+    } else {
+      // Si la ruta no está directamente en el array (ej. subruta /cliente), vuelve a la primera o anterior
+      setDirection(newDirection)
+      navigate(newDirection === 1 ? swipeRoutes[0] : swipeRoutes[swipeRoutes.length - 1])
     }
-  }
+  }, [location.pathname, navigate, swipeRoutes])
 
   const variants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? window.innerWidth : -window.innerWidth,
-      opacity: 0
+      x: direction > 0 ? '100%' : '-100%',
+      opacity: 0.6
     }),
     center: {
       zIndex: 1,
@@ -92,8 +110,8 @@ function Layout() {
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? window.innerWidth : -window.innerWidth,
-      opacity: 0
+      x: direction < 0 ? '100%' : '-100%',
+      opacity: 0.6
     })
   };
 
@@ -107,19 +125,8 @@ function Layout() {
     return () => window.removeEventListener('gestarian-camera-open', handleCameraEvent)
   }, [])
 
-  useEffect(() => {
-    const enforceFullscreen = () => {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {})
-      }
-    }
-    document.addEventListener('click', enforceFullscreen, { once: true })
-    document.addEventListener('touchstart', enforceFullscreen, { once: true })
-    return () => {
-      document.removeEventListener('click', enforceFullscreen)
-      document.removeEventListener('touchstart', enforceFullscreen)
-    }
-  }, [])
+  // Desactivada la pantalla completa automática para permitir la visualización dentro de VS Code o navegador en ventana.
+
 
   const toggleMobileMode = useCallback(() => {
     setMobileMode((prev) => {
@@ -141,17 +148,74 @@ function Layout() {
     if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {})
   }, [])
 
+  useEffect(() => {
+    function handleSwipeEvent(e: Event) {
+      const detail = (e as CustomEvent).detail as { direction: number } | undefined
+      if (detail?.direction) {
+        handleSwipe(detail.direction)
+      }
+    }
+    window.addEventListener('gestarian-swipe-page', handleSwipeEvent)
+    return () => window.removeEventListener('gestarian-swipe-page', handleSwipeEvent)
+  }, [location.pathname])
+
+  // ── Global touch swipe detection for ALL pages (mobile & tablet portrait) ──
+  useEffect(() => {
+    let touchStartX = 0
+    let touchStartY = 0
+    let dirLocked: 'h' | 'v' | null = null
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      dirLocked = null
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!dirLocked) {
+        const dx = Math.abs(e.touches[0].clientX - touchStartX)
+        const dy = Math.abs(e.touches[0].clientY - touchStartY)
+        if (dx > dy + 10) {
+          dirLocked = 'h'
+        } else if (dy > dx + 10) {
+          dirLocked = 'v'
+        }
+      }
+      // Prevent vertical scroll when swiping horizontally
+      if (dirLocked === 'h' && e.cancelable) {
+        e.preventDefault()
+      }
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (dirLocked !== 'h') return
+      const diffX = e.changedTouches[0].clientX - touchStartX
+      const threshold = window.innerWidth * 0.20
+      if (Math.abs(diffX) > threshold) {
+        handleSwipe(diffX < 0 ? 1 : -1)
+      }
+    }
+
+    window.addEventListener('touchstart', onTouchStart, { passive: true })
+    window.addEventListener('touchmove', onTouchMove, { passive: false })
+    window.addEventListener('touchend', onTouchEnd, { passive: true })
+
+    return () => {
+      window.removeEventListener('touchstart', onTouchStart)
+      window.removeEventListener('touchmove', onTouchMove)
+      window.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [handleSwipe])
+
   return (
     <MobileModeContext.Provider value={{ mobileMode, toggleMobileMode, exitMobileMode }}>
-      {/* Background image only on INICIO; other pages use the configured solid color */}
       {isInicio && <BackgroundImage />}
 
       <div className={`relative z-10 min-h-screen ${mobileMode ? 'mobile-mode' : ''}`}>
-        {/* Desktop header: PC / tablet landscape, auto-show on mouse-near-top */}
         <DesktopHeader />
         <FullscreenExitButton />
 
-        <main className="min-h-screen pb-20 lg:pb-24 overflow-hidden relative">
+        <main className="w-full relative min-h-screen">
           <AnimatePresence initial={false} custom={direction} mode="popLayout">
             <motion.div
               key={location.pathname}
@@ -161,22 +225,11 @@ function Layout() {
               animate="center"
               exit="exit"
               transition={{
-                x: { type: "spring", stiffness: 300, damping: 30 },
+                x: { type: "tween", ease: [0.25, 0.46, 0.45, 0.94], duration: 0.28 },
                 opacity: { duration: 0.2 }
               }}
-              drag="x"
-              dragConstraints={{ left: 0, right: 0 }}
-              dragElastic={1}
-              dragDirectionLock={true}
-              onDragEnd={(e, { offset, velocity }) => {
-                const swipe = offset.x;
-                if (swipe < -50) {
-                  handleSwipe(1);
-                } else if (swipe > 50) {
-                  handleSwipe(-1);
-                }
-              }}
-              className="absolute top-0 left-0 w-full h-full p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pt-16 lg:pt-16 overflow-y-auto"
+              style={{ willChange: 'transform, opacity' }}
+              className="w-full min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pt-3 lg:pt-16 pb-28"
             >
               <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<InicioPage />} />
@@ -187,7 +240,6 @@ function Layout() {
                 <Route path="/reparaciones" element={<ReparacionesPage />} />
                 <Route path="/facturas" element={<FacturasPage />} />
                 <Route path="/balances" element={<BalancesPage />} />
-                <Route path="/facturas-recibidas" element={<FacturasRecibidasPage />} />
                 <Route path="/proveedores" element={<ProveedoresPage />} />
                 <Route path="/incidencias" element={<IncidenciasPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />
@@ -216,12 +268,45 @@ function Layout() {
 }
 
 export default function App() {
+  const [showIntro, setShowIntro] = useState(true)
+  const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
+
+  // Efecto inicial para automatizar toda la secuencia de la animación
+  useEffect(() => {
+    // 1. Arranca la animación (aparece el logo)
+    const growTimer = setTimeout(() => {
+      setIntroState('grow')
+    }, 100)
+
+    // 2. Inicia el desvanecimiento (fadeOut) después de 2 segundos de mostrarse
+    const fadeOutTimer = setTimeout(() => {
+      setIntroState('fadeOut')
+    }, 2000)
+
+    // 3. Destruye el componente de la memoria 500ms después para mostrar la app
+    const removeTimer = setTimeout(() => {
+      setShowIntro(false)
+    }, 2500)
+
+    return () => {
+      clearTimeout(growTimer)
+      clearTimeout(fadeOutTimer)
+      clearTimeout(removeTimer)
+    }
+  }, [])
+
   return (
     <ThemeProvider>
       <UIStateProvider>
+        
+        {/* COMPONENTE DE INTRODUCCIÓN AUTOMÁTICO */}
+        <IntroAnimation 
+          showIntro={showIntro} 
+          introState={introState} 
+        />
+
         <BrowserRouter>
           <Routes>
-            {/* Client portal — separate layout, no admin header/footer */}
             <Route path="/cliente/:token" element={<ClientePage />} />
             <Route path="/*" element={<Layout />} />
           </Routes>

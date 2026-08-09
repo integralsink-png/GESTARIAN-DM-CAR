@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Reparacion, Cliente, Vehiculo } from '../lib/types'
 import { PageHeader, Card, Button, Badge, EmptyState, MetisRowButton } from '../components/UI'
-import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2 } from 'lucide-react'
+import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2, ArrowLeft } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 
@@ -161,144 +161,124 @@ export function ReparacionesPage() {
     return v ? `${v.matricula} · ${v.marca ?? ''} ${v.modelo ?? ''}` : null
   }
 
-  function fotosPorFase(fotos: string[] | null, fase: Fase) {
-    return (fotos ?? []).filter((f) => f.startsWith(`${fase}:`))
-  }
-
   return (
     <div>
-      <PageHeader title="Reparaciones" subtitle="Vehículos en taller y finalizados" />
+      <PageHeader title="REPARACIONES">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
+      </PageHeader>
 
       {loading ? (
         <div className="text-center py-16 text-slate-500">Cargando...</div>
       ) : selected ? (
         /* Vista detalle de reparación */
-        <div className="space-y-4">
-          <Button variant="ghost" onClick={() => setSelected(null)}>
-            <span className="flex items-center gap-2"><X className="w-4 h-4" /> Volver al listado</span>
-          </Button>
-
+        <div className="space-y-6">
+          <button
+            onClick={() => setSelected(null)}
+            className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors mb-2"
+          >
+            ← Volver al listado de reparaciones
+          </button>
+          
           <Card className="p-6">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+            <div className="flex items-center justify-between gap-4 flex-wrap pb-4 border-b border-slate-800">
               <div>
-                <h2 className="text-lg font-semibold text-white">{clienteNombre(selected.cliente_id)}</h2>
+                <h2 className="text-xl font-bold text-white">{clienteNombre(selected.cliente_id)}</h2>
                 {vehiculoInfo(selected.vehiculo_id) && (
-                  <p className="flex items-center gap-1 text-sm text-slate-500 mt-1">
-                    <Car className="w-3.5 h-3.5" />{vehiculoInfo(selected.vehiculo_id)}
+                  <p className="text-sm text-slate-400 mt-1 flex items-center gap-1.5">
+                    <Car className="w-4 h-4 text-cyan-400" /> {vehiculoInfo(selected.vehiculo_id)}
                   </p>
                 )}
               </div>
-              <Badge text={selected.estado === 'en_proceso' ? 'En proceso' : 'Finalizado'} color={selected.estado === 'en_proceso' ? 'yellow' : 'green'} />
+              <div className="flex items-center gap-3">
+                <Badge
+                  text={selected.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
+                  color={selected.estado === 'en_proceso' ? 'blue' : 'green'}
+                />
+                <MetisRowButton
+                  tipo="reparacion"
+                  id={selected.id}
+                  matricula={selected.vehiculo_id ? vehiculos[selected.vehiculo_id]?.matricula : undefined}
+                  cliente_nombre={clienteNombre(selected.cliente_id)}
+                  data={selected}
+                />
+              </div>
             </div>
 
-            {/* Descripción editable */}
-            <div className="mb-4">
-              <label className="block text-sm text-slate-400 mb-1">Descripción del trabajo</label>
+            <div className="mt-4">
+              <label className="block text-sm font-semibold text-slate-300 mb-2">Descripción de los trabajos realizada</label>
               <textarea
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
-                placeholder="Describe el trabajo realizado..."
-                rows={3}
-                className="w-full bg-bg-700 border border-bg-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                placeholder="Indica las reparaciones y recambios sustituidos..."
+                rows={4}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-white text-sm focus:outline-none focus:border-cyan-500 transition-all"
               />
-              <Button size="sm" variant="secondary" className="mt-2" onClick={saveDescripcion} disabled={savingDesc}>
-                <span className="flex items-center gap-1"><Save className="w-3.5 h-3.5" /> {savingDesc ? 'Guardando...' : 'Guardar'}</span>
-              </Button>
-            </div>
-
-            {/* Fotos Integradas con GlobalImageViewer */}
-            <div className="mb-4 flex items-center justify-between border border-bg-600 rounded-lg p-3 bg-bg-700">
-              <div className="flex items-center gap-2 text-cyan-400">
-                <ImageIcon className="w-5 h-5" />
-                <span className="font-semibold">Fotos de la reparación ({(selected.fotos ?? []).length})</span>
-              </div>
-              <Button size="sm" onClick={() => setFotosExpandida(selected.id)}>Ver / Añadir Fotos</Button>
-            </div>
-
-            {/* Acciones */}
-            <div className="flex gap-2 flex-wrap border-t border-bg-600 pt-4">
-              {selected.estado === 'en_proceso' && (
-                <Button onClick={() => cambiarEstado(selected.id, 'finalizado')}>
-                  <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Finalizar reparación</span>
+              <div className="mt-2 flex justify-end">
+                <Button size="sm" onClick={saveDescripcion} disabled={savingDesc}>
+                  <Save className="w-4 h-4 mr-1 inline" /> {savingDesc ? 'Guardando...' : 'Guardar descripción'}
                 </Button>
-              )}
-              {selected.estado === 'finalizado' && (
-                <>
-                  <Button onClick={() => navigate('/facturas', { state: { reparacionId: selected.id, clienteId: selected.cliente_id, vehiculoId: selected.vehiculo_id } })}>
-                    <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Generar factura</span>
-                  </Button>
-                  <Button variant="secondary" onClick={enviarEmailFinalizacion} disabled={sendingEmail}>
-                    <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> {sendingEmail ? 'Enviando...' : emailSent ? 'Email enviado ✓' : 'Enviar fotos + factura al cliente'}</span>
-                  </Button>
-                </>
-              )}
-              <Button variant="danger" onClick={() => eliminarReparacion(selected.id)} className="ml-auto">
-                <span className="flex items-center gap-2"><Trash2 className="w-4 h-4" /> Eliminar</span>
-              </Button>
+              </div>
             </div>
           </Card>
         </div>
       ) : reparaciones.length === 0 ? (
-        <EmptyState icon={<Wrench className="w-12 h-12" />} title="No hay reparaciones" subtitle="Las reparaciones se crean desde citas confirmadas" />
+        <EmptyState icon={<Wrench className="w-12 h-12" />} title="No hay reparaciones" subtitle="Las reparaciones se inician al confirmar llegada de citas" />
       ) : (
-        <div className="space-y-2">
-          {reparaciones.map((r) => (
-            <Card key={r.id} className="p-4 hover:border-bg-500 transition-colors cursor-pointer">
+        <div className="space-y-3">
+          {reparaciones.map((rep) => (
+            <Card key={rep.id} className="p-4 hover:border-cyan-500/40 transition-all cursor-pointer" onClick={() => { setSelected(rep); setEditDesc(rep.descripcion ?? '') }}>
               <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{clienteNombre(r.cliente_id)}</span>
-                    <Badge text={r.estado === 'en_proceso' ? 'En proceso' : 'Finalizado'} color={r.estado === 'en_proceso' ? 'yellow' : 'green'} />
+                    <span className="font-semibold text-white text-base">{clienteNombre(rep.cliente_id)}</span>
+                    <Badge
+                      text={rep.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
+                      color={rep.estado === 'en_proceso' ? 'blue' : 'green'}
+                    />
                   </div>
-                  {vehiculoInfo(r.vehiculo_id) && (
-                    <p className="flex items-center gap-1 text-xs text-slate-500 mt-1"><Car className="w-3 h-3" />{vehiculoInfo(r.vehiculo_id)}</p>
+                  {vehiculoInfo(rep.vehiculo_id) && (
+                    <p className="flex items-center gap-1 text-xs text-slate-400 mt-1">
+                      <Car className="w-3.5 h-3.5 text-slate-400" />{vehiculoInfo(rep.vehiculo_id)}
+                    </p>
                   )}
-                  {r.descripcion && <p className="text-sm text-slate-500 mt-1">{r.descripcion}</p>}
+                  {rep.descripcion && (
+                    <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">
+                      "{rep.descripcion}"
+                    </p>
+                  )}
                 </div>
-                <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                <div className="flex items-center gap-2 flex-wrap ml-auto" onClick={(e) => e.stopPropagation()}>
                   <MetisRowButton
                     tipo="reparacion"
-                    id={r.id}
-                    matricula={r.vehiculo_id ? vehiculos[r.vehiculo_id]?.matricula : undefined}
-                    cliente_nombre={clienteNombre(r.cliente_id)}
-                    data={r}
+                    id={rep.id}
+                    matricula={rep.vehiculo_id ? vehiculos[rep.vehiculo_id]?.matricula : undefined}
+                    cliente_nombre={clienteNombre(rep.cliente_id)}
+                    data={rep}
                   />
-                  {r.vehiculo_id && vehiculos[r.vehiculo_id] && (
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setViewerMatricula(vehiculos[r.vehiculo_id!]!.matricula) }}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-bg-700 hover:bg-bg-600 text-slate-400 hover:text-cyan-400 text-xs font-semibold border border-bg-600"
-                      title="Fotos del vehículo"
-                    >
-                      <Car className="w-3.5 h-3.5" /> FOTOS VEHÍCULO
-                    </button>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setFotosExpandida(r.id); }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                      fotosExpandida === r.id 
-                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
-                        : 'bg-bg-700 hover:bg-bg-600 text-cyan-400 border-bg-600'
-                    }`}
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" /> 
-                    FOTOS REPARACIÓN
-                    {(r.fotos ?? []).length > 0 && <span className="ml-1 px-1.5 bg-cyan-500/20 rounded-full">{(r.fotos ?? []).length}</span>}
-                  </button>
 
-                  {r.estado === 'en_proceso' && (
-                    <Button size="sm" onClick={() => cambiarEstado(r.id, 'finalizado')}>Finalizar</Button>
-                  )}
-                  {r.estado === 'finalizado' && (
-                    <Button size="sm" onClick={() => navigate('/facturas', { state: { reparacionId: r.id, clienteId: r.cliente_id, vehiculoId: r.vehiculo_id } }) }>
-                      <span className="flex items-center gap-1"><FileText className="w-3.5 h-3.5" /> Facturar</span>
+                  {rep.estado === 'en_proceso' ? (
+                    <Button size="sm" onClick={() => cambiarEstado(rep.id, 'finalizado')}>
+                      Finalizar Taller
+                    </Button>
+                  ) : (
+                    <Button size="sm" onClick={() => navigate('/facturas', { state: { reparacionId: rep.id, clienteId: rep.cliente_id, vehiculoId: rep.vehiculo_id } })}>
+                      <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> Facturar</span>
                     </Button>
                   )}
+
                   <button
-                    onClick={(e) => { e.stopPropagation(); eliminarReparacion(r.id) }}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/20"
+                    onClick={() => eliminarReparacion(rep.id)}
+                    className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/20 transition-all"
                     title="Eliminar reparación"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

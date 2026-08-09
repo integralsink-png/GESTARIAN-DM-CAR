@@ -31,7 +31,7 @@ export function CitasPage() {
 
   async function loadCitas() {
     setLoading(true)
-    const { data } = await supabase.from('citas').select('*').order('fecha', { ascending: false })
+    const { data } = await supabase.from('citas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false })
     setCitas(data ?? [])
     setLoading(false)
   }
@@ -111,43 +111,9 @@ export function CitasPage() {
   }
 
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
-  const [subiendoFoto, setSubiendoFoto] = useState(false)
 
   const toggleFotos = (id: string) => {
     setFotosExpandida(prev => prev === id ? null : id)
-  }
-
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = () => resolve(reader.result as string)
-      reader.onerror = reject
-      reader.readAsDataURL(file)
-    })
-  }
-
-  async function handleUploadCitaFoto(e: React.ChangeEvent<HTMLInputElement>, citaId: string) {
-    if (!e.target.files || e.target.files.length === 0) return
-    setSubiendoFoto(true)
-    try {
-      const file = e.target.files[0]
-      const dataUrl = await fileToDataUrl(file)
-
-      const cita = citas.find(c => c.id === citaId)
-      if (!cita) return
-      
-      const fotosActuales = cita.fotos ?? []
-      const nuevasFotos = [...fotosActuales, dataUrl]
-
-      const { error } = await supabase.from('citas').update({ fotos: nuevasFotos }).eq('id', citaId)
-      if (error) throw error
-      await loadCitas()
-    } catch (err) {
-      console.error('Error subiendo foto:', err)
-      alert('Error subiendo foto. Inténtalo de nuevo.')
-    } finally {
-      setSubiendoFoto(false)
-    }
   }
 
   async function handleDeleteCitaFoto(citaId: string, index: number) {
@@ -169,10 +135,15 @@ export function CitasPage() {
 
   return (
     <div>
-      <PageHeader title="Citas" subtitle="Gestión de citas del taller">
-        <Button variant="ghost" onClick={() => navigate('/')}>
-          <span className="flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> VOLVER</span>
-        </Button>
+      <PageHeader title="CITAS">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
       </PageHeader>
 
       {loading ? (
@@ -257,8 +228,6 @@ export function CitasPage() {
                   </button>
                 </div>
               </div>
-              
-              {/* Inline photos block replaced by GlobalImageViewer */}
             </Card>
           ))}
         </div>

@@ -3,10 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Vehiculo } from '../lib/types'
 import { PageHeader, Card, Button, Badge, EmptyState, MetisRowButton } from '../components/UI'
-import { FileText, Printer, Mail, Save, X, Check, List, Scale, Calendar, ImageIcon, Download, Trash2, Camera, Plus, MessageCircle } from 'lucide-react'
+import { FileText, Printer, Mail, Save, X, Check, Calendar, ImageIcon, Download, Trash2, Camera, MessageCircle, ArrowLeft } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail } from '../lib/pdfGenerator'
+import { FacturasRecibidasPage } from './Pages'
 
 
 const IVA_RATE = 0.21
@@ -16,6 +17,7 @@ export function FacturasPage() {
   const navigate = useNavigate()
   const navState = location.state as { reparacionId?: string; clienteId?: string; vehiculoId?: string } | null
 
+  const [activeTab, setActiveTab] = useState<'emitidas' | 'recibidas'>('emitidas')
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
@@ -23,14 +25,10 @@ export function FacturasPage() {
   const [loading, setLoading] = useState(true)
   const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null)
   const [cobros, setCobros] = useState<Cobro[]>([])
-  const [nuevoAbono, setNuevoAbono] = useState('')
-  const [showCobroPanel, setShowCobroPanel] = useState(false)
   const [showRegistro, setShowRegistro] = useState(false)
-  const [registered, setRegistered] = useState(false)
   const [trimestreFilter, setTrimestreFilter] = useState('')
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
-  const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [escaneandoOCR, setEscaneandoOCR] = useState(false)
 
   useEffect(() => {
@@ -93,48 +91,6 @@ export function FacturasPage() {
     })
   }
 
-  async function handleUploadFacturaFoto(e: React.ChangeEvent<HTMLInputElement>, id: string) {
-    if (!e.target.files || e.target.files.length === 0) return
-    setSubiendoFoto(true)
-    try {
-      const file = e.target.files[0]
-      const dataUrl = await fileToDataUrl(file)
-      
-      const f = facturas.find(x => x.id === id)
-      if (!f) return
-      
-      const fotosActuales = f.fotos ?? []
-      const nuevasFotos = [...fotosActuales, dataUrl]
-
-      const { error } = await supabase.from('facturas').update({ fotos: nuevasFotos }).eq('id', id)
-      if (error) throw error
-      await loadFacturas()
-    } catch (err) {
-      console.error(err)
-      alert('Error subiendo foto')
-    } finally {
-      setSubiendoFoto(false)
-    }
-  }
-
-  async function handleDeleteFacturaFoto(id: string, index: number) {
-    if (!confirm('¿Eliminar esta foto?')) return
-    const f = facturas.find(x => x.id === id)
-    if (!f) return
-
-    const nuevasFotos = [...(f.fotos ?? [])]
-    nuevasFotos.splice(index, 1)
-
-    try {
-      const { error } = await supabase.from('facturas').update({ fotos: nuevasFotos }).eq('id', id)
-      if (error) throw error
-      await loadFacturas()
-    } catch (err) {
-      console.error(err)
-      alert('Error eliminando foto')
-    }
-  }
-
   async function handleScanOCR(e: React.ChangeEvent<HTMLInputElement>, id: string) {
     if (!e.target.files || e.target.files.length === 0) return
     setEscaneandoOCR(true)
@@ -146,12 +102,8 @@ export function FacturasPage() {
       const text = await extractTextFromImage(dataUrl)
       
       if (text.trim()) {
-        const { processMetisMessage } = await import('../lib/metisAiEngine')
         const f = facturas.find(x => x.id === id)
         if (f) {
-          // Facturas uses 'conceptos', we can reuse the processMetisMessage but passing facturas instead of presupuestos might be tricky as the engine expects `presupuestos` structure sometimes.
-          // For now we will just show the text or use the existing budget logic if Factura has `conceptos`
-          // Note: Metis handles `presupuestos` specifically inside its engine, but we will pass it anyway.
           alert(`OCR Detectado en factura:\n\n${text}\n\nNota: La inserción automática de conceptos vía METIS está optimizada para presupuestos actualmente.`);
         }
       }
@@ -180,26 +132,34 @@ export function FacturasPage() {
 
   async function crearFacturaDesdeReparacion() {
     if (!navState?.clienteId) return
-    const prefix = `FAA`
-    
-    const { data: maxFactura } = await supabase
+
+    // Prefijo con año de 2 dígitos: F26, F27, etc.
+    const yearSuffix = String(new Date().getFullYear()).slice(-2)
+    const prefix = `F${yearSuffix}`
+
+    // Buscar la última factura del año en curso (prefijo exacto del año)
+    const { data: todasFacturasAnio } = await supabase
       .from('facturas')
       .select('numero')
       .like('numero', `${prefix}%`)
       .order('numero', { ascending: false })
-      .limit(1)
-      .maybeSingle()
-      
+
+    // Encontrar el número correlativo más alto del año actual
     let maxNum = 0
-    if (maxFactura && maxFactura.numero) {
-      const numPart = parseInt(maxFactura.numero.substring(prefix.length), 10)
-      if (!isNaN(numPart)) {
-        maxNum = numPart
+    if (todasFacturasAnio && todasFacturasAnio.length > 0) {
+      for (const f of todasFacturasAnio) {
+        if (f.numero && f.numero.startsWith(prefix)) {
+          const numPart = parseInt(f.numero.substring(prefix.length), 10)
+          if (!isNaN(numPart) && numPart > maxNum) {
+            maxNum = numPart
+          }
+        }
       }
     }
-    
+
     const count = maxNum + 1
-    const numero = `${prefix}${String(count).padStart(4, '0')}`
+    // Formato: F26 + número de 5 dígitos → F2600001, F2600002...
+    const numero = `${prefix}${String(count).padStart(5, '0')}`
 
     // Buscar el presupuesto asociado a la reparación para copiar los conceptos
     let conceptos: Concepto[] = []
@@ -383,35 +343,59 @@ export function FacturasPage() {
 
   return (
     <div>
-      <PageHeader title="Facturas" subtitle="Facturación y control de cobros">
-        <div className="flex gap-2">
-          {selectedFactura && (
-            <>
-              <Button variant="secondary" onClick={() => setShowRegistro(true)}>
-                <span className="flex items-center gap-2"><List className="w-4 h-4" /> Registro</span>
-              </Button>
-              <Button variant="secondary" onClick={() => navigate('/balances')}>
-                <span className="flex items-center gap-2"><Scale className="w-4 h-4" /> Ir a Balances</span>
-              </Button>
-            </>
-          )}
-        </div>
+      <PageHeader title="FACTURACIÓN">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
       </PageHeader>
 
-      {/* Selector de trimestre */}
-      {!selectedFactura && (
-        <div className="flex items-center gap-3 mb-4">
-          <Calendar className="w-4 h-4 text-slate-500" />
-          <select
-            value={trimestreFilter}
-            onChange={(e) => setTrimestreFilter(e.target.value)}
-            className="bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-          >
-            <option value="">Último trimestre</option>
-            {trimestres.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-          </select>
-        </div>
-      )}
+      {/* Selector de pestañas: EMITIDAS / RECIBIDAS */}
+      <div className="flex gap-3 mb-4 border-b border-slate-800 pb-3">
+        <button
+          onClick={() => { setActiveTab('emitidas'); setSelectedFactura(null); }}
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+            activeTab === 'emitidas'
+              ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+              : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          EMITIDAS
+        </button>
+        <button
+          onClick={() => { setActiveTab('recibidas'); setSelectedFactura(null); }}
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+            activeTab === 'recibidas'
+              ? 'bg-purple-500/20 text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+              : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+          }`}
+        >
+          RECIBIDAS
+        </button>
+      </div>
+
+      {activeTab === 'recibidas' ? (
+        <FacturasRecibidasPage />
+      ) : (
+        <>
+          {/* Selector de trimestre */}
+          {!selectedFactura && (
+            <div className="flex items-center gap-3 mb-4">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <select
+                value={trimestreFilter}
+                onChange={(e) => setTrimestreFilter(e.target.value)}
+                className="bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+              >
+                <option value="">Último trimestre</option>
+                {trimestres.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
+            </div>
+          )}
 
       {loading ? (
         <div className="text-center py-16 text-slate-500">Cargando...</div>
@@ -429,7 +413,7 @@ export function FacturasPage() {
               <h3 className="text-sm font-semibold text-white mb-4">Control de Cobro</h3>
               
               {/* Información de la factura */}
-              <div className="space-y-3 text-sm mb-4">
+              <div className="space-y-2 text-sm mb-4">
                 <div className="flex justify-between"><span className="text-slate-500">Factura:</span><span className="text-white font-medium">{selectedFactura.numero}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Fecha emisión:</span><span className="text-white font-medium">{new Date(selectedFactura.fecha).toLocaleDateString('es-ES')}</span></div>
                 <div className="flex justify-between"><span className="text-slate-500">Cliente:</span><span className="text-white font-medium">{clienteNombre(selectedFactura.cliente_id)}</span></div>
@@ -438,54 +422,156 @@ export function FacturasPage() {
                 )}
               </div>
 
-              {/* Resumen de cobro */}
-              <div className="bg-bg-700/50 rounded-lg p-3 space-y-2 text-sm mb-4">
-                <div className="flex justify-between"><span className="text-slate-500">Total factura:</span><span className="text-white font-medium">{selectedFactura.total.toFixed(2)} €</span></div>
-                <div className="flex justify-between"><span className="text-slate-500">Total abonado:</span><span className="text-green-400 font-medium">{selectedFactura.total_abonado.toFixed(2)} €</span></div>
-                <div className="flex justify-between border-t border-bg-600 pt-2"><span className="text-slate-500">Saldo pendiente:</span><span className="text-amber-400 font-bold">{saldoPendiente.toFixed(2)} €</span></div>
-                <div className="flex justify-between pt-1"><span className="text-slate-500">Estado:</span><span className="text-white font-medium">{selectedFactura.estado_cobro.toUpperCase()}</span></div>
+              {/* ── Cuadro de control de importes ── */}
+              <div className="rounded-xl border border-bg-600 overflow-hidden mb-4">
+                {/* Total factura */}
+                <div className="flex items-center justify-between px-4 py-3 bg-bg-700/60 border-b border-bg-600">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-slate-400">Total factura</span>
+                  <span className="text-lg font-bold text-white tabular-nums">{selectedFactura.total.toFixed(2)} €</span>
+                </div>
+
+                {/* Abonado */}
+                <div className="flex items-center justify-between px-4 py-3 bg-emerald-950/20 border-b border-bg-600">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-emerald-400/70">Ya abonado</span>
+                  <span className="text-base font-bold text-emerald-400 tabular-nums">+ {selectedFactura.total_abonado.toFixed(2)} €</span>
+                </div>
+
+                {/* Saldo pendiente actual */}
+                <div className="flex items-center justify-between px-4 py-3 bg-amber-950/20 border-b border-bg-600">
+                  <span className="text-xs font-semibold uppercase tracking-widest text-amber-400/70">Pendiente actual</span>
+                  <span className={`text-base font-bold tabular-nums ${saldoPendiente <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{saldoPendiente.toFixed(2)} €</span>
+                </div>
+
+                {/* Preview: pendiente tras el abono parcial introducido */}
+                {saldoPendiente > 0 && nuevoAbono !== '' && parseFloat(nuevoAbono) > 0 && (
+                  <div className="flex items-center justify-between px-4 py-3 bg-cyan-950/20 border-b border-bg-600">
+                    <span className="text-xs font-semibold uppercase tracking-widest text-cyan-400/70">
+                      Pendiente tras abono
+                    </span>
+                    <span className="text-base font-bold tabular-nums text-cyan-400">
+                      {Math.max(0, saldoPendiente - parseFloat(nuevoAbono)).toFixed(2)} €
+                    </span>
+                  </div>
+                )}
+
+                {/* Barra de progreso de cobro */}
+                <div className="px-4 py-3 bg-bg-800/40">
+                  <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5">
+                    <span>Progreso de cobro</span>
+                    <span className="font-semibold text-white">
+                      {selectedFactura.total > 0 ? ((selectedFactura.total_abonado / selectedFactura.total) * 100).toFixed(1) : '0'}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-bg-700 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-full transition-all duration-500"
+                      style={{ width: `${Math.min(100, selectedFactura.total > 0 ? (selectedFactura.total_abonado / selectedFactura.total) * 100 : 0)}%` }}
+                    />
+                  </div>
+                  {/* Preview de la barra si hay importe parcial */}
+                  {saldoPendiente > 0 && nuevoAbono !== '' && parseFloat(nuevoAbono) > 0 && (
+                    <>
+                      <div className="flex items-center justify-between text-xs text-slate-500 mb-1.5 mt-2">
+                        <span className="text-cyan-400/70">Progreso tras abono</span>
+                        <span className="font-semibold text-cyan-400">
+                          {Math.min(100, selectedFactura.total > 0 ? ((selectedFactura.total_abonado + parseFloat(nuevoAbono)) / selectedFactura.total) * 100 : 0).toFixed(1)}%
+                        </span>
+                      </div>
+                      <div className="w-full h-2 bg-bg-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, selectedFactura.total > 0 ? ((selectedFactura.total_abonado + parseFloat(nuevoAbono)) / selectedFactura.total) * 100 : 0)}%` }}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
 
+              {/* Estado badge */}
               <div className="mb-4"><Badge text={selectedFactura.estado_cobro} color={estadoColor(selectedFactura.estado_cobro)} /></div>
 
-              {showCobroPanel && saldoPendiente > 0 && (
-                <div className="mt-4 p-4 bg-bg-700 rounded-lg border border-bg-600">
-                  <label className="block text-sm text-slate-400 mb-2">Nuevo abono</label>
-                  <div className="flex gap-2">
-                    <input type="number" value={nuevoAbono} onChange={(e) => setNuevoAbono(e.target.value)} placeholder="0.00 €" className="flex-1 bg-bg-800 border border-bg-600 rounded-lg px-3 py-2 text-white text-sm focus:border-cyan-500 focus:outline-none" />
-                    <Button size="sm" onClick={registrarAbono}><span className="flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Guardar</span></Button>
-                  </div>
-                  <button onClick={() => setShowCobroPanel(false)} className="mt-2 text-xs text-slate-500 hover:text-white">Cancelar</button>
-                </div>
-              )}
+              {/* ── Zona de abono ── */}
               {saldoPendiente > 0 && (
-                <div className="mt-4 flex gap-2">
-                  {!showCobroPanel && (
-                    <Button size="sm" variant="secondary" onClick={() => setShowCobroPanel(true)}>Registrar abono</Button>
-                  )}
-                  <Button size="sm" onClick={abonarTodo}>Abonar todo ({saldoPendiente.toFixed(2)} €)</Button>
+                <div className="space-y-3">
+                  {/* Input de abono parcial */}
+                  <div className="p-4 bg-bg-700/60 rounded-xl border border-bg-600">
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-widest mb-2">Importe a abonar</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={nuevoAbono}
+                        onChange={(e) => setNuevoAbono(e.target.value)}
+                        placeholder="0.00"
+                        min="0.01"
+                        max={saldoPendiente}
+                        step="0.01"
+                        className="flex-1 bg-bg-800 border border-bg-600 rounded-lg px-3 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none tabular-nums"
+                      />
+                      <span className="flex items-center text-slate-400 text-sm font-medium pr-1">€</span>
+                    </div>
+                    {nuevoAbono !== '' && parseFloat(nuevoAbono) > saldoPendiente && (
+                      <p className="text-xs text-red-400 mt-1.5">⚠ El importe supera el saldo pendiente ({saldoPendiente.toFixed(2)} €)</p>
+                    )}
+                  </div>
+
+                  {/* Botones de acción */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={registrarAbono}
+                      disabled={!nuevoAbono || parseFloat(nuevoAbono) <= 0 || parseFloat(nuevoAbono) > saldoPendiente}
+                      className="flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/20 active:scale-[0.98] transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none"
+                    >
+                      <Save className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Abono parcial</span>
+                      {nuevoAbono && parseFloat(nuevoAbono) > 0 && parseFloat(nuevoAbono) <= saldoPendiente && (
+                        <span className="text-xs tabular-nums text-cyan-300">{parseFloat(nuevoAbono).toFixed(2)} €</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={abonarTodo}
+                      className="flex flex-col items-center justify-center gap-1 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/20 active:scale-[0.98] transition-all duration-150"
+                    >
+                      <Check className="w-4 h-4" />
+                      <span className="text-xs font-semibold">Abonar todo</span>
+                      <span className="text-xs tabular-nums text-emerald-300">{saldoPendiente.toFixed(2)} €</span>
+                    </button>
+                  </div>
                 </div>
               )}
 
+              {/* Factura completamente pagada */}
+              {saldoPendiente <= 0 && (
+                <div className="flex items-center justify-center gap-2 py-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                  <Check className="w-5 h-5" />
+                  <span className="font-semibold text-sm">Factura completamente pagada</span>
+                </div>
+              )}
+
+              {/* Historial de abonos */}
               {cobros.length > 0 && (
                 <div className="mt-4 pt-4 border-t border-bg-600">
-                  <p className="text-xs text-slate-500 mb-2 font-medium">Histórico de abonos ({cobros.length})</p>
+                  <p className="text-xs text-slate-500 mb-2 font-semibold uppercase tracking-widest">Historial de abonos ({cobros.length})</p>
                   <div className="space-y-1.5">
-                    {cobros.map((c, idx) => (
-                      <div key={c.id} className="flex justify-between text-xs items-center bg-bg-700/30 rounded px-2 py-1">
+                    {cobros.map((c) => (
+                      <div key={c.id} className="flex justify-between text-xs items-center bg-bg-700/30 rounded-lg px-3 py-2">
                         <span className="text-slate-500">
                           {new Date(c.fecha).toLocaleDateString('es-ES')} {new Date(c.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                         </span>
-                        <span className="text-green-400 font-medium">{c.importe.toFixed(2)} €</span>
+                        <span className="text-emerald-400 font-semibold tabular-nums">+{c.importe.toFixed(2)} €</span>
                       </div>
                     ))}
                   </div>
-                  <div className="mt-2 text-xs text-slate-400">
-                    Total abonado: {selectedFactura.total_abonado.toFixed(2)} € ({((selectedFactura.total_abonado / selectedFactura.total) * 100).toFixed(1)}%)
+                  <div className="mt-2 text-xs text-slate-400 flex justify-between">
+                    <span>Total abonado</span>
+                    <span className="font-semibold text-emerald-400 tabular-nums">
+                      {selectedFactura.total_abonado.toFixed(2)} € ({selectedFactura.total > 0 ? ((selectedFactura.total_abonado / selectedFactura.total) * 100).toFixed(1) : '0'}%)
+                    </span>
                   </div>
                 </div>
               )}
             </Card>
+
 
             <Card className="p-5">
               <h3 className="text-sm font-semibold text-white mb-3">Acciones</h3>
@@ -682,6 +768,8 @@ export function FacturasPage() {
           ))}
         </div>
       )}
+      </>
+      )}
 
       {/* Modal Registro de Facturas */}
       {showRegistro && (
@@ -728,7 +816,14 @@ export function FacturasPage() {
           }
         }}
         onDeleteImage={async (index) => {
-          if (fotosExpandida) await handleDeleteFacturaFoto(fotosExpandida, index)
+          if (!fotosExpandida) return;
+          const f = facturas.find(x => x.id === fotosExpandida);
+          if (f) {
+            const nuevasFotos = [...(f.fotos ?? [])];
+            nuevasFotos.splice(index, 1);
+            await supabase.from('facturas').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
+            await loadFacturas();
+          }
         }}
         title={`Factura ${facturas.find(f => f.id === fotosExpandida)?.numero ?? ''}`}
         customAction={

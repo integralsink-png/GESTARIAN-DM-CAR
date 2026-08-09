@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ClipboardList, Calendar, Wrench,
-  FileText, Scale, Receipt, Truck, AlertTriangle,
-  UserCog, Building2, Settings,
+  FileText, Scale, Truck, AlertTriangle,
+  UserCog, Settings,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -20,7 +20,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Reparaciones',        path: '/reparaciones',       icon: Wrench },
   { label: 'Facturación',         path: '/facturas',           icon: FileText },
   { label: 'Balances',            path: '/balances',           icon: Scale },
-  { label: 'Facturas Recibidas',  path: '/facturas-recibidas', icon: Receipt },
   { label: 'Proveedores',         path: '/proveedores',        icon: Truck },
   { label: 'Incidencias',         path: '/incidencias',        icon: AlertTriangle },
   { label: 'Usuarios',            path: '/usuarios',           icon: UserCog },

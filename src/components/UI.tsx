@@ -1,13 +1,30 @@
 import type { ReactNode } from 'react'
 
-export function PageHeader({ title, subtitle, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+import { useNavigate } from 'react-router-dom'
+
+export function PageHeader({ title, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+  const navigate = useNavigate()
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
-      <div>
-        <h1 className="text-2xl font-bold text-[var(--color-texto)]">{title}</h1>
-        {subtitle && <p className="text-sm text-white/50 mt-1">{subtitle}</p>}
+    <div className="relative flex items-center justify-between mb-6 w-full px-2 min-h-[60px]">
+      {/* Logo corporativo a la izquierda (x1.5 = 60px x 60px) */}
+      <button
+        onClick={() => navigate('/')}
+        className="w-15 h-15 w-[60px] h-[60px] rounded-2xl overflow-hidden border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.2)] hover:scale-105 transition-transform active:scale-95 shrink-0 bg-white z-10"
+        title="Ir a Inicio"
+        aria-label="Ir a Inicio"
+      >
+        <img src="/images/logos/logo.jpg" alt="Logo Corporativo" className="w-full h-full object-cover" />
+      </button>
+
+      {/* Título centrado absoluto (escalado x0.8) */}
+      <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold uppercase tracking-wider text-[var(--color-texto)] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] pointer-events-none whitespace-nowrap">
+        {title}
+      </h1>
+
+      {/* Elementos a la derecha (Botones de acción) */}
+      <div className="flex items-center gap-3 z-10 ml-auto">
+        {children}
       </div>
-      {children}
     </div>
   )
 }

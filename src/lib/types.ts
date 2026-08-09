@@ -7,6 +7,8 @@ export interface Cliente {
   telefono: string | null
   email: string | null
   direccion: string | null
+  cp?: string | null
+  localidad?: string | null
   created_at: string
 }
 
@@ -18,6 +20,7 @@ export interface Vehiculo {
   modelo: string | null
   anio: number | null
   vin: string | null
+  codigo_color?: string | null
   fotos?: string[]
   created_at: string
 }
@@ -43,6 +46,8 @@ export interface Presupuesto {
   total: number
   observaciones: string | null
   fotos?: string[]
+  enviado_email_at?: string | null
+  enviado_whatsapp_at?: string | null
   created_at: string
 }
 
@@ -81,6 +86,7 @@ export interface Factura {
   total_abonado: number
   estado_cobro: EstadoCobro
   fecha: string
+  fotos?: string[]
   created_at: string
 }
 

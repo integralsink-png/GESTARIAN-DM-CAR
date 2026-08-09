@@ -1,6 +1,6 @@
 import { supabase } from './supabase'
 import { parseVoiceToConceptos } from './useVoice'
-import type { Concepto, Presupuesto, Cita, Reparacion, Cliente, Vehiculo } from './types'
+import type { Concepto } from './types'
 import OpenAI from 'openai'
 
 export interface MetisContext {

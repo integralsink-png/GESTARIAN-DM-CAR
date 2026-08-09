@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Configuracion, ThemePreset, ThemeSettings } from '../lib/types'
 import { PageHeader, Card, Button } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
 import { Box, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, LayoutTemplate, Type } from 'lucide-react'
+import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, LayoutTemplate, Type, ArrowLeft } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 export function ConfiguracionPage() {
+  const navigate = useNavigate()
   const [config, setConfig] = useState<Configuracion | null>(null)
   const [apiKey, setApiKey] = useState(localStorage.getItem('gestarian_groq_api_key') || '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')
   const [hfKey, setHfKey] = useState(localStorage.getItem('gestarian_hf_api_key') || '')
@@ -116,10 +118,20 @@ export function ConfiguracionPage() {
 
   return (
     <div>
-      <PageHeader title="Configuración" subtitle="Datos de la empresa, apariencia visual y preferencias">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar'}
-        </Button>
+      <PageHeader title="CONFIGURACIÓN">
+        <div className="flex items-center gap-3">
+          <Button onClick={handleSave} disabled={saving}>
+            {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar'}
+          </Button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            title="Volver"
+            aria-label="Volver"
+          >
+            <ArrowLeft className="w-7 h-7" />
+          </button>
+        </div>
       </PageHeader>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -377,334 +389,79 @@ export function ConfiguracionPage() {
           </div>
         </Card>
 
-        {/* Personalización Visual Avanzada */}
+        {/* Apariencia Visual */}
         <Card className="p-6 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-6">
+          <div className="flex items-center gap-2 mb-4">
             <Palette className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-white">Personalización Visual (Theming)</h2>
+            <h2 className="text-lg font-semibold text-white">Apariencia Visual</h2>
           </div>
           
-          <div className="space-y-8">
-            <Box className="p-4 rounded-3xl border border-bg-600 bg-bg-700">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-medium text-slate-300 mb-3">Presets de Estilo</h3>
+              <Stack direction="row" spacing={1} flexWrap="wrap">
+                {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
+                  <Chip
+                    key={preset}
+                    label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
+                    clickable
+                    color={themePreset === preset ? 'primary' : 'default'}
+                    onClick={() => handlePresetChange(preset)}
+                    variant={themePreset === preset ? 'filled' : 'outlined'}
+                    className="text-xs rounded-full"
+                  />
+                ))}
+              </Stack>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
                 <div>
-                  <Typography variant="subtitle1" className="text-white">Previsualización rápida</Typography>
-                  <Typography variant="body2" className="text-slate-400">Observa cómo cambia la paleta y el modo antes de guardar.</Typography>
+                  <Typography variant="subtitle2" className="text-white">Modo Oscuro</Typography>
+                  <Typography variant="caption" className="text-slate-400">Activa el modo noche y ajusta el contraste general.</Typography>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                  <Chip label="Botón primario" color="primary" />
-                  <Chip label="Etiqueta" variant="outlined" className="text-white border-slate-600" />
-                  <Chip label={themeSettings.is_dark_mode ? 'Modo noche' : 'Modo día'} color="default" />
+                <Switch
+                  checked={themeSettings.is_dark_mode}
+                  onChange={(e) => {
+                    const value = e.target.checked
+                    setThemeSettings({ ...themeSettings, is_dark_mode: value })
+                    playSound('click')
+                  }}
+                  color="primary"
+                />
+              </Box>
+
+              <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
+                <div>
+                  <Typography variant="subtitle2" className="text-white">Visualización actual</Typography>
+                  <Typography variant="caption" className="text-slate-400">Preset: {themePreset === 'custom' ? 'Personalizado' : themePreset}</Typography>
                 </div>
-              </div>
-            </Box>
-            {/* Global Settings */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><LayoutTemplate className="w-4 h-4" /> Layout y Estilo Global</h3>
-              <div className="space-y-4">
-                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} className="items-end">
-                  <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                    <InputLabel className="text-slate-400">Preset de tema</InputLabel>
-                    <Select
-                      value={themePreset}
-                      label="Preset de tema"
-                      onChange={(e) => handlePresetChange(e.target.value as ThemePreset)}
-                      className="text-sm text-white"
-                      sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                    >
-                      <MenuItem value="classic">Clásico</MenuItem>
-                      <MenuItem value="professional">Profesional</MenuItem>
-                      <MenuItem value="dark">Oscuro</MenuItem>
-                      <MenuItem value="blue">Azul</MenuItem>
-                      <MenuItem value="green">Verde</MenuItem>
-                      <MenuItem value="orange">Naranja</MenuItem>
-                      <MenuItem value="premium">Premium</MenuItem>
-                      <MenuItem value="custom">Personalizado</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setThemeSettings(DEFAULT_THEME_SETTINGS)
-                      setThemePreset(DEFAULT_THEME_SETTINGS.theme_preset)
-                      playSound('click')
-                    }}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-white"
-                  >
-                    Restaurar valor por defecto
-                  </Button>
-                </Stack>
-
-                <Stack direction="row" spacing={1} flexWrap="wrap">
-                  {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
-                    <Chip
-                      key={preset}
-                      label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
-                      clickable
-                      color={themePreset === preset ? 'primary' : 'default'}
-                      onClick={() => handlePresetChange(preset)}
-                      variant={themePreset === preset ? 'filled' : 'outlined'}
-                      className="text-xs rounded-full"
-                    />
-                  ))}
-                </Stack>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
-                    <div>
-                      <Typography variant="subtitle2" className="text-white">Modo Oscuro</Typography>
-                      <Typography variant="caption" className="text-slate-400">Activa el modo noche y ajusta el contraste general.</Typography>
-                    </div>
-                    <Switch
-                      checked={themeSettings.is_dark_mode}
-                      onChange={(e) => {
-                        const value = e.target.checked
-                        setThemeSettings({ ...themeSettings, is_dark_mode: value })
-                        setAppearance({ ...appearance, modo_diurno: !value })
-                        playSound('click')
-                      }}
-                      color="primary"
-                    />
-                  </Box>
-
-                  <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
-                    <div>
-                      <Typography variant="subtitle2" className="text-white">Visualización actual</Typography>
-                      <Typography variant="caption" className="text-slate-400">Preset: {themePreset === 'custom' ? 'Personalizado' : themePreset}</Typography>
-                    </div>
-                    <Chip label={themeSettings.is_dark_mode ? 'Noche' : 'Día'} size="small" color={themeSettings.is_dark_mode ? 'default' : 'primary'} />
-                  </Box>
-                </div>
-
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Bordes (Radius)</InputLabel>
-                  <Select
-                    value={themeSettings.border_radius}
-                    label="Bordes (Radius)"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, border_radius: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="0">Cuadrado (0px)</MenuItem>
-                    <MenuItem value="0.25rem">Suave (4px)</MenuItem>
-                    <MenuItem value="0.5rem">Normal (8px)</MenuItem>
-                    <MenuItem value="1rem">Redondeado (16px)</MenuItem>
-                    <MenuItem value="9999px">Píldora</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Sombras</InputLabel>
-                  <Select
-                    value={themeSettings.shadows}
-                    label="Sombras"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, shadows: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="none">Sin sombra</MenuItem>
-                    <MenuItem value="sm">Pequeña</MenuItem>
-                    <MenuItem value="md">Media</MenuItem>
-                    <MenuItem value="lg">Grande</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Espaciado General</InputLabel>
-                  <Select
-                    value={themeSettings.spacing}
-                    label="Espaciado General"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, spacing: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="compact">Compacto</MenuItem>
-                    <MenuItem value="normal">Normal</MenuItem>
-                    <MenuItem value="relaxed">Relajado</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Densidad Visual</InputLabel>
-                  <Select
-                    value={themeSettings.visual_density}
-                    label="Densidad Visual"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, visual_density: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="compact">Compacta</MenuItem>
-                    <MenuItem value="normal">Normal</MenuItem>
-                    <MenuItem value="comfortable">Cómoda</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
+                <Chip label={themeSettings.is_dark_mode ? 'Noche' : 'Día'} size="small" color={themeSettings.is_dark_mode ? 'default' : 'primary'} />
+              </Box>
             </div>
 
-            {/* Typography */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><Type className="w-4 h-4" /> Tipografía</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Fuente Principal</InputLabel>
-                  <Select
-                    value={themeSettings.typography}
-                    label="Fuente Principal"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, typography: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="Inter, sans-serif">Inter</MenuItem>
-                    <MenuItem value="Roboto, sans-serif">Roboto</MenuItem>
-                    <MenuItem value="'Open Sans', sans-serif">Open Sans</MenuItem>
-                    <MenuItem value="'Segoe UI', sans-serif">Segoe UI</MenuItem>
-                    <MenuItem value="system-ui, sans-serif">System UI</MenuItem>
-                  </Select>
-                </FormControl>
-
-                <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-lg">
-                  <InputLabel className="text-slate-400">Tamaño Base</InputLabel>
-                  <Select
-                    value={themeSettings.font_size}
-                    label="Tamaño Base"
-                    onChange={(e) => setThemeSettings({ ...themeSettings, font_size: e.target.value })}
-                    className="text-sm text-white"
-                    sx={{ '.MuiSelect-select': { padding: '12px' }, '& .MuiOutlinedInput-notchedOutline': { borderColor: 'transparent' } }}
-                  >
-                    <MenuItem value="12px">Pequeño (12px)</MenuItem>
-                    <MenuItem value="14px">Normal (14px)</MenuItem>
-                    <MenuItem value="16px">Grande (16px)</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <ColorPicker
+                label="Color Principal"
+                value={themeSettings.primary_color}
+                onChange={(v) => setThemeSettings({ ...themeSettings, primary_color: v })}
+              />
+              <ColorPicker
+                label="Color Secundario"
+                value={themeSettings.secondary_color}
+                onChange={(v) => setThemeSettings({ ...themeSettings, secondary_color: v })}
+              />
+              <ColorPicker
+                label="Botones"
+                value={themeSettings.button_color}
+                onChange={(v) => setThemeSettings({ ...themeSettings, button_color: v })}
+              />
+              <ColorPicker
+                label="Iconos"
+                value={themeSettings.icon_color}
+                onChange={(v) => setThemeSettings({ ...themeSettings, icon_color: v })}
+              />
             </div>
-
-            {/* Imágenes y Marca */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><ImageIcon className="w-4 h-4" /> Imágenes y Marca (Theming)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <TextField
-                  label="Nombre Comercial Mostrado"
-                  value={themeSettings.commercial_name ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, commercial_name: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Logo del Taller (URL)"
-                  value={themeSettings.logo_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Logo Pantalla de Inicio (URL)"
-                  value={themeSettings.logo_inicio_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_inicio_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Imagen del Dashboard (URL)"
-                  value={themeSettings.dashboard_image_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, dashboard_image_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Imagen de Fondo (URL)"
-                  value={themeSettings.background_image_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, background_image_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Favicon (URL)"
-                  value={themeSettings.favicon_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, favicon_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div>
-              <h3 className="text-sm font-medium text-slate-300 mb-4 flex items-center gap-2"><Palette className="w-4 h-4" /> Paleta de Colores</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <ColorPicker
-                  label="Color Principal"
-                  value={themeSettings.primary_color}
-                  onChange={(v) => {
-                    setThemeSettings({ ...themeSettings, primary_color: v })
-                    setAppearance({ ...appearance, color_glow_botones: v })
-                  }}
-                />
-                <ColorPicker
-                  label="Color Secundario"
-                  value={themeSettings.secondary_color}
-                  onChange={(v) => {
-                    setThemeSettings({ ...themeSettings, secondary_color: v })
-                    setAppearance({ ...appearance, color_linea_botones: v })
-                  }}
-                />
-                <ColorPicker
-                  label="Botones"
-                  value={themeSettings.button_color}
-                  onChange={(v) => {
-                    setThemeSettings({ ...themeSettings, button_color: v })
-                    setAppearance({ ...appearance, color_relleno_botones: v })
-                  }}
-                />
-                <ColorPicker
-                  label="Iconos"
-                  value={themeSettings.icon_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, icon_color: v })}
-                />
-                <ColorPicker
-                  label="Avisos (Warning)"
-                  value={themeSettings.warning_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, warning_color: v })}
-                />
-                <ColorPicker
-                  label="Éxito (Success)"
-                  value={themeSettings.success_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, success_color: v })}
-                />
-                <ColorPicker
-                  label="Errores (Error)"
-                  value={themeSettings.error_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, error_color: v })}
-                />
-                <ColorPicker
-                  label="Fondo del Dashboard"
-                  value={themeSettings.dashboard_color}
-                  onChange={(v) => {
-                    setThemeSettings({ ...themeSettings, dashboard_color: v })
-                    setAppearance({ ...appearance, color_fondo: v })
-                  }}
-                />
-                <ColorPicker
-                  label="Fondo de Tarjetas"
-                  value={themeSettings.card_color}
-                  onChange={(v) => {
-                    setThemeSettings({ ...themeSettings, card_color: v })
-                    setAppearance({ ...appearance, color_relleno_paneles: v })
-                  }}
-                />
-                <ColorPicker
-                  label="Fondo de Tablas"
-                  value={themeSettings.table_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, table_color: v })}
-                />
-                <ColorPicker
-                  label="Fondo de Cabeceras"
-                  value={themeSettings.header_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, header_color: v })}
-                />
-                <ColorPicker
-                  label="Color de Notificaciones"
-                  value={themeSettings.notification_color}
-                  onChange={(v) => setThemeSettings({ ...themeSettings, notification_color: v })}
-                />
-              </div>
-            </div>
-
           </div>
         </Card>
 

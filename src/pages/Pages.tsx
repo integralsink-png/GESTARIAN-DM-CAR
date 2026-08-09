@@ -3,7 +3,7 @@ import { OcrInvoiceScanner } from '../components/OcrInvoiceScanner'
 import { Receipt, Truck, AlertTriangle, UserCog, Plus, X, Trash2, Search, Save } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
-import type { Usuario, RolUsuario, Proveedor, FacturaRecibida, Concepto } from '../lib/types'
+import type { Usuario, RolUsuario, Proveedor, FacturaRecibida, Concepto, Incidencia, PrioridadIncidencia, EstadoIncidencia, Cliente, Vehiculo } from '../lib/types'
 
 /* ──────────────── Facturas Recibidas (RFP) ──────────────── */
 export function FacturasRecibidasPage() {
@@ -330,8 +330,6 @@ export function ProveedoresPage() {
 }
 
 /* ──────────────── Incidencias ──────────────── */
-import type { Incidencia, PrioridadIncidencia, EstadoIncidencia, Cliente, Vehiculo } from '../lib/types'
-
 export function IncidenciasPage() {
   const [incidencias, setIncidencias] = useState<Incidencia[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -442,7 +440,6 @@ export function IncidenciasPage() {
         </Button>
       </PageHeader>
 
-      {/* KPIs rápidos */}
       {incidencias.length > 0 && (
         <div className="flex gap-3 mb-4 flex-wrap">
           <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
@@ -458,7 +455,6 @@ export function IncidenciasPage() {
         </div>
       )}
 
-      {/* Filtros */}
       {incidencias.length > 0 && (
         <div className="flex gap-2 mb-4 flex-wrap">
           <select
@@ -515,7 +511,7 @@ export function IncidenciasPage() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   {inc.estado === 'abierta' && (
-                    <Button size="sm" variant="secondary" onClick={e => { e.stopPropagation(); cambiarEstado(inc.id, 'en_proceso') }}>
+                    <Button size="sm" variant="secondary" onClick={() => cambiarEstado(inc.id, 'en_proceso')}>
                       <span className="text-xs">Iniciar</span>
                     </Button>
                   )}
@@ -533,10 +529,9 @@ export function IncidenciasPage() {
         </div>
       )}
 
-      {/* Panel lateral de detalle */}
       {selected && (
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setSelected(null)}>
-          <Card className="w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <Card className="w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-lg font-semibold text-white">{selected.titulo}</h2>
@@ -570,7 +565,6 @@ export function IncidenciasPage() {
                 <div><span className="text-slate-500">Creada: </span><span className="text-white">{new Date(selected.created_at).toLocaleDateString('es-ES')}</span></div>
               </div>
 
-              {/* Cambio de estado */}
               <div className="pt-3 border-t border-bg-600">
                 <p className="text-xs text-slate-500 mb-2">Cambiar estado</p>
                 <div className="flex gap-2 flex-wrap">
@@ -590,7 +584,6 @@ export function IncidenciasPage() {
                 </div>
               </div>
 
-              {/* Resolución */}
               <div className="pt-3 border-t border-bg-600">
                 <p className="text-xs text-slate-500 mb-2">Nota de resolución</p>
                 <textarea
@@ -605,7 +598,6 @@ export function IncidenciasPage() {
                 </Button>
               </div>
 
-              {/* Eliminar */}
               <div className="pt-3 border-t border-bg-600">
                 <Button variant="danger" size="sm" onClick={() => eliminarIncidencia(selected.id)}>
                   <span className="flex items-center gap-2"><Trash2 className="w-3.5 h-3.5" /> Eliminar incidencia</span>
@@ -616,10 +608,9 @@ export function IncidenciasPage() {
         </div>
       )}
 
-      {/* Modal nueva incidencia */}
       {showForm && (
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowForm(false)}>
-          <Card className="w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <Card className="w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold text-white">Nueva incidencia</h2>
               <button onClick={() => setShowForm(false)} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
@@ -697,8 +688,6 @@ export function IncidenciasPage() {
     </div>
   )
 }
-
-
 
 /* ──────────────── Usuarios ──────────────── */
 export function UsuariosPage() {
@@ -822,7 +811,7 @@ export function UsuariosPage() {
                     <input
                       type="checkbox"
                       checked={form.puede_editar_precios}
-                      onChange={(e) => setForm({ ...form, puede_editar_precios: e.target.checked })}
+                      onChange={(e) => setForm({ ...form,puede_editar_precios: e.target.checked })}
                       className="accent-cyan-500"
                     />
                     Puede editar precios en presupuestos
@@ -850,6 +839,7 @@ export function UsuariosPage() {
   )
 }
 
+/* ──────────────── Datos Empresa ──────────────── */
 export function DatosEmpresaPage() {
   return (
     <div>

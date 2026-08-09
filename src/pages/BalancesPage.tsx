@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Cell } from 'recharts'
 import { exportToA3, exportToSAGE, exportToExcel, downloadFile } from '../lib/accountingExporters'
 import { MetisFiscalAdvisor } from '../components/MetisFiscalAdvisor'
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
@@ -16,7 +17,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
           <p key={`item-${index}`} className="text-sm flex items-center gap-2">
             <span className="w-3 h-3 rounded" style={{ backgroundColor: entry.color || entry.fill }} />
             <span className="opacity-70">{entry.name}:</span>
-            <span className="font-semibold">{Number(entry.value).toFixed(2)} €</span>
+            <span className="semibold">{Number(entry.value).toFixed(2)} €</span>
           </p>
         ))}
       </div>
@@ -214,30 +215,10 @@ export function BalancesPage() {
         return f.fecha >= first.start && f.fecha <= last.end
       })
 
-  const maxIngresosGastos = Math.max(
-    ...datosTrimestrales.map((d) => Math.max(d.ingresos, d.gastos, d.beneficio)),
-    1,
-  )
-  const maxIVA = Math.max(
-    ...datosTrimestrales.map((d) => Math.max(d.ivaRepercutido, d.ivaSoportado, Math.abs(d.difIVA))),
-    1,
-  )
-  const maxFiscal = Math.max(
-    ...datosTrimestrales.map((d) => Math.max(Math.abs(d.difIVA), Math.abs(d.beneficio * tasaFiscal))),
-    1,
-  )
-
-
-
   return (
     <div>
-      <PageHeader title="Balances e Impuestos" subtitle="Resumen financiero, IVA y estimaciones fiscales">
+      <PageHeader title="BALANCES">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" onClick={() => navigate('/')}>
-            <span className="flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" /> VOLVER
-            </span>
-          </Button>
           <Button onClick={() => setShowExportModal(true)} variant="secondary" className="hidden sm:flex">
             <span className="flex items-center gap-2">
               <Download className="w-4 h-4" /> Exportar (A3/SAGE)
@@ -257,10 +238,17 @@ export function BalancesPage() {
               )}
             </span>
           </Button>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+            title="Volver"
+            aria-label="Volver"
+          >
+            <ArrowLeft className="w-7 h-7" />
+          </button>
         </div>
       </PageHeader>
 
-      {/* Selector de tipo fiscal */}
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div>
@@ -299,7 +287,6 @@ export function BalancesPage() {
         </div>
       </Card>
 
-      {/* Botón para mostrar/ocultar resumen (solo PC y tablet landscape) */}
       <div className="hidden lg:block mb-4">
         <button
           onClick={() => setShowSummary(!showSummary)}
@@ -309,7 +296,6 @@ export function BalancesPage() {
         </button>
       </div>
 
-      {/* Resumen últimos 4 trimestres */}
       {(!window.matchMedia('(min-width: 1024px)').matches) || showSummary ? (
         <>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -335,7 +321,6 @@ export function BalancesPage() {
       </>
       ) : null}
 
-      {/* Gráfico 1: Ingresos, Gastos, Beneficio neto */}
       <Card className="p-6 mb-6">
         <div className="flex items-center gap-2 mb-6">
           <TrendingUp className="w-5 h-5 text-[var(--color-glow)]" />
@@ -368,7 +353,6 @@ export function BalancesPage() {
         )}
       </Card>
 
-      {/* Gráfico 2: IVA soportado, repercutido y diferencia */}
       <Card className="p-6 mb-6">
         <div className="flex items-center gap-2 mb-6">
           <Receipt className="w-5 h-5 text-[var(--color-glow)]" />
@@ -401,7 +385,6 @@ export function BalancesPage() {
         )}
       </Card>
 
-      {/* Gráfico 3 interactivo: Diferencia IVA + Importe a pagar sobre beneficio */}
       <Card className="p-6 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Calculator className="w-5 h-5 text-[var(--color-glow)]" />
@@ -442,7 +425,7 @@ export function BalancesPage() {
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            {/* Resumen fiscal */}
+            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-bg-700">
               <div className="p-4 rounded-lg bg-bg-700/50">
                 <p className="text-xs opacity-50 uppercase font-medium mb-1">Total a pagar (IVA + fiscal)</p>
@@ -468,7 +451,6 @@ export function BalancesPage() {
         </p>
       )}
 
-      {/* Modal Facturas Emitidas */}
       {showEmitidas && (
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowEmitidas(false)}>
           <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
@@ -513,7 +495,6 @@ export function BalancesPage() {
         </div>
       )}
 
-      {/* Modal Facturas Recibidas */}
       {showRecibidas && (
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowRecibidas(false)}>
           <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
@@ -537,7 +518,6 @@ export function BalancesPage() {
         </div>
       )}
 
-      {/* Modal Exportar (A3/SAGE/EXCEL) */}
       {showExportModal && (
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowExportModal(false)}>
           <Card className="w-full max-w-lg p-6">

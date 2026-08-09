@@ -72,7 +72,6 @@ function applyCssVars(t: ThemeSettings) {
   }
   root.style.setProperty('--shadow-custom', shadowsMap[t.shadows as keyof typeof shadowsMap] || shadowsMap.md)
   
-  
   // Backwards compatibility with old variables
   root.style.setProperty('--color-fondo', t.dashboard_color)
   root.style.setProperty('--color-texto', t.is_dark_mode ? '#f8fafc' : '#0f172a')

@@ -1,85 +1,136 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
-  TrendingUp, Calendar, Wrench, FileText, Users,
+  Calendar, Wrench, FileText, Users,
   Clock, CheckCircle2, AlertCircle, Euro, ArrowRight,
-  CarFront, BarChart3, Activity, Triangle, Camera
+  CarFront, BarChart3
 } from 'lucide-react'
 
+import { useGestures } from '../hooks/useGestures'
+import { useClima } from '../hooks/useClima'
+import { IntroAnimation } from '../components/IntroAnimation'
+import { PanelControlHeader } from '../components/PanelControlHeader'
+import { MetisAlertsSection } from '../components/MetisAlertsSection'
+
 interface KPIs {
-  ingresosHoy: number
-  ingresosMes: number
-  citasHoy: number
-  citasPendientesHoy: number
-  reparacionesEnProceso: number
-  presupuestosPendientes: number
-  facturasPendienteCobro: number
-  totalClientes: number
+  ingresosTrimestre: number; ingresosMes: number; citasHoy: number;
+  citasPendientesHoy: number; reparacionesEnProceso: number;
+  presupuestosPendientes: number; facturasPendienteCobro: number; totalClientes: number;
 }
-
 interface CitaHoy {
-  id: string
-  hora: string | null
-  vehiculo: { matricula: string } | null
-  cliente: { nombre: string } | null
-  estado: string
+  id: string; hora: string | null; vehiculo: { matricula: string } | null; cliente: { nombre: string } | null; estado: string;
 }
-
 interface ReparacionActiva {
-  id: string
-  vehiculo: { matricula: string; marca: string | null; modelo: string | null } | null
-  cliente: { nombre: string } | null
-  created_at: string
+  id: string; vehiculo: { matricula: string; marca: string | null; modelo: string | null } | null; cliente: { nombre: string } | null; created_at: string;
 }
 
-function formatEuros(n: number) {
-  return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 })
-}
-
+let hasShownIntroSession = false
+function formatEuros(n: number) { return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 function timeAgo(dateStr: string) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
   if (diff < 60) return `hace ${diff}m`
   if (diff < 1440) return `hace ${Math.floor(diff / 60)}h`
   return `hace ${Math.floor(diff / 1440)}d`
 }
+function computeBaseIVA(conceptos: any[]): { base: number } {
+  return { base: conceptos.reduce((s, c) => s + (c.cantidad || 0) * (c.precio || 0), 0) }
+}
+
+const PANEL_READY_DELAY = 500
 
 export function InicioPage() {
   const navigate = useNavigate()
   const [kpis, setKpis] = useState<KPIs>({
-    ingresosHoy: 0, ingresosMes: 0, citasHoy: 0,
-    citasPendientesHoy: 0, reparacionesEnProceso: 0,
-    presupuestosPendientes: 0, facturasPendienteCobro: 0,
-    totalClientes: 0,
+    ingresosTrimestre: 0, ingresosMes: 0, citasHoy: 0, citasPendientesHoy: 0,
+    reparacionesEnProceso: 0, presupuestosPendientes: 0, facturasPendienteCobro: 0, totalClientes: 0,
   })
   const [citasHoy, setCitasHoy] = useState<CitaHoy[]>([])
   const [reparacionesActivas, setReparacionesActivas] = useState<ReparacionActiva[]>([])
   const [loading, setLoading] = useState(true)
-  const [empresa, setEmpresa] = useState<string>('GESTARIAN')
   const [hora, setHora] = useState(new Date())
+
+  const [showIntro, setShowIntro] = useState(!hasShownIntroSession)
+  const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
+
+  const [showPanels, setShowPanels] = useState(false)
+  const [isFadingOut, setIsFadingOut] = useState(false)
+  const [mostrarAvisos, setMostrarAvisos] = useState(false)
+
+  const [panelReady, setPanelReady] = useState(false)
+  const panelReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (panelReadyTimerRef.current) clearTimeout(panelReadyTimerRef.current)
+    if (showPanels && !isFadingOut) {
+      panelReadyTimerRef.current = setTimeout(() => {
+        setPanelReady(true)
+      }, PANEL_READY_DELAY)
+    } else {
+      setPanelReady(false)
+    }
+    return () => {
+      if (panelReadyTimerRef.current) clearTimeout(panelReadyTimerRef.current)
+    }
+  }, [showPanels, isFadingOut])
+
+  const panelInteractable = panelReady && showPanels && !isFadingOut
+
+  const { temperatura, cargandoClima } = useClima()
+  const { offsetX, isAnimating } = useGestures({ showPanels, setShowPanels, isFadingOut, setIsFadingOut })
 
   useEffect(() => {
     const t = setInterval(() => setHora(new Date()), 30000)
     return () => clearInterval(t)
   }, [])
 
+  const handleAppStart = (e?: React.MouseEvent | React.TouchEvent) => {
+    const target = e?.target as HTMLElement
+    if (target?.closest('button') || target?.closest('a')) return
+
+    const docEl = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; msRequestFullscreen?: () => Promise<void> }
+    const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen
+    if (requestFs && !document.fullscreenElement) requestFs.call(docEl).catch(() => {})
+
+    if (showIntro) {
+      hasShownIntroSession = true
+      setIntroState('fadeOut')
+      setTimeout(() => setShowIntro(false), 500)
+    }
+  }
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (window.innerHeight - e.clientY <= 100) return
+    if (!showPanels && !isFadingOut) setShowPanels(true)
+  }
+
+  useEffect(() => {
+    if (hasShownIntroSession) return
+    const t1 = setTimeout(() => setIntroState('grow'), 50)
+    const t2 = setTimeout(() => setIntroState('fadeOut'), 1500)
+    const t3 = setTimeout(() => { hasShownIntroSession = true; setShowIntro(false) }, 2000)
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
+  }, [])
+
   useEffect(() => {
     async function load() {
       const hoy = new Date().toISOString().slice(0, 10)
       const primeroDeMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
+      const now = new Date()
+      const year = now.getFullYear()
+      const q = Math.floor(now.getMonth() / 3) + 1
+      const startMonth = (q - 1) * 3 + 1
+      const endMonth = q * 3
+      const endDay = new Date(year, endMonth, 0).getDate()
+      const trimStart = `${year}-${String(startMonth).padStart(2, '0')}-01`
+      const trimEnd = `${year}-${String(endMonth).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`
 
       const [
-        { data: config },
-        { data: facturasHoy },
-        { data: facturasMes },
-        { data: citasHoyData },
-        { data: repsActivas },
-        { data: presusPendientes },
-        { data: facturasCobro },
-        { count: totalClientes },
+        , { data: facturasTrimestreData }, { data: facturasMes }, { data: citasHoyData },
+        { data: repsActivas }, { data: presusPendientes }, { data: facturasCobro }, { count: totalClientes },
       ] = await Promise.all([
         supabase.from('configuracion').select('nombre_empresa').eq('id', 1).maybeSingle(),
-        supabase.from('facturas').select('total').eq('fecha', hoy),
+        supabase.from('facturas').select('total, conceptos').gte('fecha', trimStart).lte('fecha', trimEnd),
         supabase.from('facturas').select('total').gte('fecha', primeroDeMes),
         supabase.from('citas').select('id, hora, estado, vehiculos:vehiculo_id (matricula), clientes:cliente_id (nombre)').eq('fecha', hoy).order('hora'),
         supabase.from('reparaciones').select('id, created_at, vehiculos:vehiculo_id (matricula, marca, modelo), clientes:cliente_id (nombre)').eq('estado', 'en_proceso').order('created_at', { ascending: false }).limit(5),
@@ -88,34 +139,18 @@ export function InicioPage() {
         supabase.from('clientes').select('id', { count: 'exact', head: true }),
       ])
 
-      if (config?.nombre_empresa) setEmpresa(config.nombre_empresa)
-
-      const sumHoy = facturasHoy?.reduce((s, f) => s + (f.total || 0), 0) ?? 0
+      const sumTrimestre = facturasTrimestreData?.reduce((s, f) => s + (computeBaseIVA(f.conceptos ?? []).base || f.total || 0), 0) ?? 0
       const sumMes = facturasMes?.reduce((s, f) => s + (f.total || 0), 0) ?? 0
-
       const citasArr = (citasHoyData || []) as any[]
-      setCitasHoy(citasArr.map(c => ({
-        id: c.id, hora: c.hora, estado: c.estado,
-        vehiculo: c.vehiculos ?? null,
-        cliente: c.clientes ?? null,
-      })))
-
+      setCitasHoy(citasArr.map(c => ({ id: c.id, hora: c.hora, estado: c.estado, vehiculo: c.vehiculos ?? null, cliente: c.clientes ?? null })))
       const repsArr = (repsActivas || []) as any[]
-      setReparacionesActivas(repsArr.map(r => ({
-        id: r.id, created_at: r.created_at,
-        vehiculo: r.vehiculos ?? null,
-        cliente: r.clientes ?? null,
-      })))
+      setReparacionesActivas(repsArr.map(r => ({ id: r.id, created_at: r.created_at, vehiculo: r.vehiculos ?? null, cliente: r.clientes ?? null })))
 
       setKpis({
-        ingresosHoy: sumHoy,
-        ingresosMes: sumMes,
-        citasHoy: citasArr.length,
+        ingresosTrimestre: sumTrimestre, ingresosMes: sumMes, citasHoy: citasArr.length,
         citasPendientesHoy: citasArr.filter(c => c.estado === 'pendiente' || c.estado === 'confirmada').length,
-        reparacionesEnProceso: repsArr.length,
-        presupuestosPendientes: presusPendientes?.length ?? 0,
-        facturasPendienteCobro: facturasCobro?.length ?? 0,
-        totalClientes: totalClientes ?? 0,
+        reparacionesEnProceso: repsArr.length, presupuestosPendientes: presusPendientes?.length ?? 0,
+        facturasPendienteCobro: facturasCobro?.length ?? 0, totalClientes: totalClientes ?? 0,
       })
       setLoading(false)
     }
@@ -123,346 +158,225 @@ export function InicioPage() {
   }, [])
 
   const totalAvisos = kpis.presupuestosPendientes + kpis.facturasPendienteCobro + kpis.citasPendientesHoy
-  const [mostrarAvisos, setMostrarAvisos] = useState(false)
-  const [showPanel, setShowPanel] = useState(false)
-
-  useEffect(() => {
-    let startY = 0
-    let accumulatedWheel = 0
-
-    const handleTouchStart = (e: TouchEvent) => { 
-      startY = e.touches[0].clientY 
-    }
-    const handleTouchMove = (e: TouchEvent) => {
-      const diff = e.touches[0].clientY - startY
-      if (diff < -30) {
-        setShowPanel(true)
-      } else if (diff > window.innerHeight / 2 && window.scrollY <= 0) {
-        setShowPanel(false)
-      }
-    }
-    const handleWheel = (e: WheelEvent) => {
-      if (e.deltaY > 0) {
-        accumulatedWheel = 0
-        setShowPanel(true)
-      } else if (e.deltaY < 0 && window.scrollY <= 0) {
-        accumulatedWheel -= e.deltaY
-        if (accumulatedWheel > window.innerHeight / 2) {
-          setShowPanel(false)
-          accumulatedWheel = 0
-        }
-      }
-    }
-
-    window.addEventListener('touchstart', handleTouchStart)
-    window.addEventListener('touchmove', handleTouchMove)
-    window.addEventListener('wheel', handleWheel)
-
-    return () => {
-      window.removeEventListener('touchstart', handleTouchStart)
-      window.removeEventListener('touchmove', handleTouchMove)
-      window.removeEventListener('wheel', handleWheel)
-    }
-  }, [])
-
-  const horaStr = hora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-  const fechaStr = hora.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })
+  const tempActual = temperatura ?? 22
+  const tempColor = tempActual < 18 ? 'text-blue-400' : tempActual <= 30 ? 'text-emerald-400' : tempActual <= 35 ? 'text-orange-400' : 'text-red-400'
 
   return (
-    <>
-      <div className={`fixed inset-0 bg-black transition-opacity duration-700 pointer-events-none z-0 ${showPanel ? 'opacity-20' : 'opacity-0'}`} />
-      
-      <div className={`relative z-10 space-y-6 pb-24 transition-all duration-700 transform ${showPanel ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    <div
+      className="w-full min-h-screen pb-24 relative overflow-x-hidden touch-pan-y"
+      onClick={handleAppStart}
+      onDoubleClick={handleDoubleClick}
+      style={{
+        transform: `translateX(${offsetX}px)`,
+        transition: isAnimating ? 'transform 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94)' : 'none',
+        willChange: 'transform',
+        backfaceVisibility: 'hidden',
+      }}
+    >
+      <IntroAnimation showIntro={showIntro} introState={introState} />
 
-      {/* CABECERA */}
-      <div className="gestarian-glass gestarian-metis-card rounded-2xl p-5 border border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <Activity className="w-5 h-5 text-violet-400 drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]" />
-            <span className="text-xs font-medium uppercase tracking-widest text-white/50">Panel de Control</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">{empresa}</h1>
-          <p className="text-sm text-white/50 capitalize mt-0.5">{fechaStr}</p>
-        </div>
+      <div className={`transition-opacity duration-500 ease-in-out ${showIntro ? 'opacity-0' : 'opacity-100'}`}>
+        <PanelControlHeader
+          showPanels={showPanels} isFadingOut={isFadingOut} hora={hora} tempActual={tempActual}
+          cargandoClima={cargandoClima} tempColor={tempColor} totalAvisos={totalAvisos}
+          mostrarAvisos={mostrarAvisos} setMostrarAvisos={setMostrarAvisos} touchSelectable={panelInteractable}
+        />
 
-        <div className="flex items-center gap-4 justify-between sm:justify-end">
-          {/* BOTÓN AVISOS METIS - MÓVIL / PORTRAIT (CIRCULAR CON TRIÁNGULO) */}
-          <button
-            onClick={() => setMostrarAvisos(!mostrarAvisos)}
-            className={`lg:hidden w-11 h-11 rounded-full flex items-center justify-center border transition-all duration-300 shrink-0 ${
-              totalAvisos > 0
-                ? 'bg-orange-500/20 border-orange-500/60 text-orange-400 shadow-[0_0_20px_rgba(167,139,250,0.5)] hover:shadow-[0_0_30px_rgba(167,139,250,0.7)]'
-                : 'bg-emerald-500/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_20px_rgba(167,139,250,0.5)] hover:shadow-[0_0_30px_rgba(167,139,250,0.7)]'
-            }`}
-            title={mostrarAvisos ? "Ocultar Avisos METIS" : "Mostrar Avisos METIS"}
+        {showPanels && (
+          <div
+            className={`relative z-10 space-y-6 pt-[5rem] transition-opacity duration-500 ease-in-out
+              ${isFadingOut ? 'opacity-0' : 'opacity-100'}
+              ${!panelInteractable ? 'pointer-events-none select-none' : 'pointer-events-auto'}
+            `}
           >
-            <Triangle className={`w-5 h-5 fill-current ${mostrarAvisos ? 'rotate-180' : ''} drop-shadow-[0_0_10px_rgba(167,139,250,0.8)]`} />
-          </button>
+            <div className="w-full max-w-4xl mx-auto">
 
-          {/* BOTÓN AVISOS METIS - PC / LANDSCAPE (RECTANGULAR) */}
-          <button
-            onClick={() => setMostrarAvisos(!mostrarAvisos)}
-            className={`hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all duration-200 shrink-0 ${
-              totalAvisos > 0
-                ? 'bg-orange-500/20 text-orange-400 border-orange-500/40 hover:bg-orange-500/30'
-                : 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
-            }`}
-          >
-            <Triangle className={`w-3.5 h-3.5 fill-current transition-transform duration-200 ${mostrarAvisos ? 'rotate-180' : ''}`} />
-            <span>{mostrarAvisos ? 'Ocultar Avisos METIS' : `Avisos METIS (${totalAvisos})`}</span>
-          </button>
+              <MetisAlertsSection
+                mostrarAvisos={mostrarAvisos} totalAvisos={totalAvisos} touchSelectable={panelInteractable}
+                presupuestosPendientes={kpis.presupuestosPendientes} facturasPendienteCobro={kpis.facturasPendienteCobro}
+                totalClientes={kpis.totalClientes} navigate={navigate}
+              />
 
-          <div className="text-right">
-              <div className="text-4xl font-bold text-white tabular-nums">{horaStr}</div>
-            <div className="text-xs text-white/40 mt-1 flex items-center justify-end gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-              Sistema activo
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick access card removed as requested */}
-
-      {/* KPI CARDS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <KpiCard
-          icon={<Euro className="w-5 h-5" />}
-          label="Ingresos hoy"
-          value={loading ? '…' : formatEuros(kpis.ingresosHoy)}
-          sub="facturas emitidas hoy"
-          color="from-emerald-500/80 to-emerald-500/70"
-          border="border-emerald-500/30"
-          iconColor="text-emerald-400"
-          onClick={() => navigate('/facturas')}
-        />
-        <KpiCard
-          icon={<BarChart3 className="w-5 h-5" />}
-          label="Ingresos del mes"
-          value={loading ? '…' : formatEuros(kpis.ingresosMes)}
-          sub="total facturado"
-          color="from-violet-500/80 to-violet-500/70"
-          border="border-violet-500/30"
-          iconColor="text-violet-400"
-          onClick={() => navigate('/balances')}
-        />
-        <KpiCard
-          icon={<Calendar className="w-5 h-5" />}
-          label="Citas hoy"
-          value={loading ? '…' : String(kpis.citasHoy)}
-          sub={`${kpis.citasPendientesHoy} pendientes`}
-          color="from-blue-500/80 to-blue-500/70"
-          border="border-blue-500/30"
-          iconColor="text-blue-400"
-          onClick={() => navigate('/citas')}
-        />
-        <KpiCard
-          icon={<Wrench className="w-5 h-5" />}
-          label="En taller"
-          value={loading ? '…' : String(kpis.reparacionesEnProceso)}
-          sub="reparaciones activas"
-          color="from-amber-500/80 to-amber-500/70"
-          border="border-amber-500/30"
-          iconColor="text-amber-400"
-          onClick={() => navigate('/reparaciones')}
-        />
-      </div>
-
-      {/* AVISOS Y ALERTAS METIS (DESPLEGABLES) */}
-      {mostrarAvisos && (
-        <div className="gestarian-glass gestarian-metis-card rounded-2xl p-4 border border-white/100 space-y-3">
-          <div className="flex items-center justify-between pb-2 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Triangle className={`w-4 h-4 fill-current ${totalAvisos > 0 ? 'text-orange-400' : 'text-emerald-400'}`} />
-              <h3 className="text-sm font-semibold text-white">Avisos y Notificaciones METIS</h3>
-            </div>
-            <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${
-              totalAvisos > 0 ? 'bg-orange-500/80 text-orange-400 border-orange-500/40' : 'bg-emerald-500/80 text-emerald-400 border-emerald-500/40'
-            }`}>
-              {totalAvisos > 0 ? `${totalAvisos} Pendientes` : 'Sin Avisos'}
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <AlertCard
-              icon={<FileText className="w-4 h-4" />}
-              label="Presupuestos pendientes"
-              count={kpis.presupuestosPendientes}
-              color="text-orange-400"
-              borderColor="border-orange-500"
-              onClick={() => navigate('/presupuestos')}
-            />
-            <AlertCard
-              icon={<TrendingUp className="w-4 h-4" />}
-              label="Facturas sin cobrar"
-              count={kpis.facturasPendienteCobro}
-              color="text-red-400"
-              borderColor="border-red-500"
-              onClick={() => navigate('/facturas')}
-            />
-            <AlertCard
-              icon={<Users className="w-4 h-4" />}
-              label="Total clientes"
-              count={kpis.totalClientes}
-              color="text-cyan-400"
-              borderColor="border-cyan-500"
-              onClick={() => navigate('/clientes')}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* CITAS + REPARACIONES */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80">
-          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-blue-400" />
-              <span className="font-semibold text-sm text-white">Citas de hoy</span>
-            </div>
-            <button onClick={() => navigate('/citas')} className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1">
-              Ver todas <ArrowRight className="w-3 h-3" />
-            </button>
-          </div>
-          <div className="divide-y divide-white/5">
-            {loading ? (
-              <div className="p-4 text-center text-white/30 text-sm">Cargando…</div>
-            ) : citasHoy.length === 0 ? (
-              <div className="p-6 text-center text-white/30 text-sm">
-                <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                Sin citas programadas para hoy
-              </div>
-            ) : citasHoy.map(cita => (
-              <div key={cita.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition cursor-pointer" onClick={() => navigate('/citas')}>
-                <div className="flex-shrink-0">
-                  {cita.estado === 'completada' ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    : cita.estado === 'cancelada' ? <AlertCircle className="w-4 h-4 text-red-400" />
-                    : <Clock className="w-4 h-4 text-blue-400" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{cita.cliente?.nombre ?? 'Cliente desconocido'}</p>
-                  <p className="text-xs text-white/40 truncate">{cita.vehiculo?.matricula ?? '—'}</p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-mono text-white/70">{cita.hora?.slice(0, 5) ?? '—'}</p>
-                  <EstadoBadge estado={cita.estado} />
+              {/* Acceso rápido */}
+              <div className="px-2 sm:px-4">
+                <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-3">Acceso rápido</h2>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {[
+                    { icon: Users, label: 'Clientes', path: '/clientes', border: 'border-cyan-500/60 border-[2px]', iconColor: 'text-cyan-400', bg: 'rgba(8, 145, 178, 0.45)' },
+                    { icon: FileText, label: 'Presupuestos', path: '/presupuestos', border: 'border-violet-500/60 border-[2px]', iconColor: 'text-violet-300', bg: 'rgba(109, 40, 217, 0.45)' },
+                    { icon: Calendar, label: 'Citas', path: '/citas', border: 'border-blue-500/60 border-[2px]', iconColor: 'text-blue-300', bg: 'rgba(29, 78, 216, 0.45)' },
+                    { icon: Wrench, label: 'Reparaciones', path: '/reparaciones', border: 'border-amber-500/60 border-[2px]', iconColor: 'text-amber-300', bg: 'rgba(180, 83, 9, 0.45)' },
+                  ].map(({ icon: Icon, label, path, border, iconColor, bg }) => (
+                    <button
+                      key={path}
+                      onClick={() => navigate(path)}
+                      disabled={!panelInteractable}
+                      className={`flex flex-col items-center justify-center gap-2 px-4 py-4 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] ${border} backdrop-blur-md text-center`}
+                      style={{ backgroundColor: bg }}
+                    >
+                      <div className="text-[1.5em] leading-none mb-1">
+                        <Icon className={`w-8 h-8 flex-shrink-0 drop-shadow-[0_0_8px_currentColor] ${iconColor}`} />
+                      </div>
+                      <span className="text-[1.2em] font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{label}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="gestarian-glass rounded-2xl border border-white/10 overflow-hidden bg-white/80">
-          <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <Wrench className="w-4 h-4 text-amber-400" />
-              <span className="font-semibold text-sm text-white">Vehículos en taller</span>
+              {/* Citas y Reparaciones */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 px-2 sm:px-4 mt-6">
+                <div className="backdrop-blur-md rounded-2xl border border-blue-500/60 border-[2px] overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.4)]" style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)' }}>
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-blue-400" />
+                      <span className="font-semibold text-sm text-white">Citas de hoy</span>
+                    </div>
+                    <button
+                      onClick={() => navigate('/citas')}
+                      disabled={!panelInteractable}
+                      className="text-xs text-white/50 hover:text-white transition flex items-center gap-1"
+                    >
+                      Ver todas <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {loading ? (
+                      <div className="p-4 text-center text-white/30 text-sm">Cargando…</div>
+                    ) : citasHoy.length === 0 ? (
+                      <div className="p-6 text-center text-white/30 text-sm">
+                        <Calendar className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        Sin citas programadas para hoy
+                      </div>
+                    ) : citasHoy.map(cita => (
+                      <div
+                        key={cita.id}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition cursor-pointer"
+                        onClick={() => panelInteractable && navigate('/citas')}
+                      >
+                        <div className="flex-shrink-0">
+                          {cita.estado === 'completada'
+                            ? <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                            : cita.estado === 'cancelada'
+                              ? <AlertCircle className="w-4 h-4 text-red-400" />
+                              : <Clock className="w-4 h-4 text-blue-400" />}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-white truncate">{cita.cliente?.nombre ?? 'Cliente desconocido'}</p>
+                          <p className="text-xs text-white/40 truncate">{cita.vehiculo?.matricula ?? '—'}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-sm font-mono text-white/70">{cita.hora?.slice(0, 5) ?? '—'}</p>
+                          <EstadoBadge estado={cita.estado} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="backdrop-blur-md rounded-2xl border border-emerald-600/60 border-[2px] overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.4)]" style={{ backgroundColor: 'rgba(6, 78, 59, 0.75)' }}>
+                  <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/10">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="w-4 h-4 text-amber-400" />
+                      <span className="font-semibold text-sm text-white">Vehículos en taller</span>
+                    </div>
+                    <button
+                      onClick={() => navigate('/reparaciones')}
+                      disabled={!panelInteractable}
+                      className="text-xs text-white/50 hover:text-white transition flex items-center gap-1"
+                    >
+                      Ver todas <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="divide-y divide-white/5">
+                    {loading ? (
+                      <div className="p-4 text-center text-white/30 text-sm">Cargando…</div>
+                    ) : reparacionesActivas.length === 0 ? (
+                      <div className="p-6 text-center text-white/30 text-sm">
+                        <CarFront className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        No hay vehículos en taller ahora mismo
+                      </div>
+                    ) : reparacionesActivas.map(rep => (
+                      <div
+                        key={rep.id}
+                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition cursor-pointer"
+                        onClick={() => panelInteractable && navigate('/reparaciones')}
+                      >
+                        <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/40 border-[2px] flex items-center justify-center">
+                          <CarFront className="w-4 h-4 text-amber-400" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold text-white">{rep.vehiculo?.matricula ?? '—'}</p>
+                          <p className="text-xs text-white/40 truncate">{[rep.vehiculo?.marca, rep.vehiculo?.modelo].filter(Boolean).join(' ') || 'Sin datos'}</p>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-xs text-white/30">{timeAgo(rep.created_at)}</p>
+                          <p className="text-xs text-white/60 truncate max-w-[100px]">{rep.cliente?.nombre}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 gap-3 px-2 sm:px-4 mt-6">
+                <KpiCard
+                  icon={<Euro className="w-5 h-5" />}
+                  label="Ingresos Trimestre"
+                  value={loading ? '…' : formatEuros(kpis.ingresosTrimestre)}
+                  sub="trimestre en curso"
+                  border="border-rose-600/60 border-[2px]"
+                  iconColor="text-emerald-400"
+                  bg="rgba(159, 18, 57, 0.65)"
+                  disabled={!panelInteractable}
+                  onClick={() => navigate('/balances')}
+                />
+                <KpiCard
+                  icon={<BarChart3 className="w-5 h-5" />}
+                  label="Ingresos del mes"
+                  value={loading ? '…' : formatEuros(kpis.ingresosMes)}
+                  sub="total facturado"
+                  border="border-purple-600/60 border-[2px]"
+                  iconColor="text-violet-300"
+                  bg="rgba(88, 28, 135, 0.65)"
+                  disabled={!panelInteractable}
+                  onClick={() => navigate('/balances')}
+                />
+              </div>
+
             </div>
-            <button onClick={() => navigate('/reparaciones')} className="text-xs text-white/40 hover:text-white/70 transition flex items-center gap-1">
-              Ver todas <ArrowRight className="w-3 h-3" />
-            </button>
           </div>
-          <div className="divide-y divide-white/5">
-            {loading ? (
-              <div className="p-4 text-center text-white/30 text-sm">Cargando…</div>
-            ) : reparacionesActivas.length === 0 ? (
-              <div className="p-6 text-center text-white/30 text-sm">
-                <CarFront className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                No hay vehículos en taller ahora mismo
-              </div>
-            ) : reparacionesActivas.map(rep => (
-              <div key={rep.id} className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition cursor-pointer" onClick={() => navigate('/reparaciones')}>
-                <div className="flex-shrink-0 w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                  <CarFront className="w-4 h-4 text-amber-400" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white">{rep.vehiculo?.matricula ?? '—'}</p>
-                  <p className="text-xs text-white/40 truncate">
-                    {[rep.vehiculo?.marca, rep.vehiculo?.modelo].filter(Boolean).join(' ') || 'Sin datos'}
-                  </p>
-                </div>
-                <div className="text-right flex-shrink-0">
-                  <p className="text-xs text-white/30">{timeAgo(rep.created_at)}</p>
-                  <p className="text-xs text-white/50 truncate max-w-[100px]">{rep.cliente?.nombre}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ACCESO RAPIDO */}
-      <div>
-        <h2 className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-3">Acceso rápido</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {[
-            { icon: Users,      label: 'Clientes',     path: '/clientes',          color: 'bg-cyan-500/80 border-cyan-500/20 text-cyan-400' },
-            { icon: Camera,     label: 'Presupuesto híbrido', path: '/presupuesto-hibrido', color: 'bg-fuchsia-500/80 border-fuchsia-500/20 text-fuchsia-400' },
-            { icon: FileText,   label: 'Presupuestos', path: '/presupuestos',      color: 'bg-violet-500/80 border-violet-500/20 text-violet-400' },
-            { icon: Wrench,     label: 'Reparaciones', path: '/reparaciones',     color: 'bg-amber-500/80 border-amber-500/20 text-amber-400' },
-            { icon: TrendingUp, label: 'Balances',     path: '/balances',         color: 'bg-emerald-500/80 border-emerald-500/20 text-emerald-400' },
-          ].map(({ icon: Icon, label, path, color }) => (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className={`flex items-center gap-2.5 px-4 py-3 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] ${color} shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)]`}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0 drop-shadow-[0_0_8px_rgba(64,224,208,0.8)]" />
-              <span className="text-sm font-medium text-white leading-[0.75] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{label}</span>
-            </button>
-          ))}
-        </div>
+        )}
       </div>
     </div>
-    </>
   )
 }
 
 function KpiCard({
-  icon, label, value, sub, color, border, iconColor, onClick
+  icon, label, value, sub, border, iconColor, bg, disabled, onClick
 }: {
-  icon: React.ReactNode; label: string; value: string; sub: string
-  color: string; border: string; iconColor: string; onClick: () => void
+  icon: React.ReactNode; label: string; value: string; sub: string;
+  border: string; iconColor: string; bg: string; disabled?: boolean; onClick: () => void
 }) {
   return (
     <button
       onClick={onClick}
-      className={`gestarian-glass rounded-2xl p-4 text-left bg-gradient-to-br ${color} hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full group shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)]`}
+      disabled={disabled}
+      className={`rounded-2xl p-4 text-left border ${border} hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full group backdrop-blur-md`}
+      style={{ backgroundColor: bg }}
     >
-      <div className={`${iconColor} mb-3 opacity-80 group-hover:opacity-100 transition drop-shadow-[0_0_8px_rgba(64,224,208,0.8)]`}>{icon}</div>
-      <div className="text-2xl font-bold text-white tabular-nums leading-[0.75] mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{value}</div>
-      <div className="text-xs font-semibold text-white/70 leading-[0.75] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{label}</div>
-      <div className="text-xs text-white/35 mt-0.5 leading-[0.75]">{sub}</div>
-    </button>
-  )
-}
-
-function AlertCard({
-  icon, label, count, color, borderColor, onClick
-}: {
-  icon: React.ReactNode; label: string; count: number
-  color: string; borderColor: string; onClick: () => void
-}) {
-  return (
-    <button
-      onClick={onClick}
-      className={`gestarian-glass rounded-xl px-4 py-3 flex items-center gap-3 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 w-full text-left shadow-[0_0_20px_-5px_rgba(64,224,208,0.3)] hover:shadow-[0_0_30px_-5px_rgba(64,224,208,0.5)]`}
-    >
-      <span className={`${color} flex-shrink-0 drop-shadow-[0_0_8px_rgba(64,224,208,0.8)]`}>{icon}</span>
-      <span className="flex-1 text-sm text-white/70 leading-[0.75] drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">{label}</span>
-      <span className={`text-lg font-bold tabular-nums ${color}`}>{count}</span>
+      <div className={`${iconColor} mb-3 opacity-90 group-hover:opacity-100 transition drop-shadow-[0_0_8px_currentColor]`} suppressHydrationWarning>
+        {icon}
+      </div>
+      <div className="text-2xl font-bold text-white tabular-nums leading-tight mb-1 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">{value}</div>
+      <div className="text-xs font-semibold text-white/80 leading-tight">{label}</div>
+      <div className="text-xs text-white/40 mt-0.5 leading-tight">{sub}</div>
     </button>
   )
 }
 
 function EstadoBadge({ estado }: { estado: string }) {
-  const map: Record<string, string> = {
-    pendiente: 'text-amber-400', confirmada: 'text-blue-400',
-    completada: 'text-emerald-400', cancelada: 'text-red-400',
-  }
-  const labels: Record<string, string> = {
-    pendiente: 'Pendiente', confirmada: 'Confirmada',
-    completada: 'Completada', cancelada: 'Cancelada',
-  }
-  return <span className={`text-xs ${map[estado] ?? 'text-white/40'}`}>{labels[estado] ?? estado}</span>
+  const map: Record<string, string> = { pendiente: 'text-amber-400', confirmada: 'text-blue-400', completada: 'text-emerald-400', cancelada: 'text-red-400' }
+  const labels: Record<string, string> = { pendiente: 'Pendiente', confirmada: 'Confirmada', completada: 'Completada', cancelada: 'Cancelada' }
+  return <span className={`text-xs font-medium ${map[estado] ?? 'text-white/40'}`}>{labels[estado] ?? estado}</span>
 }
