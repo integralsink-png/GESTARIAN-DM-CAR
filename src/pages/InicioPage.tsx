@@ -25,7 +25,6 @@ interface ReparacionActiva {
   id: string; vehiculo: { matricula: string; marca: string | null; modelo: string | null } | null; cliente: { nombre: string } | null; created_at: string;
 }
 
-let hasShownIntroSession = false
 function formatEuros(n: number) { return n.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', minimumFractionDigits: 0, maximumFractionDigits: 0 }) }
 function timeAgo(dateStr: string) {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 60000)
@@ -50,7 +49,7 @@ export function InicioPage() {
   const [loading, setLoading] = useState(true)
   const [hora, setHora] = useState(new Date())
 
-  const [showIntro, setShowIntro] = useState(!hasShownIntroSession)
+  const [showIntro, setShowIntro] = useState(!sessionStorage.getItem('gestarian_intro_shown'))
   const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
 
   const [showPanels, setShowPanels] = useState(false)
@@ -93,7 +92,7 @@ export function InicioPage() {
     if (requestFs && !document.fullscreenElement) requestFs.call(docEl).catch(() => {})
 
     if (showIntro) {
-      hasShownIntroSession = true
+      sessionStorage.setItem('gestarian_intro_shown', 'true')
       setIntroState('fadeOut')
       setTimeout(() => setShowIntro(false), 500)
     }
@@ -105,10 +104,10 @@ export function InicioPage() {
   }
 
   useEffect(() => {
-    if (hasShownIntroSession) return
+    if (sessionStorage.getItem('gestarian_intro_shown')) return
     const t1 = setTimeout(() => setIntroState('grow'), 50)
     const t2 = setTimeout(() => setIntroState('fadeOut'), 1500)
-    const t3 = setTimeout(() => { hasShownIntroSession = true; setShowIntro(false) }, 2000)
+    const t3 = setTimeout(() => { sessionStorage.setItem('gestarian_intro_shown', 'true'); setShowIntro(false) }, 2000)
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
@@ -184,7 +183,7 @@ export function InicioPage() {
 
         {showPanels && (
           <div
-            className={`relative z-10 space-y-6 pt-[5rem] transition-opacity duration-500 ease-in-out
+            className={`relative z-10 space-y-6 pt-[130px] transition-opacity duration-500 ease-in-out
               ${isFadingOut ? 'opacity-0' : 'opacity-100'}
               ${!panelInteractable ? 'pointer-events-none select-none' : 'pointer-events-auto'}
             `}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type {
@@ -7,8 +8,11 @@ import type {
   Presupuesto,
   Concepto,
   Configuracion,
+  Cita,
 } from "../lib/types";
-import { sendPresupuestoByEmail, downloadPresupuestoPDF } from "../lib/pdfGenerator";
+import { sendPresupuestoByEmail, generatePresupuestoPDF } from "../lib/pdfGenerator";
+import { shareDocumentoViaWhatsApp } from "../services/documentShareService";
+import { getExpediente } from "../lib/utils";
 import {
   PageHeader,
   Badge,
@@ -24,11 +28,10 @@ import {
   FileText,
   Camera,
   Calendar,
-  Mail,
-  MessageCircle,
   ArrowLeft,
   Search,
   Edit3,
+  ImageIcon,
 } from "lucide-react";
 import { ImageViewer } from "../components/ImageViewer";
 import { GlobalImageViewer } from "../components/GlobalImageViewer";
@@ -193,6 +196,8 @@ export function PresupuestosPage() {
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+  const [citas, setCitas] = useState<Cita[]>([]);
+  const [citadoId, setCitadoId] = useState<string | null>(null);
   const [config, setConfig] = useState<Configuracion | null>(null);
   const [showForm, setShowForm] = useState(openFormFromNav ?? false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -201,13 +206,37 @@ export function PresupuestosPage() {
   const [conceptos, setConceptos] = useState<Concepto[]>([
     { descripcion: "", cantidad: 1, precio: 0 },
   ]);
-  const [observaciones, setObservaciones] = useState("");
+  const defaultPresupuestoObs = "Puede acceder al seguimiento de su reparación en tiempo real online a través de nuestra aplicación donde también podrá descargar documentos.\nEl presente documento puede verse alterado por incidencias o nuevas circunstancias no contempladas en primera valoración\n\n";
+
+  const [observaciones, setObservaciones] = useState(defaultPresupuestoObs);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null);
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null);
   const [escaneandoOCR, setEscaneandoOCR] = useState(false);
+  const [showSentToast, setShowSentToast] = useState<string | null>(null);
   const { listening, transcript, reset } = useVoice();
   const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const playSuccessSound = () => {
+    try {
+      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContext) return;
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // Función para que METIS hable
   const speak = (text: string) => {
@@ -241,6 +270,7 @@ export function PresupuestosPage() {
   useEffect(() => {
     loadClientes();
     loadPresupuestos();
+    loadCitas();
     loadConfig();
     if (clienteIdFromNav) {
       setSelectedClienteId(clienteIdFromNav);
@@ -378,7 +408,16 @@ export function PresupuestosPage() {
       .from("presupuestos")
       .select("*")
       .order("created_at", { ascending: false });
-    setPresupuestos(data ?? []);
+    setPresupuestos((data ?? []).map(p => ({
+      ...p,
+      enviado_email_at: (p as any).enviado_email_at || localStorage.getItem(`presupuesto_${p.id}_email_at`),
+      enviado_whatsapp_at: (p as any).enviado_whatsapp_at || localStorage.getItem(`presupuesto_${p.id}_wa_at`)
+    })));
+  }
+
+  async function loadCitas() {
+    const { data } = await supabase.from("citas").select("*");
+    setCitas(data ?? []);
   }
 
   async function loadConfig() {
@@ -412,7 +451,7 @@ export function PresupuestosPage() {
       }
     });
 
-    const numero = `${prefix}${String(maxSeq + 1).padStart(5, '0')}`;
+    const numero = `${prefix}${String(maxSeq + 1).padStart(4, '0')}`;
 
     if (editingId) {
       await supabase
@@ -443,7 +482,7 @@ export function PresupuestosPage() {
   function resetForm() {
     setShowForm(false);
     setConceptos([{ descripcion: "", cantidad: 1, precio: 0 }]);
-    setObservaciones("");
+    setObservaciones(defaultPresupuestoObs);
     setSelectedClienteId("");
     setSelectedVehiculoId("");
     setEditingId(null);
@@ -458,7 +497,7 @@ export function PresupuestosPage() {
         ? p.conceptos
         : [{ descripcion: "", cantidad: 1, precio: 0 }],
     );
-    setObservaciones(p.observaciones ?? "");
+    setObservaciones(p.observaciones || defaultPresupuestoObs);
     setShowForm(true);
   }
 
@@ -562,8 +601,8 @@ export function PresupuestosPage() {
         </button>
       </PageHeader>
 
-      {/* Segunda línea: Recuadro de búsqueda para buscar presupuesto / cliente + botón Añadir nuevo presupuesto */}
-      {!showForm && (
+      {/* Barra de búsqueda y botón de nuevo presupuesto */}
+      {!showForm && !clienteIdFromNav && (
         <div className="mb-4 flex gap-2 items-center">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -600,10 +639,10 @@ export function PresupuestosPage() {
                   <img
                     src={config.logo_bn}
                     alt="Logo"
-                    className="w-16 h-16 rounded-lg object-cover bg-gray-100 p-1"
+                    className="w-16 h-16 rounded-lg object-cover bg-gray-100 p-1 hidden md:block"
                   />
                 ) : (
-                  <div className="w-16 h-16 rounded-lg bg-gray-800 flex items-center justify-center text-white font-bold text-lg">
+                  <div className="w-16 h-16 rounded-lg bg-gray-800 hidden md:flex items-center justify-center text-white font-bold text-lg">
                     {config?.nombre_empresa?.charAt(0) ?? "D"}
                   </div>
                 )}
@@ -625,13 +664,13 @@ export function PresupuestosPage() {
                 </div>
               </div>
               <div className="text-right">
-                <h3 className="text-2xl font-bold uppercase tracking-wide">
+                <h3 className="text-lg md:text-2xl font-bold uppercase tracking-wide">
                   Presupuesto
                 </h3>
                 <p className="text-sm gestarian-paper-muted mt-1">
                   {editingId
                     ? presupuestos.find((p) => p.id === editingId)?.numero
-                    : `PRES-${String(presupuestos.length + 1).padStart(4, "0")}`}
+                    : `P${new Date().getFullYear().toString().slice(-2)}${String(presupuestos.filter(p => p.numero?.startsWith('P' + new Date().getFullYear().toString().slice(-2))).length + 1).padStart(4, "0")}`}
                 </p>
                 <p className="text-xs gestarian-paper-muted">
                   {new Date().toLocaleDateString("es-ES")}
@@ -853,8 +892,8 @@ export function PresupuestosPage() {
               />
             </div>
 
-            {/* Botones de acción inferiores con iconos únicamente (sin texto) */}
-            <div className="border-t-2 border-gray-800 pt-5 space-y-4">
+            {/* Botones de acción inferiores con la distribución unificada */}
+            <div className="border-t-2 border-gray-800 pt-6 space-y-6">
               {(() => {
                 const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null
                 const cliente = selectedClienteId ? clienteData(selectedClienteId) : null
@@ -862,127 +901,178 @@ export function PresupuestosPage() {
 
                 const emailSentAt = currentP?.enviado_email_at
                 const whatsappSentAt = currentP?.enviado_whatsapp_at
+                const isEditing = !!editingId
 
                 const formatSentDate = (isoStr: string) => {
                   try {
                     const d = new Date(isoStr)
-                    return `${d.toLocaleDateString('es-ES')} a las ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+                    return `${d.toLocaleDateString('es-ES')} A LAS ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
                   } catch {
                     return isoStr
                   }
                 }
 
                 return (
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3">
-                      {/* EDITAR */}
-                      <button
-                        onClick={() => {
-                          const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
-                          if (firstInput) firstInput.focus()
-                        }}
-                        className="w-12 h-12 rounded-2xl bg-slate-800 text-cyan-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
-                        title="EDITAR"
-                        aria-label="EDITAR"
-                      >
-                        <Edit3 className="w-6 h-6 text-cyan-400" />
-                      </button>
-
-                      {/* IMPRIMIR */}
-                      <button
-                        onClick={() => window.print()}
-                        className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
-                        title="IMPRIMIR"
-                        aria-label="IMPRIMIR"
-                      >
-                        <Printer className="w-6 h-6 text-slate-300" />
-                      </button>
-
-                      {/* GUARDAR (Solo si no ha sido guardado previamente) */}
-                      {!editingId && (
-                        <button
-                          onClick={handleSave}
-                          className="w-12 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
-                          title="GUARDAR"
-                          aria-label="GUARDAR"
-                        >
-                          <Check className="w-6 h-6" />
-                        </button>
-                      )}
-
-                      {/* EMAIL */}
-                      <button
-                        onClick={async () => {
-                          const numero = currentP?.numero || "BORRADOR"
-                          await sendPresupuestoByEmail({ numero, conceptos, observaciones }, cliente, veh, config)
-                          if (currentP?.id) {
-                            const nowIso = new Date().toISOString()
-                            await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', currentP.id)
-                            await loadPresupuestos()
-                          }
-                        }}
-                        className="w-12 h-12 rounded-2xl bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/40 flex items-center justify-center shadow-[0_0_12px_rgba(99,102,241,0.2)] transition-all active:scale-95 shrink-0"
-                        title="ENVIAR POR EMAIL"
-                        aria-label="ENVIAR POR EMAIL"
-                      >
-                        <Mail className="w-6 h-6 text-indigo-400" />
-                      </button>
-
-                      {/* WHATSAPP */}
-                      <button
-                        onClick={async () => {
-                          const matricula = veh?.matricula || ''
-                          const numStr = currentP?.numero || 'BORRADOR'
-                          const message = `Hola ${cliente?.nombre || ''}, le informamos que su presupuesto ${numStr} para el vehículo ${matricula} está disponible por un importe de ${total.toFixed(2)}€. Adjunto el PDF del presupuesto. Saludos, DM CAR`
-                          const phone = cliente?.telefono?.replace(/\s/g, '') || ''
-                          if (phone) {
-                            await downloadPresupuestoPDF({ numero: numStr, conceptos, observaciones }, cliente, veh, config)
-                            window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank')
-                            if (currentP?.id) {
-                              const nowIso = new Date().toISOString()
-                              await supabase.from('presupuestos').update({ enviado_whatsapp_at: nowIso }).eq('id', currentP.id)
-                              await loadPresupuestos()
-                            }
-                            setTimeout(() => {
-                              alert('El PDF del presupuesto se ha descargado. Por favor, adjúntalo al mensaje de WhatsApp.')
-                            }, 500)
-                          } else {
-                            alert('El cliente no tiene un número de teléfono registrado.')
-                          }
-                        }}
-                        className="w-12 h-12 rounded-2xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/40 flex items-center justify-center shadow-[0_0_12px_rgba(34,197,94,0.2)] transition-all active:scale-95 shrink-0"
-                        title="ENVIAR POR WHATSAPP"
-                        aria-label="ENVIAR POR WHATSAPP"
-                      >
-                        <MessageCircle className="w-6 h-6 text-green-400" />
-                      </button>
-
-                      {/* CERRAR */}
-                      <button
-                        onClick={resetForm}
-                        className="w-12 h-12 rounded-2xl bg-slate-800/80 text-slate-400 border border-slate-700 hover:bg-slate-700 hover:text-white flex items-center justify-center shadow transition-all active:scale-95 ml-auto shrink-0"
-                        title="CERRAR"
-                        aria-label="CERRAR"
-                      >
-                        <X className="w-6 h-6" />
-                      </button>
-                    </div>
-
-                    {/* Avisos de fecha de envío si existen */}
-                    {(emailSentAt || whatsappSentAt) && (
-                      <div className="space-y-0.5 pt-1">
-                        {emailSentAt && (
-                          <p className="text-[11px] text-center text-emerald-400 font-medium">
-                            ✓ ENVIADO POR EMAIL: {formatSentDate(emailSentAt)}
-                          </p>
+                  <div className="space-y-6">
+                    {/* DOS LÍNEAS DE ACCIONES CENTRADAS */}
+                    <div className="space-y-4">
+                      {/* LÍNEA 1: EMAIL | IMÁGENES | IMPRIMIR | WHATSAPP */}
+                      <div className="flex items-center justify-center gap-3 sm:gap-5">
+                        {/* 1. EMAIL (Flotante sin recuadro) */}
+                        {!emailSentAt && (
+                          <button
+                            onClick={async () => {
+                              const numero = currentP?.numero || "BORRADOR"
+                              const numExpediente = getExpediente(currentP || {}, cliente, clientes)
+                              await sendPresupuestoByEmail({ numero, conceptos, observaciones }, cliente, veh, config, numExpediente)
+                              if (currentP?.id) {
+                                const nowIso = new Date().toISOString()
+                                localStorage.setItem(`presupuesto_${currentP.id}_email_at`, nowIso)
+                                await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', currentP.id)
+                                await loadPresupuestos()
+                              }
+                              playSuccessSound()
+                              setShowSentToast("ENVIADO!!")
+                              setTimeout(() => setShowSentToast(null), 3500)
+                            }}
+                            className="p-1 hover:scale-110 transition-transform active:scale-95 shrink-0"
+                            title="ENVIAR POR EMAIL"
+                            aria-label="ENVIAR POR EMAIL"
+                          >
+                            <svg className="w-16 h-16 sm:w-20 sm:h-20 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                              <polyline points="22,6 12,13 2,6" />
+                            </svg>
+                          </button>
                         )}
-                        {whatsappSentAt && (
-                          <p className="text-[11px] text-center text-emerald-400 font-medium">
-                            ✓ ENVIADO POR WHATSAPP: {formatSentDate(whatsappSentAt)}
-                          </p>
+
+                        {/* 2. IMÁGENES (Icono de galería) */}
+                        <button
+                          onClick={() => {
+                            if (veh?.matricula) {
+                              setViewerMatricula(veh.matricula)
+                            } else {
+                              alert('No hay un vehículo asociado para ver imágenes.')
+                            }
+                          }}
+                          className="w-16 h-16 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          title="IMÁGENES"
+                          aria-label="IMÁGENES"
+                        >
+                          <ImageIcon className="w-8 h-8 text-amber-400" />
+                        </button>
+
+                        {/* 3. IMPRIMIR */}
+                        <button
+                          onClick={() => window.print()}
+                          className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          title="IMPRIMIR"
+                          aria-label="IMPRIMIR"
+                        >
+                          <Printer className="w-8 h-8 text-slate-300" />
+                        </button>
+
+                        {/* 4. WHATSAPP (Bocadillo verde) */}
+                        {!whatsappSentAt && (
+                          <button
+                            onClick={async () => {
+                              try {
+                                const numStr = currentP?.numero || 'BORRADOR'
+                                const numExpediente = getExpediente(currentP || {}, cliente, clientes)
+                                const doc = generatePresupuestoPDF({ numero: numStr, conceptos, observaciones }, cliente, veh, config, numExpediente)
+                                const pdfBlob = doc.output('blob')
+
+                                const res = await shareDocumentoViaWhatsApp({
+                                  tipo: 'presupuesto',
+                                  numero: numStr,
+                                  pdfBlob,
+                                  cliente,
+                                  matricula: veh?.matricula,
+                                })
+
+                                if (res.success) {
+                                  if (currentP?.id) {
+                                    const nowIso = new Date().toISOString()
+                                    localStorage.setItem(`presupuesto_${currentP.id}_wa_at`, nowIso)
+                                    const { error: dbError } = await supabase.from('presupuestos').update({ enviado_whatsapp_at: nowIso }).eq('id', currentP.id)
+                                    if (dbError) {
+                                      alert('Error guardando en la base de datos: ' + dbError.message + '\n(Se guardará localmente en el dispositivo actual)')
+                                    }
+                                    await loadPresupuestos()
+                                    playSuccessSound()
+                                    setShowSentToast("ENVIADO!!")
+                                    setTimeout(() => setShowSentToast(null), 3500)
+                                  }
+                                }
+                                } catch (e: any) {
+                                  console.error('[WhatsApp Presupuesto Error]', e)
+                                  alert('No se ha podido preparar el documento para WhatsApp: ' + e.message)
+                                }
+                            }}
+                            className="hover:scale-110 transition-transform active:scale-95 shrink-0"
+                            title="ENVIAR POR WHATSAPP"
+                            aria-label="ENVIAR POR WHATSAPP"
+                          >
+                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                              <svg className="w-full h-full drop-shadow-md" viewBox="0 0 48 48" fill="none">
+                                <path
+                                  d="M24 4C12.95 4 4 12.95 4 24C4 27.84 5.08 31.43 6.96 34.5L4 44L13.82 41.13C16.76 42.97 20.26 44 24 44C35.05 44 44 35.05 44 24C44 12.95 35.05 4 24 4Z"
+                                  fill="#25D366"
+                                />
+                              </svg>
+                              <svg viewBox="0 0 24 24" fill="currentColor" className="absolute inset-0 m-auto w-8 h-8 sm:w-10 sm:h-10 text-white">
+                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+                              </svg>
+                            </div>
+                          </button>
                         )}
                       </div>
-                    )}
+
+                      {/* ESTADOS DE ENVÍO */}
+                      {(emailSentAt || whatsappSentAt) && (
+                        <div className="flex flex-col items-center justify-center gap-2 mt-4">
+                          {whatsappSentAt && (
+                            <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
+                              ENVIADO POR WHATSAPP EL {formatSentDate(whatsappSentAt)}
+                            </div>
+                          )}
+                          {emailSentAt && (
+                            <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
+                              ENVIADO POR EMAIL EL {formatSentDate(emailSentAt)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* LÍNEA 2: GUARDAR | EDITAR | VOLVER */}
+                      <div className="flex items-center justify-center gap-3 pt-1">
+                        <button
+                          onClick={handleSave}
+                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
+                        >
+                          GUARDAR
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
+                            if (firstInput) firstInput.focus()
+                          }}
+                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 shadow transition-all active:scale-95 flex items-center justify-center"
+                          title="EDITAR"
+                          aria-label="EDITAR"
+                        >
+                          <Edit3 className="w-5 h-5 text-cyan-400" />
+                        </button>
+
+                        <button
+                          onClick={resetForm}
+                          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
+                        >
+                          VOLVER
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )
               })()}
@@ -1053,7 +1143,7 @@ export function PresupuestosPage() {
                   </div>
 
                   {/* Historial desplegable de presupuestos del cliente */}
-                  {isExpanded && (
+                      {isExpanded && (
                     <div className="p-3 bg-bg-950/80 border-t border-bg-700/80 space-y-2.5">
                       <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1">Historial de presupuestos</p>
                       {clientPresups.map((p) => {
@@ -1063,64 +1153,100 @@ export function PresupuestosPage() {
                         return (
                           <div
                             key={p.id}
-                            className="rounded-xl border border-bg-700 bg-bg-900 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-cyan-500/40 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              editPresupuesto(p);
+                            }}
+                            className="rounded-xl border border-bg-700 bg-bg-900 p-3 hover:border-cyan-500/40 transition-all cursor-pointer flex flex-col gap-3"
                           >
-                            {/* Número y Matrícula */}
-                            <div className="flex items-center gap-2.5">
-                              <span className="text-xs font-mono text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-lg border border-cyan-500/20 font-semibold">
-                                {p.numero}
-                              </span>
-                              {veh && (
-                                <span className="text-xs text-slate-300 font-medium">
-                                  {veh.matricula}
+                            {/* Línea 1: Expediente, Fecha, Estado y Acciones */}
+                            <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-mono text-cyan-400 font-bold">
+                                  {getExpediente(p, cliente, clientes)}
                                 </span>
-                              )}
-                              <span className="text-xs font-bold text-white ml-1">
-                                {p.total.toFixed(2)} €
-                              </span>
-                            </div>
+                                <span className="text-xs text-slate-300 font-semibold">
+                                  {new Date(p.created_at).toLocaleDateString('es-ES')}
+                                </span>
+                                <Badge text={p.estado} color={estadoColor} />
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                {(() => {
+                                  // Restricción: solo se puede dar cita una vez por presupuesto (sin importar el estado de la cita actual)
+                                  const cita = citas.find(c => c.presupuesto_id === p.id);
+                                  
+                                  if (p.estado !== 'aceptado') {
+                                    return (
+                                      <button
+                                        onClick={async (e) => {
+                                          e.stopPropagation();
+                                          await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', p.id);
+                                          await loadPresupuestos();
+                                        }}
+                                        className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 text-[11px] font-bold transition-all flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.2)] shrink-0"
+                                      >
+                                        ACEPTAR
+                                      </button>
+                                    );
+                                  }
 
-                            {/* Estado y Botones de Acción */}
-                            <div className="flex items-center gap-2 shrink-0">
-                              <Badge text={p.estado} color={estadoColor} />
+                                  if (cita) {
+                                    return (
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          navigate('/citas');
+                                        }}
+                                        className="px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 text-xs font-bold transition-all flex items-center shadow-[0_0_8px_rgba(99,102,241,0.2)] shrink-0"
+                                      >
+                                        CITADO
+                                      </button>
+                                    );
+                                  }
 
-                              {/* Botón ACEPTAR que se convierte en CITAR si está aceptado */}
-                              {p.estado !== 'aceptado' ? (
-                                <button
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', p.id);
-                                    await loadPresupuestos();
-                                  }}
-                                  className="px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 text-[11px] font-bold transition-all flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.2)] shrink-0"
-                                >
-                                  ACEPTAR
-                                </button>
-                              ) : (
+                                  const isCitado = citadoId === p.id;
+                                  return (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setCitadoId(p.id);
+                                        setTimeout(() => {
+                                          setCitadoId(null);
+                                          navigate('/citas', {
+                                            state: { presupuestoId: p.id, clienteId: p.cliente_id, vehiculoId: p.vehiculo_id }
+                                          });
+                                        }, 500);
+                                      }}
+                                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center shrink-0 ${isCitado ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40' : 'bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 shadow-[0_0_8px_rgba(168,85,247,0.2)] animate-pulse'}`}
+                                    >
+                                      {isCitado ? 'CITADO' : <><Calendar className="w-3.5 h-3.5 mr-1" /> CITAR</>}
+                                    </button>
+                                  );
+                                })()}
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    navigate('/citas', {
-                                      state: { presupuestoId: p.id, clienteId: p.cliente_id, vehiculoId: p.vehiculo_id }
-                                    });
+                                    editPresupuesto(p);
                                   }}
-                                  className="px-3 py-1.5 rounded-xl bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 text-xs font-bold transition-all flex items-center gap-1 shadow-[0_0_8px_rgba(168,85,247,0.2)] animate-pulse"
+                                  className="px-3 py-1.5 rounded-xl bg-slate-700/80 text-white border border-slate-600 hover:bg-slate-600 text-xs font-bold transition-all flex items-center justify-center shrink-0"
                                 >
-                                  <Calendar className="w-3.5 h-3.5" /> CITAR
+                                  VER
                                 </button>
-                              )}
-
-                              {/* Botón VER a pantalla completa */}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  editPresupuesto(p);
-                                }}
-                                className="px-3 py-1.5 rounded-xl bg-slate-700/80 text-white border border-slate-600 hover:bg-slate-600 text-xs font-bold transition-all flex items-center justify-center"
-                              >
-                                VER
-                              </button>
+                              </div>
                             </div>
+
+                            {/* Línea 2: Marca y modelo, Matrícula */}
+                            {veh && (
+                              <div className="flex items-center justify-between mt-1 border-t border-bg-700/50 pt-2">
+                                <span className="text-xs text-slate-400 uppercase font-medium">
+                                  {veh.marca} {veh.modelo}
+                                </span>
+                                <span className="text-xs font-bold text-emerald-400 text-right">
+                                  {veh.matricula}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
@@ -1166,6 +1292,17 @@ export function PresupuestosPage() {
           </label>
         }
       />
+      {showSentToast && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none p-4">
+          <div className="bg-emerald-600 text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.7)] border-4 border-white animate-bounce flex items-center gap-4">
+            <span className="text-3xl sm:text-4xl">✓</span>
+            <span>{showSentToast}</span>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
+
+

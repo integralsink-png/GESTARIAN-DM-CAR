@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Reparacion, Cliente, Vehiculo } from '../lib/types'
-import { PageHeader, Card, Button, Badge, EmptyState, MetisRowButton } from '../components/UI'
+import type { Reparacion, Cliente, Vehiculo, Concepto, Presupuesto } from '../lib/types'
+import { PageHeader, Card, Button, Badge, EmptyState } from '../components/UI'
 import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2, ArrowLeft } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
@@ -39,12 +39,24 @@ export function ReparacionesPage() {
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
   const [subiendoFoto, setSubiendoFoto] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  // Mapa de reparacion_id -> numero de factura ya creada
+  const [facturasMap, setFacturasMap] = useState<Record<string, string>>({})
+  const [facturando, setFacturando] = useState<string | null>(null)
 
   useEffect(() => {
     loadReparaciones()
     loadClientes()
     loadVehiculos()
+    loadFacturasMap()
   }, [])
+
+  async function loadFacturasMap() {
+    const { data } = await supabase.from('facturas').select('reparacion_id, numero').not('reparacion_id', 'is', null)
+    const map: Record<string, string> = {}
+    ;(data ?? []).forEach((f: any) => { if (f.reparacion_id) map[f.reparacion_id] = f.numero })
+    setFacturasMap(map)
+  }
 
   async function loadReparaciones() {
     setLoading(true)
@@ -65,29 +77,76 @@ export function ReparacionesPage() {
     setVehiculos(map)
   }
 
-  async function crearReparacionDesdeCita() {
-    if (!navState?.clienteId) return
-    await supabase.from('reparaciones').insert({
-      cita_id: navState.citaId ?? null,
-      cliente_id: navState.clienteId,
-      vehiculo_id: navState.vehiculoId ?? null,
-      estado: 'en_proceso',
-    })
-    navigate('/reparaciones', { replace: true })
-    loadReparaciones()
-  }
-
-  useEffect(() => {
-    if (navState?.citaId) {
-      crearReparacionDesdeCita()
-    }
-  }, [navState?.citaId])
-
   async function cambiarEstado(id: string, estado: 'en_proceso' | 'finalizado') {
     await supabase.from('reparaciones').update({ estado }).eq('id', id)
     loadReparaciones()
     if (selected?.id === id) {
       setSelected({ ...selected, estado })
+    }
+  }
+
+  async function facturarReparacion(rep: Reparacion) {
+    if (facturasMap[rep.id]) return // ya facturada
+    setFacturando(rep.id)
+    try {
+      // Verificar si ya existe
+      const { data: existing } = await supabase.from('facturas').select('numero').eq('reparacion_id', rep.id).maybeSingle()
+      if (existing) {
+        setFacturasMap(prev => ({ ...prev, [rep.id]: existing.numero }))
+        setFacturando(null)
+        return
+      }
+
+      const yearSuffix = String(new Date().getFullYear()).slice(-2)
+      const prefix = `F${yearSuffix}`
+      const { data: todasFacturasAnio } = await supabase.from('facturas').select('numero').like('numero', `${prefix}%`).order('numero', { ascending: false })
+      let maxNum = 0
+      if (todasFacturasAnio && todasFacturasAnio.length > 0) {
+        for (const f of todasFacturasAnio) {
+          if (f.numero && f.numero.startsWith(prefix)) {
+            const numPart = parseInt(f.numero.substring(prefix.length), 10)
+            if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart
+          }
+        }
+      }
+      const numero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
+
+      // Buscar conceptos del presupuesto vinculado via cita
+      let conceptos: Concepto[] = []
+      let total = 0
+      let obs = ''
+      const { data: repData } = await supabase.from('reparaciones').select('cita_id').eq('id', rep.id).maybeSingle()
+      if (repData?.cita_id) {
+        const { data: cita } = await supabase.from('citas').select('presupuesto_id').eq('id', repData.cita_id).maybeSingle()
+        if (cita?.presupuesto_id) {
+          const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('id', cita.presupuesto_id).maybeSingle() as { data: Presupuesto | null }
+          if (presup) {
+            conceptos = (presup as any).conceptos ?? []
+            total = (presup as any).total ?? 0
+            obs = (presup as any).observaciones ?? ''
+          }
+        }
+      }
+
+      const { error } = await supabase.from('facturas').insert({
+        numero,
+        reparacion_id: rep.id,
+        cliente_id: rep.cliente_id,
+        vehiculo_id: rep.vehiculo_id ?? null,
+        conceptos,
+        total,
+        total_abonado: 0,
+        estado_cobro: 'pendiente',
+      })
+
+      if (error) {
+        console.error('Error insertando factura:', error)
+        alert('Hubo un error al guardar la factura: ' + error.message)
+        return
+      }
+      setFacturasMap(prev => ({ ...prev, [rep.id]: numero }))
+    } finally {
+      setFacturando(null)
     }
   }
 
@@ -197,17 +256,21 @@ export function ReparacionesPage() {
                 )}
               </div>
               <div className="flex items-center gap-3">
-                <Badge
-                  text={selected.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
-                  color={selected.estado === 'en_proceso' ? 'blue' : 'green'}
-                />
-                <MetisRowButton
-                  tipo="reparacion"
-                  id={selected.id}
-                  matricula={selected.vehiculo_id ? vehiculos[selected.vehiculo_id]?.matricula : undefined}
-                  cliente_nombre={clienteNombre(selected.cliente_id)}
-                  data={selected}
-                />
+                  <Badge
+                    text={selected.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
+                    color={selected.estado === 'en_proceso' ? 'blue' : 'green'}
+                  />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const v = vehiculos[selected.vehiculo_id || '']
+                        if (v) setViewerMatricula(v.matricula)
+                      }}
+                      className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-cyan-400 transition-colors"
+                      title="Imágenes"
+                    >
+                    <ImageIcon className="w-[40px] h-[40px]" />
+                  </button>
               </div>
             </div>
 
@@ -233,55 +296,123 @@ export function ReparacionesPage() {
       ) : (
         <div className="space-y-3">
           {reparaciones.map((rep) => (
-            <Card key={rep.id} className="p-4 hover:border-cyan-500/40 transition-all cursor-pointer" onClick={() => { setSelected(rep); setEditDesc(rep.descripcion ?? '') }}>
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-white text-base">{clienteNombre(rep.cliente_id)}</span>
-                    <Badge
-                      text={rep.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
-                      color={rep.estado === 'en_proceso' ? 'blue' : 'green'}
-                    />
-                  </div>
-                  {vehiculoInfo(rep.vehiculo_id) && (
-                    <p className="flex items-center gap-1 text-xs text-slate-400 mt-1">
-                      <Car className="w-3.5 h-3.5 text-slate-400" />{vehiculoInfo(rep.vehiculo_id)}
-                    </p>
-                  )}
-                  {rep.descripcion && (
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">
-                      "{rep.descripcion}"
-                    </p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 flex-wrap ml-auto" onClick={(e) => e.stopPropagation()}>
-                  <MetisRowButton
-                    tipo="reparacion"
-                    id={rep.id}
-                    matricula={rep.vehiculo_id ? vehiculos[rep.vehiculo_id]?.matricula : undefined}
-                    cliente_nombre={clienteNombre(rep.cliente_id)}
-                    data={rep}
+            <Card 
+              key={rep.id} 
+              className="p-3 hover:border-cyan-500/40 transition-all cursor-pointer flex flex-col gap-2" 
+              onClick={() => {
+                if (rep.estado === 'finalizado') {
+                  setExpandedId(expandedId === rep.id ? null : rep.id);
+                } else {
+                  setSelected(rep);
+                  setEditDesc(rep.descripcion ?? '');
+                }
+              }}
+            >
+              {/* LÍNEA 1: Nombre en MAYUS y MINUS y Badge EN PROCESO X0.8 */}
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-white text-base capitalize">{clienteNombre(rep.cliente_id).toLowerCase()}</span>
+                <div className="transform scale-[0.8] origin-right">
+                  <Badge
+                    text={rep.estado === 'en_proceso' ? 'EN PROCESO' : 'FINALIZADA'}
+                    color={rep.estado === 'en_proceso' ? 'blue' : 'green'}
                   />
-
-                  {rep.estado === 'en_proceso' ? (
-                    <Button size="sm" onClick={() => cambiarEstado(rep.id, 'finalizado')}>
-                      Finalizar Taller
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => navigate('/facturas', { state: { reparacionId: rep.id, clienteId: rep.cliente_id, vehiculoId: rep.vehiculo_id } })}>
-                      <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> Facturar</span>
-                    </Button>
-                  )}
-
-                  <button
-                    onClick={() => eliminarReparacion(rep.id)}
-                    className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/20 transition-all"
-                    title="Eliminar reparación"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               </div>
+
+              {/* LÍNEA 2: Marca/Modelo y Matrícula (justificada derecha y color distinto) */}
+              {(() => {
+                const v = rep.vehiculo_id ? vehiculos[rep.vehiculo_id] : null;
+                if (!v) return null;
+                return (
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="text-xs text-slate-400 uppercase font-medium">
+                      {v.marca} {v.modelo}
+                    </span>
+                    <span className="text-xs font-bold text-emerald-400 text-right">
+                      {v.matricula}
+                    </span>
+                  </div>
+                );
+              })()}
+
+              {/* DESCRIPCIÓN (si la hay) */}
+              {rep.descripcion && (
+                <p className="text-xs text-slate-400 mt-1 line-clamp-1 italic">
+                  "{rep.descripcion}"
+                </p>
+              )}
+
+              {/* LÍNEA 3: Botones */}
+              {(rep.estado !== 'finalizado' || expandedId === rep.id) && (
+                <div className="flex items-center justify-between gap-2 w-[96%] mx-auto mt-2 pt-2 border-t border-slate-800/50" onClick={(e) => e.stopPropagation()}>
+                  {/* Botón Imágenes (izquierda) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFotosExpandida(rep.id);
+                    }}
+                    className="flex items-center justify-center h-[48px] w-[48px] rounded-lg bg-slate-800/50 border border-slate-700 hover:bg-slate-700 text-cyan-400 transition-colors shrink-0"
+                    title="Imágenes"
+                  >
+                    <ImageIcon className="w-[24px] h-[24px]" />
+                  </button>
+
+                  {/* Botón Central (Finalizar Taller / Facturar / Facturada) */}
+                  {rep.estado === 'en_proceso' ? (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        cambiarEstado(rep.id, 'finalizado');
+                      }}
+                      className="flex-1 flex items-center justify-center py-2.5 rounded-xl border text-sm font-semibold bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-emerald-400 hover:border-emerald-500/60 transition-all active:scale-95 h-[48px]"
+                    >
+                      Finalizar Taller
+                    </button>
+                  ) : facturasMap[rep.id] ? (
+                    // Ya facturada
+                    <div className="flex-1 flex items-center justify-between gap-2 h-[48px]">
+                      <div className="flex-1 flex items-center justify-center h-full rounded-xl border text-sm font-semibold text-[#a3e635] border-[#a3e635]/40 bg-[#a3e635]/5 shadow-[0_0_8px_rgba(163,230,53,0.25)]">
+                        <span className="flex items-center gap-1.5"><Check className="w-4 h-4" /> Facturada</span>
+                      </div>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/facturas', { state: { facturaNumero: facturasMap[rep.id] } });
+                        }}
+                        className="flex-1 flex items-center justify-center h-full rounded-xl border text-sm font-semibold bg-bg-800 text-cyan-400 border-cyan-500/40 hover:bg-bg-700 transition-all active:scale-95"
+                      >
+                        VER
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        facturarReparacion(rep);
+                      }}
+                      disabled={facturando === rep.id}
+                      className="flex-1 flex items-center justify-center py-2.5 rounded-xl border text-sm font-semibold bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-emerald-400 hover:border-emerald-500/60 transition-all active:scale-95 h-[48px] disabled:opacity-60"
+                    >
+                      {facturando === rep.id
+                        ? <span className="flex items-center gap-1"><span className="animate-spin inline-block w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full" /> Facturando...</span>
+                        : <span className="flex items-center gap-1"><FileText className="w-4 h-4" /> Facturar</span>
+                      }
+                    </button>
+                  )}
+
+                  {/* Botón Eliminar (derecha) */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      eliminarReparacion(rep.id);
+                    }}
+                    className="flex items-center justify-center h-[48px] w-[48px] rounded-lg bg-slate-800/50 border border-slate-700 hover:bg-slate-700 text-red-400 transition-colors shrink-0"
+                    title="Eliminar reparación"
+                  >
+                    <Trash2 className="w-[24px] h-[24px]" />
+                  </button>
+                </div>
+              )}
             </Card>
           ))}
         </div>

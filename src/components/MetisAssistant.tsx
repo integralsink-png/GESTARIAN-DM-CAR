@@ -6,11 +6,15 @@ import { useVoice } from '../lib/useVoice'
 import { useSpeechSynthesis } from '../lib/useSpeechSynthesis'
 import { processMetisMessage, MetisContext, MetisActionResult } from '../lib/metisAiEngine'
 
+import { CronFiscalService } from '../lib/cronFiscalService'
+import { enviarTrimestreGestoriaAutomático } from '../services/gestoriaExportService'
+
 interface Message {
   id: string
   role: 'user' | 'metis'
   text: string
   actionResult?: MetisActionResult
+  cronAction?: { avisoId: string }
 }
 
 export function MetisAssistant() {
@@ -83,6 +87,66 @@ export function MetisAssistant() {
       window.removeEventListener('metis-toggle-panel', handleTogglePanel)
     }
   }, [supported, start, reset, speak])
+
+  // Lógica del calendario fiscal automático
+  useEffect(() => {
+    let checking = false
+    const checkCron = async () => {
+      if (checking) return
+      checking = true
+      try {
+        const evento = CronFiscalService.checkCurrentDate()
+        if (evento) {
+          const avisoId = CronFiscalService.getAvisoId(evento.tipo)
+          
+          if (evento.tipo === 'envio_10') {
+            const exito = await enviarTrimestreGestoriaAutomático()
+            CronFiscalService.markAsDone(avisoId)
+            const text = exito 
+              ? evento.mensaje 
+              : "Ha ocurrido un error al intentar enviar el informe trimestral. Por favor, revisa la configuración."
+            setMessages(prev => [...prev, { id: avisoId, role: 'metis', text }])
+            setHasUnread(true)
+            speak(text)
+          } else {
+            CronFiscalService.markAsDone(avisoId)
+            setMessages(prev => [...prev, {
+              id: avisoId,
+              role: 'metis',
+              text: evento.mensaje,
+              cronAction: evento.requierePermiso ? { avisoId } : undefined
+            }])
+            setHasUnread(true)
+            speak(evento.mensaje)
+          }
+        }
+      } finally {
+        checking = false
+      }
+    }
+
+    // Comprobar al iniciar y cada 5 minutos
+    checkCron()
+    const interval = setInterval(checkCron, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [speak])
+
+  const handleCronPermission = async () => {
+    CronFiscalService.darPermiso()
+    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: "Sí, tienes mi permiso para enviarlo." }])
+    
+    // Al dar permiso, enviar automáticamente ya que está cerrado
+    const exito = await enviarTrimestreGestoriaAutomático()
+    if (exito) {
+      const respText = "¡Perfecto! Acabo de enviar los informes del trimestre a la gestoría."
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'metis', text: respText }])
+      speak(respText)
+    } else {
+      const respText = "Hubo un error al intentar enviar los informes. Revisa tu email de gestoría en Configuración."
+      setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'metis', text: respText }])
+      speak(respText)
+    }
+  }
 
   // Process completed voice transcript when user stops speaking or transcript freezes
   const handleSendMessage = useCallback(async (textToSend?: string, isVoice = false) => {
@@ -273,6 +337,26 @@ export function MetisAssistant() {
                           <ArrowRight className="w-3 h-3" />
                         </button>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Acciones interactivas para el cron fiscal (Permiso) */}
+                {m.cronAction && (
+                  <div className="mt-2.5 max-w-[90%] w-full bg-cyan-950/95 border border-cyan-500/40 rounded-xl p-3.5 space-y-2">
+                    <div className="flex flex-col gap-2 mt-1">
+                      <button
+                        onClick={handleCronPermission}
+                        className="w-full px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-medium text-xs flex justify-center items-center transition-all border border-emerald-500/50"
+                      >
+                        Sí, enviar trimestre cerrado
+                      </button>
+                      <button
+                        onClick={() => { playSound('click'); setOpen(false) }}
+                        className="w-full px-3 py-2 rounded-lg bg-bg-800 hover:bg-bg-700 text-slate-300 font-medium text-xs flex justify-center items-center transition-all border border-bg-600"
+                      >
+                        Aún no, faltan gastos
+                      </button>
                     </div>
                   </div>
                 )}

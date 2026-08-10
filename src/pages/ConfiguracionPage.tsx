@@ -120,9 +120,6 @@ export function ConfiguracionPage() {
     <div>
       <PageHeader title="CONFIGURACIÓN">
         <div className="flex items-center gap-3">
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar'}
-          </Button>
           <button
             onClick={() => navigate(-1)}
             className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
@@ -133,6 +130,13 @@ export function ConfiguracionPage() {
           </button>
         </div>
       </PageHeader>
+
+      <div className="mb-4 flex items-center">
+        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-xl px-4 py-2 disabled:opacity-50">
+          <Save className="w-4 h-4" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar configuración'}
+        </button>
+      </div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Datos fiscales */}
@@ -491,9 +495,9 @@ export function ConfiguracionPage() {
       </div>
 
       <div className="mt-6 flex justify-end">
-        <Button onClick={handleSave} disabled={saving}>
-          <span className="flex items-center gap-2"><Save className="w-4 h-4" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar cambios'}</span>
-        </Button>
+        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-xl px-4 py-2 disabled:opacity-50">
+          <Save className="w-4 h-4" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar cambios'}
+        </button>
       </div>
     </div>
   )

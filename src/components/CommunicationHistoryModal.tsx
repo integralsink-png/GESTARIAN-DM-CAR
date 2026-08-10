@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { getCommunicationHistory, retryFailedCommunication, CommunicationRecord } from '../services/communicationService'
 import { X, Mail, RefreshCw, CheckCircle2, AlertTriangle, Clock, FileText, Bot, Search } from 'lucide-react'
 
@@ -52,7 +53,7 @@ export function CommunicationHistoryModal({ isOpen, onClose, documentId }: Props
     )
   })
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
       <div className="bg-bg-900 border border-bg-700 rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
         {/* Header */}
@@ -199,6 +200,7 @@ export function CommunicationHistoryModal({ isOpen, onClose, documentId }: Props
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

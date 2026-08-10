@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { sendFacturaByEmail, downloadFacturaPDF, sendPresupuestoByEmail, downloadPresupuestoPDF } from '../lib/pdfGenerator'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { NuevoPresupuestoIcon, PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
 
 export function ClientesPage() {
   const navigate = useNavigate()
@@ -55,9 +56,15 @@ export function ClientesPage() {
 
   async function loadClientes() {
     setLoading(true)
-    const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: false })
-    setClientes(data ?? [])
-    if (data && data.length > 0) {
+    const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: true })
+    if (data) {
+      // Si la columna numero ya existe en DB, la usamos; si no, la calculamos como ordinal
+      const clientesConNumero = data.map((c: Cliente, idx: number) => ({
+        ...c,
+        numero: c.numero ?? (idx + 1)
+      }))
+      // Invertir para mostrar los más recientes primero, pero mantenemos el numero ordinal por fecha
+      setClientes([...clientesConNumero].reverse())
       const vehiculoMap: Record<string, Vehiculo[]> = {}
       for (const c of data) {
         const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', c.id)
@@ -385,6 +392,11 @@ export function ClientesPage() {
     if (nuevoClienteForm.cp) clientePayload.cp = nuevoClienteForm.cp
     if (nuevoClienteForm.localidad) clientePayload.localidad = nuevoClienteForm.localidad
 
+    // Calcular el numero correlativo máximo para asignarlo al nuevo cliente
+    const { data: allClientes } = await supabase.from('clientes').select('numero').order('numero', { ascending: false }).limit(1)
+    const maxNumero = allClientes?.[0]?.numero ?? 0
+    clientePayload.numero = maxNumero + 1
+
     let { data, error } = await supabase.from('clientes').insert(clientePayload).select().maybeSingle()
 
     // Si fallara la consulta select/single por restricciones de RLS o columnas opcionales
@@ -518,13 +530,7 @@ export function ClientesPage() {
       {/* Título centrado con botón VOLVER a la derecha (navega a la pantalla anterior) */}
       <PageHeader title="CLIENTES">
         <button
-          onClick={() => {
-            if (expandedClienteId) {
-              setExpandedClienteId(null)
-            } else {
-              navigate(-1)
-            }
-          }}
+          onClick={() => navigate(-1)}
           className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
           title="Volver"
           aria-label="Volver"
@@ -583,33 +589,44 @@ export function ClientesPage() {
                   onClick={() => toggleCliente(cliente)}
                   className="flex items-center justify-between px-3.5 py-2.5 cursor-pointer hover:bg-bg-700/50 transition-colors gap-3"
                 >
-                  {/* Nombre en dos líneas con interlineado mínimo (leading-none/tight) */}
-                  <div className="flex-1 min-w-0 pr-2">
+                  {/* Número y Nombre en dos líneas */}
+                  <div className="flex-1 min-w-0 pr-2 flex items-start gap-2">
+                    <div className="text-cyan-400 font-bold text-base leading-tight shrink-0">
+                      {cliente.numero ?? '?'}
+                    </div>
                     <div className="font-semibold text-white text-base leading-tight">
                       <div>{line1}</div>
                       {line2 && <div className="text-slate-300">{line2}</div>}
                     </div>
                   </div>
 
-                  {/* Iconos de Teléfono y WhatsApp a la derecha multiplicados x2 (w-8 h-8 -> contenedor w-12 h-12) */}
-                  <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Iconos de Nuevo Presupuesto, Teléfono y WhatsApp a la derecha */}
+                  <div className="flex items-center gap-8 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
+                      className="transition-transform hover:scale-110 active:scale-95 flex items-center justify-center shrink-0"
+                      title="Nuevo Presupuesto"
+                    >
+                      <NuevoPresupuestoIcon className="w-12 h-12" />
+                    </button>
+
                     {cliente.telefono ? (
                       <>
                         <a
                           href={`tel:${cliente.telefono.replace(/\s/g, '')}`}
-                          className="w-12 h-12 rounded-2xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-400 border border-blue-500/40 flex items-center justify-center transition-transform active:scale-95 shadow-[0_0_10px_rgba(59,130,246,0.3)]"
+                          className="transition-transform hover:scale-110 active:scale-95"
                           title="Llamar"
                         >
-                          <Phone className="w-7 h-7" />
+                          <Phone className="w-8 h-8 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
                         </a>
                         <a
                           href={`https://wa.me/${cliente.telefono.replace(/\s/g, '')}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="w-12 h-12 rounded-2xl bg-green-500/20 hover:bg-green-500/30 text-green-400 border border-green-500/40 flex items-center justify-center transition-transform active:scale-95 shadow-[0_0_10px_rgba(34,197,94,0.3)]"
+                          className="transition-transform hover:scale-110 active:scale-95"
                           title="WhatsApp"
                         >
-                          <MessageCircle className="w-7 h-7" />
+                          <MessageCircle className="w-8 h-8 text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
                         </a>
                       </>
                     ) : (
@@ -626,39 +643,44 @@ export function ClientesPage() {
                       {/* Botón Editar */}
                       <button
                         onClick={() => toggleSubpanel(cliente.id, 'editar')}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                          subpanel === 'editar' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60' : 'bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700'
+                        className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all ${
+                          subpanel === 'editar' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60' : 'bg-bg-800 text-cyan-400/70 border-bg-700 hover:bg-bg-700 hover:text-cyan-400'
                         }`}
+                        title="Editar cliente"
                       >
-                        <Edit3 className="w-4 h-4 text-cyan-400" /> Editar
+                        <Edit3 className="w-9 h-9" strokeWidth={1.25} />
                       </button>
 
                       {/* Botón Vehículos (Icono coche) */}
                       <button
                         onClick={() => toggleSubpanel(cliente.id, 'vehiculos')}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                          subpanel === 'vehiculos' ? 'bg-amber-500/20 text-amber-400 border-amber-500/60' : 'bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700'
+                        className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border transition-all ${
+                          subpanel === 'vehiculos' ? 'bg-amber-500/20 text-amber-400 border-amber-500/60' : 'bg-bg-800 text-amber-400/70 border-bg-700 hover:bg-bg-700 hover:text-amber-400'
                         }`}
+                        title={`Vehículos (${clientVehs.length})`}
                       >
-                        <Car className="w-4 h-4 text-amber-400" /> Vehículos ({clientVehs.length})
+                        <Car className="w-9 h-9" strokeWidth={1.25} />
+                        <span className="text-[10px] font-bold">{clientVehs.length}</span>
                       </button>
 
                       {/* Botón Presupuestos -> Navega directamente al listado de presupuestos del cliente en la página PRESUPUESTOS */}
                       <button
                         onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id } })}
-                        className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-cyan-400 hover:border-cyan-500/60 transition-all"
+                        className="flex items-center justify-center py-2.5 px-3 rounded-xl border bg-bg-800 text-violet-400 border-bg-700 hover:bg-bg-700 hover:text-violet-300 transition-all"
+                        title="Presupuestos"
                       >
-                        <FileText className="w-4 h-4 text-violet-400" /> Presupuestos
+                        <PresupuestoIcon className="w-9 h-9" strokeWidth={1.25} />
                       </button>
 
                       {/* Botón Facturas */}
                       <button
                         onClick={() => toggleSubpanel(cliente.id, 'facturas')}
-                        className={`flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-xs font-semibold transition-all ${
-                          subpanel === 'facturas' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60' : 'bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700'
+                        className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all ${
+                          subpanel === 'facturas' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60' : 'bg-bg-800 text-emerald-400/70 border-bg-700 hover:bg-bg-700 hover:text-emerald-400'
                         }`}
+                        title="Facturas"
                       >
-                        <FileText className="w-4 h-4 text-emerald-400" /> Facturas
+                        <FacturaIcon className="w-9 h-9" strokeWidth={1.25} />
                       </button>
                     </div>
 

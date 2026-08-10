@@ -165,6 +165,9 @@ export function MobileFooter() {
 
   return (
     <>
+      {location.pathname !== '/' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/90 via-black/[0.65] to-transparent z-40 pointer-events-none" />
+      )}
       <nav className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex items-center justify-between px-6 gap-2">
         <button
           onClick={() => { playSound('click'); navigate('/presupuesto-hibrido', { state: { startCamera: true } }) }}
@@ -189,11 +192,12 @@ export function MobileFooter() {
             playSound('click');
             window.dispatchEvent(new Event('metis-toggle-panel'));
           }}
-         className="w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_1px_rgba(168,85,247,0.95),0_0_30px_rgba(168,85,247,0.9),0_0_60px_rgba(147,51,234,0.8),0_0_30px_rgba(147,51,234,0.96)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 gestarian-metis-btn flex-shrink-0 relative animate-pulse"
+         className="w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_5px_rgba(168,85,247,1)] border-[1px] border-white/50 flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 relative animate-pulse"
+          style={{ backgroundColor: 'rgba(0,0,0,0)' }}
           aria-label="Asistente METIS"
         >
-          <span className="font-thin text-[36px] text-white tracking-widest drop-shadow-[0_0_15px_rgba(167,139,250,1)]" style={{ WebkitTextStroke: '5px rgba(162, 139, 231, 0.1)', textShadow: '0 0 5px rgb(216, 212, 228)' }}>AI</span>
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-bg-900 animate-pulse" />
+          <span className="font-thin text-[36px] text-white tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,1)]" style={{ WebkitTextStroke: '1px rgba(255, 255, 255, 0.5)' }}>AI</span>
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-transparent animate-pulse" />
         </button>
       </nav>
 
@@ -271,7 +275,7 @@ export function MobileFooter() {
                   -webkit-tap-highlight-color: transparent;
                   transition: border-color 0.2s ease, box-shadow 0.2s ease;
                   padding: 10px;
-                  animation-duration: 2s;
+                  animation-duration: 1.5s;
                   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
                   animation-fill-mode: backwards;
                   backdrop-filter: blur(12px);

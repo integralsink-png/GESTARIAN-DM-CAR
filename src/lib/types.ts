@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 
 export interface Cliente {
   id: string
+  numero?: number
   nombre: string
   dni: string | null
   telefono: string | null
@@ -87,6 +88,7 @@ export interface Factura {
   estado_cobro: EstadoCobro
   fecha: string
   fotos?: string[]
+  observaciones?: string
   created_at: string
 }
 

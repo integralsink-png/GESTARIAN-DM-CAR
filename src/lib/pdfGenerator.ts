@@ -6,7 +6,8 @@ export function generatePresupuestoPDF(
   presupuesto: Partial<Presupuesto>,
   cliente?: Cliente | null,
   vehiculo?: Vehiculo | null,
-  config?: Configuracion | null
+  config?: Configuracion | null,
+  expediente?: string
 ): jsPDF {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -14,7 +15,7 @@ export function generatePresupuestoPDF(
     format: 'a4'
   })
 
-  const numero = presupuesto.numero || 'PRES-0001'
+  const numero = expediente || presupuesto.numero || 'PRES-0001'
   const fecha = presupuesto.fecha ? new Date(presupuesto.fecha).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')
   const conceptos = presupuesto.conceptos || []
   const subtotal = conceptos.reduce((acc, c) => acc + (c.cantidad * c.precio), 0)
@@ -350,6 +351,23 @@ export function generateFacturaPDF(
   doc.text('TOTAL FACTURA:', 124, curY + 23)
   doc.text(`${total.toFixed(2)} €`, 190, curY + 23, { align: 'right' })
 
+  // Observaciones
+  if (factura.observaciones) {
+    const yObs = curY + 34
+    if (yObs < 260) {
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+      doc.text('Observaciones:', 14, yObs)
+
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+      const splitObs = doc.splitTextToSize(factura.observaciones, 180)
+      doc.text(splitObs, 14, yObs + 5)
+    }
+  }
+
   // Footer
   doc.setFont('Helvetica', 'normal')
   doc.setFontSize(8)
@@ -363,10 +381,11 @@ export function downloadPresupuestoPDF(
   presupuesto: Partial<Presupuesto>,
   cliente?: Cliente | null,
   vehiculo?: Vehiculo | null,
-  config?: Configuracion | null
+  config?: Configuracion | null,
+  expediente?: string
 ) {
-  const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config)
-  const numero = presupuesto.numero || 'PRES-0001'
+  const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config, expediente)
+  const numero = expediente || presupuesto.numero || 'PRES-0001'
   doc.save(`Presupuesto_${numero}.pdf`)
 }
 
@@ -385,7 +404,8 @@ export async function sendPresupuestoByEmail(
   presupuesto: Partial<Presupuesto>,
   cliente?: Cliente | null,
   vehiculo?: Vehiculo | null,
-  config?: Configuracion | null
+  config?: Configuracion | null,
+  expediente?: string
 ): Promise<{ success: boolean; error?: string }> {
   console.log('[DEBUG] sendPresupuestoByEmail clicked', { clienteEmail: cliente?.email, clienteNombre: cliente?.nombre });
   if (!cliente?.email) {
@@ -394,10 +414,10 @@ export async function sendPresupuestoByEmail(
     return { success: false, error: 'No hay email configurado' }
   }
 
-  const numero = presupuesto.numero || 'PRES-0001'
+  const numero = expediente || presupuesto.numero || 'PRES-0001'
   
   // 1. Generar PDF en memoria con jsPDF
-  const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config)
+  const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config, expediente)
   const pdfBlob = doc.output('blob')
   console.log('[INSTRUMENTATION PDF Presupuesto]', {
     pdfBlobSize: pdfBlob.size,

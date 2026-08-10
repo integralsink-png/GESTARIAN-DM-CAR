@@ -1,7 +1,8 @@
 import { PageHeader, Card, EmptyState, Button, Badge, Input } from '../components/UI'
 import { OcrInvoiceScanner } from '../components/OcrInvoiceScanner'
-import { Receipt, Truck, AlertTriangle, UserCog, Plus, X, Trash2, Search, Save } from 'lucide-react'
+import { Receipt, Truck, AlertTriangle, UserCog, Plus, X, Trash2, Search, Save, ArrowLeft } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Usuario, RolUsuario, Proveedor, FacturaRecibida, Concepto, Incidencia, PrioridadIncidencia, EstadoIncidencia, Cliente, Vehiculo } from '../lib/types'
 
@@ -211,6 +212,7 @@ export function FacturasRecibidasPage() {
 
 /* ──────────────── Proveedores ──────────────── */
 export function ProveedoresPage() {
+  const navigate = useNavigate()
   const [proveedores, setProveedores] = useState<Proveedor[]>([])
   const [showForm, setShowForm] = useState(false)
   const [search, setSearch] = useState('')
@@ -255,10 +257,21 @@ export function ProveedoresPage() {
   return (
     <div>
       <PageHeader title="Proveedores" subtitle="Gestión de proveedores y contactos">
-        <Button onClick={() => setShowForm(true)}>
-          <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Nuevo proveedor</span>
-        </Button>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
       </PageHeader>
+      
+      <div className="mb-4 flex justify-center">
+        <button onClick={() => setShowForm(true)} className="flex items-center justify-center gap-3 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-2xl px-8 py-4">
+          <Plus className="w-8 h-8" /> <Truck className="w-8 h-8" />
+        </button>
+      </div>
 
       {proveedores.length > 0 && (
         <div className="mb-4 relative">
@@ -331,6 +344,7 @@ export function ProveedoresPage() {
 
 /* ──────────────── Incidencias ──────────────── */
 export function IncidenciasPage() {
+  const navigate = useNavigate()
   const [incidencias, setIncidencias] = useState<Incidencia[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
@@ -435,10 +449,21 @@ export function IncidenciasPage() {
   return (
     <div>
       <PageHeader title="Incidencias" subtitle="Seguimiento y resolución de incidencias del taller">
-        <Button onClick={() => setShowForm(true)}>
-          <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Nueva incidencia</span>
-        </Button>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
       </PageHeader>
+      
+      <div className="mb-4 flex justify-center">
+        <button onClick={() => setShowForm(true)} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-xl px-4 py-2">
+          <Plus className="w-4 h-4" /> Nueva incidencia
+        </button>
+      </div>
 
       {incidencias.length > 0 && (
         <div className="flex gap-3 mb-4 flex-wrap">
@@ -691,6 +716,7 @@ export function IncidenciasPage() {
 
 /* ──────────────── Usuarios ──────────────── */
 export function UsuariosPage() {
+  const navigate = useNavigate()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ nombre: '', email: '', rol: 'operario' as RolUsuario, puede_editar_precios: false, puede_enviar_gestoria: false })
@@ -738,10 +764,21 @@ export function UsuariosPage() {
   return (
     <div>
       <PageHeader title="Usuarios" subtitle="Gestión de usuarios, roles y permisos">
-        <Button onClick={() => setShowForm(true)}>
-          <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Nuevo usuario</span>
-        </Button>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-7 h-7" />
+        </button>
       </PageHeader>
+      
+      <div className="mb-4 flex justify-center">
+        <button onClick={() => setShowForm(true)} className="flex items-center justify-center gap-3 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-2xl px-8 py-4">
+          <Plus className="w-8 h-8" /> <UserCog className="w-8 h-8" />
+        </button>
+      </div>
 
       {usuarios.length === 0 ? (
         <EmptyState icon={<UserCog className="w-12 h-12" />} title="No hay usuarios" subtitle="Añade usuarios para gestionar roles y permisos" />

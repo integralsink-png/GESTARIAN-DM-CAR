@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Cita, Cliente, Vehiculo } from '../lib/types'
-import { PageHeader, Card, Button, Badge, EmptyState, MetisRowButton } from '../components/UI'
-import { Calendar, ArrowRight, ArrowLeft, Clock, Car, ImageIcon, Trash2 } from 'lucide-react'
+import type { Cita, Cliente, Vehiculo, Presupuesto } from '../lib/types'
+import { PageHeader, Card, Badge, EmptyState } from '../components/UI'
+import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 
@@ -14,6 +14,7 @@ export function CitasPage() {
   const navState = location.state as { presupuestoId?: string; clienteId?: string; vehiculoId?: string } | null
 
   const [citas, setCitas] = useState<Cita[]>([])
+  const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Record<string, Vehiculo>>({})
   const [loading, setLoading] = useState(true)
@@ -22,12 +23,19 @@ export function CitasPage() {
   const [horaPropuesta, setHoraPropuesta] = useState('09:00')
 
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
+  const [expandedCita, setExpandedCita] = useState<string | null>(null)
 
   useEffect(() => {
     loadCitas()
+    loadPresupuestos()
     loadClientes()
     loadVehiculos()
   }, [])
+
+  async function loadPresupuestos() {
+    const { data } = await supabase.from('presupuestos').select('*')
+    setPresupuestos(data ?? [])
+  }
 
   async function loadCitas() {
     setLoading(true)
@@ -97,11 +105,7 @@ export function CitasPage() {
     return clientes.find((c) => c.id === id)?.nombre ?? '—'
   }
 
-  function vehiculoInfo(id: string | null) {
-    if (!id) return null
-    const v = vehiculos[id]
-    return v ? `${v.matricula} · ${v.marca ?? ''} ${v.modelo ?? ''}` : null
-  }
+
 
   const estadoColor = (e: string): 'yellow' | 'green' | 'red' | 'blue' => {
     if (e === 'pendiente') return 'yellow'
@@ -152,124 +156,192 @@ export function CitasPage() {
         <EmptyState icon={<Calendar className="w-12 h-12" />} title="No hay citas" subtitle="Las citas se crean desde presupuestos aceptados" />
       ) : (
         <div className="space-y-2">
-          {citas.map((cita) => (
-            <Card key={cita.id} className="p-4">
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-white">{clienteNombre(cita.cliente_id)}</span>
+          {citas.map((cita) => {
+            const p = presupuestos.find(x => x.id === cita.presupuesto_id);
+            const isExpanded = expandedCita === cita.id;
+
+            return (
+            <Card key={cita.id} className="overflow-hidden p-0">
+              <div 
+                className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
+                onClick={() => setExpandedCita(isExpanded ? null : cita.id)}
+              >
+                {/* LÍNEA 1: CLIENTE y ESTADO CITA */}
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <span className="font-bold text-white text-base truncate">{clienteNombre(cita.cliente_id)}</span>
+                  <div onClick={(e) => e.stopPropagation()}>
                     <Badge 
-                      text={cita.estado} 
+                      text={cita.estado === 'pendiente' ? 'Pendiente' : cita.estado === 'confirmada' ? 'Confirmada' : cita.estado} 
                       color={estadoColor(cita.estado)} 
-                      onClick={cita.estado === 'cancelada' ? () => cambiarEstado(cita.id, 'pendiente') : undefined}
+                      onClick={() => cambiarEstado(cita.id, cita.estado === 'pendiente' ? 'confirmada' : 'pendiente')}
                     />
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-sm text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {new Date(cita.fecha).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
-                    </span>
-                    {cita.hora && <span className="flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{cita.hora}</span>}
-                  </div>
-                  {vehiculoInfo(cita.vehiculo_id) && (
-                    <p className="flex items-center gap-1 text-xs text-slate-600 mt-1">
-                      <Car className="w-3 h-3" />{vehiculoInfo(cita.vehiculo_id)}
-                    </p>
-                  )}
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <MetisRowButton
-                    tipo="cita"
-                    id={cita.id}
-                    matricula={cita.vehiculo_id ? vehiculos[cita.vehiculo_id]?.matricula : undefined}
-                    cliente_nombre={clienteNombre(cita.cliente_id)}
-                    data={cita}
-                  />
-                  <button
-                    onClick={() => toggleFotos(cita.id)}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                      fotosExpandida === cita.id 
-                        ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30' 
-                        : 'bg-bg-700 hover:bg-bg-600 text-cyan-400 border-bg-600'
-                    }`}
-                  >
-                    <ImageIcon className="w-3.5 h-3.5" /> 
-                    {fotosExpandida === cita.id ? 'OCULTAR' : 'FOTOS'}
-                    {(cita.fotos ?? []).length > 0 && <span className="ml-1 px-1.5 bg-cyan-500/20 rounded-full">{(cita.fotos ?? []).length}</span>}
-                  </button>
 
-                  {cita.vehiculo_id && vehiculos[cita.vehiculo_id] && (
-                    <button
-                      onClick={() => setViewerMatricula(vehiculos[cita.vehiculo_id!]!.matricula)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-bg-700 hover:bg-bg-600 text-slate-400 hover:text-cyan-400 text-xs font-semibold border border-bg-600"
-                      title="Fotos del vehículo"
-                    >
-                      <Car className="w-3.5 h-3.5" /> FOTOS VEHÍCULO
+                  {/* LÍNEA 2: PRESUPUESTO | FECHA | HORA */}
+                  <div className="flex items-center justify-between w-[95%] text-sm font-semibold mt-1">
+                    <span className="text-cyan-400 font-mono">
+                      {p ? p.numero : 'S/N'}
+                    </span>
+                    <span className="text-slate-300">
+                      {new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </span>
+                    {cita.hora && (
+                      <span className="text-amber-400">
+                        {cita.hora.substring(0, 5)}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* LÍNEA 3: MARCA Y MODELO | MATRÍCULA */}
+                  {(() => {
+                    const v = cita.vehiculo_id ? vehiculos[cita.vehiculo_id] : null;
+                    if (!v) return null;
+                    return (
+                      <div className="flex items-center justify-between mt-1 w-[95%]">
+                        <span className="text-xs text-slate-400 uppercase font-medium">
+                          {v.marca} {v.modelo}
+                        </span>
+                        <span className="text-xs font-bold text-emerald-400 text-right">
+                          {v.matricula}
+                        </span>
+                      </div>
+                    );
+                  })()}
+              </div>
+
+              {/* EXPANDED AREA */}
+              {isExpanded && (
+                <div className="p-4 border-t border-white/10 bg-black/20 flex flex-wrap gap-2 items-center justify-end">
+                   {/* Botón Imágenes */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFotos(cita.id);
+                        }}
+                        className={`flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 ${
+                          fotosExpandida === cita.id ? 'text-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-slate-400'
+                        }`}
+                        title="Imágenes"
+                      >
+                      <ImageIcon className="w-[40px] h-[40px]" />
+                      {(cita.fotos ?? []).length > 0 && <span className="absolute top-0.5 right-0.5 px-1.5 text-[9px] bg-emerald-500/40 rounded-full font-bold">{(cita.fotos ?? []).length}</span>}
                     </button>
-                  )}
 
-                  {cita.estado === 'pendiente' && (
-                    <Button size="sm" onClick={() => cambiarEstado(cita.id, 'confirmada')}>Confirmar llegada</Button>
-                  )}
-                  {cita.estado === 'confirmada' && (
-                    <Button size="sm" onClick={() => navigate('/reparaciones', { state: { citaId: cita.id, clienteId: cita.cliente_id, vehiculoId: cita.vehiculo_id } })}>
-                      <span className="flex items-center gap-1">Enviar a taller <ArrowRight className="w-3.5 h-3.5" /></span>
-                    </Button>
-                  )}
-                  {cita.estado !== 'completada' && cita.estado !== 'cancelada' && (
-                    <Button size="sm" variant="danger" onClick={() => cambiarEstado(cita.id, 'cancelada')}>Cancelar</Button>
-                  )}
-                  <button
-                    onClick={() => eliminarCita(cita.id)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold border border-red-500/20"
-                    title="Eliminar cita"
+                    {/* Botón Ver Presupuesto */}
+                    {p && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/presupuestos', { state: { clienteId: cita.cliente_id } });
+                          }}
+                          className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-cyan-400 transition-colors"
+                          title="Ver Presupuesto"
+                        >
+                        <svg className="w-[40px] h-[40px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                          <polyline points="14 2 14 8 20 8"></polyline>
+                          {/* P letter inside */}
+                          <path d="M12 16v-4h2.5a1.5 1.5 0 0 1 0 3H12"></path>
+                        </svg>
+                      </button>
+                    )}
+
+                    {/* Botón Enviar a Taller */}
+                    {cita.estado !== 'completada' && (
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await cambiarEstado(cita.id, 'completada');
+                            
+                            // Crear reparación aquí para evitar duplicados por StrictMode o renderizados dobles
+                            const { data: existing } = await supabase.from('reparaciones').select('id').eq('cita_id', cita.id).maybeSingle();
+                            if (!existing) {
+                              await supabase.from('reparaciones').insert({
+                                cita_id: cita.id,
+                                cliente_id: cita.cliente_id,
+                                vehiculo_id: cita.vehiculo_id ?? null,
+                                estado: 'en_proceso',
+                              });
+                            }
+                            
+                            navigate('/reparaciones');
+                          }} 
+                          className="flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl border text-[13px] font-bold bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-emerald-400 hover:border-emerald-500/60 transition-all active:scale-95 h-[54px] w-[80px]"
+                        >
+                          <span>A TALLER</span>
+                          <svg width="40" height="10" viewBox="0 0 40 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1.5">
+                            <line x1="2" y1="5" x2="38" y2="5"></line>
+                            <polyline points="34 1 38 5 34 9"></polyline>
+                          </svg>
+                        </button>
+                    )}
+
+                    {/* Botón Eliminar Cita */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          eliminarCita(cita.id);
+                        }}
+                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-red-400 ml-auto transition-colors"
+                        title="Eliminar cita"
+                      >
+                      <Trash2 className="w-[40px] h-[40px]" />
+                    </button>
+                </div>
+              )}
+            </Card>
+          );})}
+        </div>
+      )}
+
+        {/* Modal: proponer fecha y hora */}
+        {showFechaModal && (
+          <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-start justify-center pt-[100px] px-4 overflow-y-auto" onClick={() => setShowFechaModal(false)}>
+            <Card className="w-full max-w-md p-6 shadow-2xl border border-bg-700">
+              <div onClick={(e) => e.stopPropagation()}>
+                <h2 className="text-lg font-semibold text-white mb-4">Programar cita</h2>
+                <p className="text-sm text-slate-500 mb-4">
+                  Cliente: <span className="text-white">{clientes.find((c) => c.id === navState?.clienteId)?.nombre ?? '—'}</span>
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Fecha propuesta</label>
+                    <input
+                      type="date"
+                      value={fechaPropuesta}
+                      onChange={(e) => setFechaPropuesta(e.target.value)}
+                      className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Hora</label>
+                    <input
+                      type="time"
+                      value={horaPropuesta}
+                      onChange={(e) => setHoraPropuesta(e.target.value)}
+                      className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 mt-6">
+                  <button 
+                    onClick={() => crearCitaDesdePresupuesto(fechaPropuesta, horaPropuesta)} 
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-cyan-400 border-bg-700 hover:bg-bg-700 hover:border-cyan-500/60 shadow-lg"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    Asignar cita
+                  </button>
+                  <button 
+                    onClick={() => setShowFechaModal(false)}
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-white shadow-lg"
+                  >
+                    Cancelar cita
                   </button>
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Modal: proponer fecha y hora */}
-      {showFechaModal && (
-        <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowFechaModal(false)}>
-          <Card className="w-full max-w-md p-6">
-            <div onClick={(e) => e.stopPropagation()}>
-              <h2 className="text-lg font-semibold text-white mb-4">Programar cita</h2>
-              <p className="text-sm text-slate-500 mb-4">
-                Cliente: <span className="text-white">{clientes.find((c) => c.id === navState?.clienteId)?.nombre ?? '—'}</span>
-              </p>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fecha propuesta</label>
-                  <input
-                    type="date"
-                    value={fechaPropuesta}
-                    onChange={(e) => setFechaPropuesta(e.target.value)}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Hora</label>
-                  <input
-                    type="time"
-                    value={horaPropuesta}
-                    onChange={(e) => setHoraPropuesta(e.target.value)}
-                    className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                  />
-                </div>
-              </div>
-              <div className="flex gap-3 mt-5">
-                <Button onClick={() => crearCitaDesdePresupuesto(fechaPropuesta, horaPropuesta)} className="flex-1">Confirmar cita</Button>
-                <Button variant="secondary" onClick={() => setShowFechaModal(false)}>Cancelar</Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      )}
+          </div>
+        )}
 
       <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
 

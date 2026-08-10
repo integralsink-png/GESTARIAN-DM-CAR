@@ -518,7 +518,7 @@ export function PresupuestoHibridoPage() {
     <div className="space-y-6 pb-24">
       <PageHeader title="Flujo Híbrido de Presupuesto" subtitle={phaseTitle}>
         <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => navigate('/presupuestos')}>
+          <Button variant="ghost" onClick={() => navigate(-1)}>
             <ArrowLeft className="w-4 h-4" /> Volver
           </Button>
         </div>

@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Cell } from 'recharts'
 import { exportToA3, exportToSAGE, exportToExcel, downloadFile } from '../lib/accountingExporters'
 import { MetisFiscalAdvisor } from '../components/MetisFiscalAdvisor'
+import { useTheme } from '../lib/theme'
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -25,6 +26,8 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   }
   return null;
 };
+
+import { createPortal } from 'react-dom'
 
 const IVA_RATE = 0.21
 
@@ -71,6 +74,7 @@ const TASA_AUTONOMO = 0.20
 const TASA_SL = 0.25
 
 export function BalancesPage() {
+  const { playSound } = useTheme()
   const navigate = useNavigate()
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [facturasRecibidas, setFacturasRecibidas] = useState<FacturaRecibida[]>([])
@@ -98,8 +102,13 @@ export function BalancesPage() {
       supabase.from('facturas').select('*').order('fecha', { ascending: false }),
       supabase.from('facturas_recibidas').select('*').order('fecha', { ascending: false })
     ])
-    setFacturas(emitidas ?? [])
-    setFacturasRecibidas(recibidas ?? [])
+    
+    // Restricción: en balances no pueden haber facturas con el mismo id
+    const uniqueEmitidas = Array.from(new Map((emitidas ?? []).map((f: Factura) => [f.id, f])).values())
+    const uniqueRecibidas = Array.from(new Map((recibidas ?? []).map((f: FacturaRecibida) => [f.id, f])).values())
+    
+    setFacturas(uniqueEmitidas)
+    setFacturasRecibidas(uniqueRecibidas)
   }
 
   async function loadConfig() {
@@ -166,6 +175,7 @@ export function BalancesPage() {
     await new Promise((r) => setTimeout(r, 1500))
     setSending(false)
     setSent(true)
+    playSound('success')
     setTimeout(() => setSent(false), 3000)
   }
 
@@ -219,25 +229,6 @@ export function BalancesPage() {
     <div>
       <PageHeader title="BALANCES">
         <div className="flex items-center gap-2">
-          <Button onClick={() => setShowExportModal(true)} variant="secondary" className="hidden sm:flex">
-            <span className="flex items-center gap-2">
-              <Download className="w-4 h-4" /> Exportar (A3/SAGE)
-            </span>
-          </Button>
-          <Button onClick={enviarGestoria} disabled={sending || sent} variant={sent ? 'secondary' : 'primary'}>
-            <span className="flex items-center gap-2">
-              {sent ? (
-                <>
-                  <CheckCircle className="w-4 h-4 text-green-400" /> Enviado
-                </>
-              ) : (
-                <>
-                  {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                  Enviar a gestoría
-                </>
-              )}
-            </span>
-          </Button>
           <button
             onClick={() => navigate(-1)}
             className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
@@ -249,40 +240,71 @@ export function BalancesPage() {
         </div>
       </PageHeader>
 
+      {/* Botones de acción (Exportar y Enviar a gestoría) debajo del título */}
+      <div className="flex flex-col md:flex-row gap-3 mb-6 w-full">
+        <button
+          onClick={() => setShowExportModal(true)}
+          className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl border border-bg-700 bg-bg-800 text-white hover:bg-bg-700 hover:text-cyan-400 transition-all font-medium text-sm w-full md:w-auto"
+        >
+          <Download className="w-5 h-5" /> Exportar
+        </button>
+        
+        <div className="relative w-full md:w-auto">
+          <button
+            onClick={enviarGestoria}
+            disabled={sending || sent}
+            className={`flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl border transition-all font-medium text-sm text-white ${
+              sent
+                ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                : 'border-bg-700 bg-bg-800 hover:bg-bg-700 hover:text-violet-400'
+            }`}
+          >
+            {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            Enviar a gestoría
+          </button>
+
+          {/* Globo animado (Tooltip de confirmación) */}
+          {sending && (
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-blue-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold animate-bounce whitespace-nowrap shadow-lg z-10 pointer-events-none">
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-blue-500 rotate-45" />
+              Preparando envío...
+            </div>
+          )}
+          {sent && (
+            <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-xs font-bold animate-bounce whitespace-nowrap shadow-[0_0_15px_rgba(16,185,129,0.5)] z-10 pointer-events-none">
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-emerald-500 rotate-45" />
+              ¡Enviado con éxito!
+            </div>
+          )}
+        </div>
+      </div>
+
       <Card className="p-4 mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="block text-sm text-[var(--color-texto)] opacity-60 mb-1">Tipo de empresa</label>
-            <div className="flex gap-2">
+            <label className="block text-sm text-[var(--color-texto)] opacity-60 mb-2">Tipo de empresa</label>
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => setTipoEmpresa('autonomo')}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                className={`py-2 px-4 rounded-xl border transition-all font-medium text-sm ${
                   tipoEmpresa === 'autonomo'
-                    ? 'gestarian-btn-primary gestarian-btn'
-                    : 'gestarian-btn gestarian-btn-secondary'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
+                    : 'bg-bg-800 border-bg-700 text-white/70 hover:bg-bg-700 hover:text-white'
                 }`}
               >
                 Autónomo
               </button>
               <button
                 onClick={() => setTipoEmpresa('sociedad_limitada')}
-                className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                className={`py-2 px-4 rounded-xl border transition-all font-medium text-sm ${
                   tipoEmpresa === 'sociedad_limitada'
-                    ? 'gestarian-btn-primary gestarian-btn'
-                    : 'gestarian-btn gestarian-btn-secondary'
+                    ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400'
+                    : 'bg-bg-800 border-bg-700 text-white/70 hover:bg-bg-700 hover:text-white'
                 }`}
               >
                 Sociedad Limitada
               </button>
             </div>
-          </div>
-          <div className="flex gap-2 ml-auto">
-            <Button variant="secondary" onClick={() => setShowEmitidas(true)}>
-              <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Facturas emitidas</span>
-            </Button>
-            <Button variant="secondary" onClick={() => setShowRecibidas(true)}>
-              <span className="flex items-center gap-2"><Receipt className="w-4 h-4" /> Facturas recibidas</span>
-            </Button>
           </div>
         </div>
       </Card>
@@ -451,7 +473,7 @@ export function BalancesPage() {
         </p>
       )}
 
-      {showEmitidas && (
+      {showEmitidas && createPortal(
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowEmitidas(false)}>
           <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
             <div onClick={(e) => e.stopPropagation()}>
@@ -492,10 +514,11 @@ export function BalancesPage() {
               )}
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showRecibidas && (
+      {showRecibidas && createPortal(
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowRecibidas(false)}>
           <Card className="w-full max-w-2xl p-6 max-h-[80vh] overflow-y-auto">
             <div onClick={(e) => e.stopPropagation()}>
@@ -515,10 +538,11 @@ export function BalancesPage() {
               </div>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showExportModal && (
+      {showExportModal && createPortal(
         <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-center justify-center p-4" onClick={() => setShowExportModal(false)}>
           <Card className="w-full max-w-lg p-6">
             <div onClick={(e) => e.stopPropagation()}>
@@ -576,7 +600,8 @@ export function BalancesPage() {
               </div>
             </div>
           </Card>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
