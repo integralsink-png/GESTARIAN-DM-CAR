@@ -6,6 +6,7 @@ import { PageHeader, Card, Badge, EmptyState } from '../components/UI'
 import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 
 
 export function CitasPage() {
@@ -23,6 +24,9 @@ export function CitasPage() {
   const [horaPropuesta, setHoraPropuesta] = useState('09:00')
 
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
+  const [showExpedienteViewer, setShowExpedienteViewer] = useState(false)
+  const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
   const [expandedCita, setExpandedCita] = useState<string | null>(null)
 
   useEffect(() => {
@@ -114,29 +118,6 @@ export function CitasPage() {
     return 'red'
   }
 
-  const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
-
-  const toggleFotos = (id: string) => {
-    setFotosExpandida(prev => prev === id ? null : id)
-  }
-
-  async function handleDeleteCitaFoto(citaId: string, index: number) {
-    if (!confirm('¿Eliminar esta foto?')) return
-    const cita = citas.find(c => c.id === citaId)
-    if (!cita) return
-
-    const nuevasFotos = [...(cita.fotos ?? [])]
-    nuevasFotos.splice(index, 1)
-
-    try {
-      const { error } = await supabase.from('citas').update({ fotos: nuevasFotos }).eq('id', citaId)
-      if (error) throw error
-      await loadCitas()
-    } catch (err) {
-      console.error('Error eliminando foto:', err)
-    }
-  }
-
   return (
     <div>
       <PageHeader title="CITAS">
@@ -213,19 +194,19 @@ export function CitasPage() {
               {/* EXPANDED AREA */}
               {isExpanded && (
                 <div className="p-4 border-t border-white/10 bg-black/20 flex flex-wrap gap-2 items-center justify-end">
-                   {/* Botón Imágenes */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleFotos(cita.id);
-                        }}
-                        className={`flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 ${
-                          fotosExpandida === cita.id ? 'text-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.3)]' : 'text-slate-400'
-                        }`}
-                        title="Imágenes"
-                      >
+                    {/* Botón Imágenes */}
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const fotos = await fetchExpedienteFotos(cita.cliente_id, cita.vehiculo_id, cita.fotos || []);
+                        setExpedienteFotos(fotos);
+                        setExpedienteViewerTitle(`Fotos Expediente Cita`);
+                        setShowExpedienteViewer(true);
+                      }}
+                      className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 text-amber-400"
+                      title="Imágenes del Expediente"
+                    >
                       <ImageIcon className="w-[40px] h-[40px]" />
-                      {(cita.fotos ?? []).length > 0 && <span className="absolute top-0.5 right-0.5 px-1.5 text-[9px] bg-emerald-500/40 rounded-full font-bold">{(cita.fotos ?? []).length}</span>}
                     </button>
 
                     {/* Botón Ver Presupuesto */}
@@ -346,22 +327,17 @@ export function CitasPage() {
       <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
 
       <GlobalImageViewer
-        isOpen={!!fotosExpandida}
-        onClose={() => setFotosExpandida(null)}
-        images={citas.find(c => c.id === fotosExpandida)?.fotos ?? []}
+        isOpen={showExpedienteViewer}
+        onClose={() => setShowExpedienteViewer(false)}
+        images={expedienteFotos}
         onAddImage={async (dataUrl) => {
-          if (!fotosExpandida) return;
-          const c = citas.find(x => x.id === fotosExpandida);
-          if (c) {
-            const nuevasFotos = [...(c.fotos ?? []), dataUrl];
-            await supabase.from('citas').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
-            await loadCitas();
-          }
+          await saveExpedienteFoto(dataUrl)
+          setExpedienteFotos((prev) => [...prev, dataUrl])
         }}
         onDeleteImage={async (index) => {
-          if (fotosExpandida) await handleDeleteCitaFoto(fotosExpandida, index)
+          setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
         }}
-        title="Fotos de la Cita"
+        title={expedienteViewerTitle}
       />
     </div>
   )

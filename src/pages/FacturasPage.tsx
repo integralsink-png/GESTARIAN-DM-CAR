@@ -8,6 +8,7 @@ import { FileText, Printer, Mail, Save, X, Check, Calendar, ImageIcon, Download,
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
 import { FacturasRecibidasPage } from './Pages'
 
@@ -31,6 +32,9 @@ export function FacturasPage() {
   const [trimestreFilter, setTrimestreFilter] = useState('')
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
+  const [showExpedienteViewer, setShowExpedienteViewer] = useState(false)
+  const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null)
   const [escaneandoOCR, setEscaneandoOCR] = useState(false)
   const [showSentToast, setShowSentToast] = useState<string | null>(null)
@@ -768,18 +772,20 @@ export function FacturasPage() {
                           </button>
                         )}
 
-                        {/* 2. IMÁGENES (Icono de galería) */}
+                        {/* 2. IMÁGENES (Muestra TODAS las fotos del expediente) */}
                         <button
-                          onClick={() => {
-                            if (veh?.matricula) {
-                              setViewerMatricula(veh.matricula)
-                            } else {
-                              alert('No hay un vehículo asociado para ver imágenes.')
-                            }
+                          onClick={async () => {
+                            const cId = selectedFactura?.cliente_id
+                            const vId = selectedFactura?.vehiculo_id
+                            const eFotos = selectedFactura?.fotos || []
+                            const fotos = await fetchExpedienteFotos(cId, vId, eFotos)
+                            setExpedienteFotos(fotos)
+                            setExpedienteViewerTitle(`Expediente Factura ${selectedFactura?.numero || ''}`)
+                            setShowExpedienteViewer(true)
                           }}
                           className="w-16 h-16 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
-                          title="IMÁGENES"
-                          aria-label="IMÁGENES"
+                          title="IMÁGENES DEL EXPEDIENTE"
+                          aria-label="IMÁGENES DEL EXPEDIENTE"
                         >
                           <ImageIcon className="w-8 h-8 text-amber-400" />
                         </button>
@@ -1012,38 +1018,19 @@ export function FacturasPage() {
       <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
 
       <GlobalImageViewer
-        isOpen={!!fotosExpandida}
-        onClose={() => setFotosExpandida(null)}
-        images={facturas.find(f => f.id === fotosExpandida)?.fotos ?? []}
+        isOpen={showExpedienteViewer}
+        onClose={() => setShowExpedienteViewer(false)}
+        images={expedienteFotos}
         onAddImage={async (dataUrl) => {
-          if (!fotosExpandida) return;
-          const f = facturas.find(x => x.id === fotosExpandida);
-          if (f) {
-            const nuevasFotos = [...(f.fotos ?? []), dataUrl];
-            await supabase.from('facturas').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
-            await loadFacturas();
-          }
+          const cId = selectedFactura?.cliente_id
+          const vId = selectedFactura?.vehiculo_id
+          await saveExpedienteFoto(dataUrl, cId, vId)
+          setExpedienteFotos((prev) => [...prev, dataUrl])
         }}
         onDeleteImage={async (index) => {
-          if (!fotosExpandida) return;
-          const f = facturas.find(x => x.id === fotosExpandida);
-          if (f) {
-            const nuevasFotos = [...(f.fotos ?? [])];
-            nuevasFotos.splice(index, 1);
-            await supabase.from('facturas').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
-            await loadFacturas();
-          }
+          setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
         }}
-        title={`Factura ${facturas.find(f => f.id === fotosExpandida)?.numero ?? ''}`}
-        customAction={
-          <label className={`cursor-pointer flex items-center justify-center w-full h-full text-xs transition-colors font-medium ${escaneandoOCR ? 'text-amber-400' : 'text-amber-500 hover:text-amber-400'}`}>
-            <div className="flex flex-col items-center justify-center gap-1 bg-amber-500/10 border-2 border-dashed border-amber-500/30 hover:bg-amber-500/20 rounded-xl w-20 h-20 p-1 text-center leading-tight">
-              <Camera className="w-6 h-6" />
-              {escaneandoOCR ? 'OCR...' : 'OCR'}
-            </div>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => fotosExpandida && handleScanOCR(e, fotosExpandida)} disabled={escaneandoOCR} />
-          </label>
-        }
+        title={expedienteViewerTitle}
       />
       {showSentToast && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none p-4">

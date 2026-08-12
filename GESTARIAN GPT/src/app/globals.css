@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  
+  --color-secondary: var(--secondary);
+  --color-on-secondary: var(--on-secondary);
+  
+  --color-tertiary: var(--tertiary);
+  --color-on-tertiary: var(--on-tertiary);
+  
+  --color-surface: var(--surface);
+  --color-on-surface: var(--on-surface);
+  --color-surface-hover: var(--surface-hover);
+  
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+  
+  --color-border: var(--border);
+
+  --font-sans: 'Inter', sans-serif;
+}
+
+:root {
+  /* LIGHT THEME - Blue & Gray */
+  --primary: #3b82f6; /* Powerful Blue */
+  --on-primary: #ffffff; 
+  
+  --secondary: #bfdbfe; /* Very Light Blue (Celeste) */
+  --on-secondary: #1e3a8a; /* Deep Blue Text */
+  
+  --tertiary: #93c5fd; /* Soft Blue */
+  --on-tertiary: #1e3a8a;
+  
+  --background: #e2e8f0; /* Distinct Gray Background */
+  --on-background: #0f172a; /* Dark gray */
+  
+  --surface: #ffffff; /* Crisp white cards */
+  --surface-hover: #f8fafc; /* Very light gray hover */
+  --on-surface: #1e293b; /* Elegante Gris Oscuro para textos en tarjetas */
+  
+  --border: #cbd5e1; /* Soft gray border */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* DARK THEME - Deep Grays & Vibrant Blues */
+    --primary: #60a5fa; /* Vibrant Light Blue */
+    --on-primary: #0f172a; 
+    
+    --secondary: #1e3a8a; /* Deep Blue Surface */
+    --on-secondary: #eff6ff; /* Almost white text */
+    
+    --tertiary: #2563eb; /* Mid Blue Surface */
+    --on-tertiary: #ffffff;
+    
+    --background: #020617; /* Very Dark Background (casi negro puro) */
+    --on-background: #f8fafc; /* Almost white */
+    
+    --surface: #1e293b; /* Distinct elevated slate */
+    --surface-hover: #334155; 
+    --on-surface: #f8fafc;
+    
+    --border: #334155;
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--on-background);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .minimal-card {
+    @apply bg-surface text-on-surface border border-border rounded-3xl p-8 transition-all duration-300 shadow-sm;
+  }
+  .minimal-card:hover {
+    @apply bg-surface-hover border-primary/50 shadow-md transform -translate-y-1;
+  }
+  
+  .minimal-button {
+    @apply bg-primary text-on-primary rounded-2xl px-8 py-3.5 font-bold transition-all active:scale-[0.98] shadow-sm hover:shadow-md hover:opacity-90;
+  }
+  
+  .minimal-button-outline {
+    @apply bg-transparent text-on-background border-2 border-border rounded-2xl px-8 py-3.5 font-bold hover:bg-surface hover:border-primary/50 transition-all active:scale-[0.98];
+  }
+
+  .minimal-icon-box {
+    @apply flex items-center justify-center rounded-2xl w-14 h-14 bg-primary text-on-primary mb-3 shadow-sm;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Hide scrollbar for IE, Edge and Firefox */
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.6s cubic-bezier(0.2, 0, 0, 1) forwards;
+}

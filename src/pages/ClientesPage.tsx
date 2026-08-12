@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { sendFacturaByEmail, downloadFacturaPDF, sendPresupuestoByEmail, downloadPresupuestoPDF } from '../lib/pdfGenerator'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { NuevoPresupuestoIcon, PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
 
 export function ClientesPage() {
@@ -42,7 +43,26 @@ export function ClientesPage() {
   // Estado selección de presupuestos y vehículos
   const [selectedVehDetailId, setSelectedVehDetailId] = useState<string | null>(null)
   const [viewingVehFotos, setViewingVehFotos] = useState<{ vehId: string; matricula: string } | null>(null)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
   const [clienteGuardadoId, setClienteGuardadoId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (viewingVehFotos) {
+      let cId: string | undefined
+      let vFotos: string[] = []
+      for (const id in vehiculos) {
+        const found = vehiculos[id].find(v => v.id === viewingVehFotos.vehId)
+        if (found) {
+          cId = id
+          vFotos = found.fotos || []
+          break
+        }
+      }
+      fetchExpedienteFotos(cId, viewingVehFotos.vehId, vFotos).then(setExpedienteFotos)
+    } else {
+      setExpedienteFotos([])
+    }
+  }, [viewingVehFotos, vehiculos])
 
   useEffect(() => {
     loadClientes()
@@ -938,40 +958,14 @@ export function ClientesPage() {
         isOpen={!!viewingVehFotos}
         onClose={() => setViewingVehFotos(null)}
         title={viewingVehFotos ? `Vehículo ${viewingVehFotos.matricula}` : "Imágenes"}
-        images={(() => {
-          if (!viewingVehFotos) return []
-          for (const cId in vehiculos) {
-            const found = vehiculos[cId].find(v => v.id === viewingVehFotos.vehId)
-            if (found) return found.fotos ?? []
-          }
-          return []
-        })()}
+        images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           if (!viewingVehFotos) return
-          for (const cId in vehiculos) {
-            const found = vehiculos[cId].find(v => v.id === viewingVehFotos.vehId)
-            if (found) {
-              const nuevasFotos = [...(found.fotos ?? []), dataUrl]
-              await supabase.from('vehiculos').update({ fotos: nuevasFotos }).eq('id', found.id)
-              const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', cId)
-              setVehiculos(prev => ({ ...prev, [cId]: vehs ?? [] }))
-              break
-            }
-          }
+          await saveExpedienteFoto(dataUrl, null, viewingVehFotos.vehId)
+          setExpedienteFotos(prev => [...prev, dataUrl])
         }}
         onDeleteImage={async (index) => {
-          if (!viewingVehFotos) return
-          for (const cId in vehiculos) {
-            const found = vehiculos[cId].find(v => v.id === viewingVehFotos.vehId)
-            if (found && found.fotos) {
-              const nuevasFotos = [...found.fotos]
-              nuevasFotos.splice(index, 1)
-              await supabase.from('vehiculos').update({ fotos: nuevasFotos }).eq('id', found.id)
-              const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', cId)
-              setVehiculos(prev => ({ ...prev, [cId]: vehs ?? [] }))
-              break
-            }
-          }
+          setExpedienteFotos(prev => prev.filter((_, i) => i !== index))
         }}
       />
     </div>

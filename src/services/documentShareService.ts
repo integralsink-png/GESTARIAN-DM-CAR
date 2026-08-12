@@ -40,66 +40,33 @@ export async function getDocumentoPdfUrl(
   numero: string,
   pdfBlob: Blob
 ): Promise<string | null> {
-  try {
-    const bucketName = 'documentos'
-    const sanitizeNum = (numero || 'DOC-0001').replace(/[^a-zA-Z0-9_-]/g, '_')
-    const fileName = `${tipo === 'presupuesto' ? 'PRESUPUESTO' : 'FACTURA'}_${sanitizeNum}.pdf`
-    const folder = tipo === 'presupuesto' ? 'presupuestos' : 'facturas'
-    const filePath = `${folder}/${fileName}`
+  const sanitizeNum = (numero || 'DOC-0001').replace(/[^a-zA-Z0-9_-]/g, '_')
+  const fileName = `${tipo === 'presupuesto' ? 'PRESUPUESTO' : 'FACTURA'}_${sanitizeNum}.pdf`
+  const filePath = `documentos/${fileName}`
+  const bucketsToTry = ['gestarian-files', 'documentos', 'public']
 
-    // 1. Subir/actualizar el archivo en el bucket 'documentos'
-    const { error: uploadError } = await supabase.storage
-      .from(bucketName)
-      .upload(filePath, pdfBlob, {
-        contentType: 'application/pdf',
-        upsert: true,
-      })
+  for (const bucket of bucketsToTry) {
+    try {
+      const { error: uploadErr } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, pdfBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        })
 
-    if (uploadError) {
-      console.warn('[Supabase Storage Upload Warning]', uploadError)
-      // Si el bucket no existe, intentar crearlo con acceso público
-      if (uploadError.message?.includes('bucket not found') || (uploadError as any).status === 404) {
-        try {
-          await supabase.storage.createBucket(bucketName, { public: true })
-          await supabase.storage.from(bucketName).upload(filePath, pdfBlob, {
-            contentType: 'application/pdf',
-            upsert: true,
-          })
-        } catch (bucketErr: any) {
-          console.error('[Supabase Storage Create Bucket Error]', bucketErr)
-          alert('Error creando el bucket de documentos: ' + bucketErr.message)
-        }
-      } else {
-        alert('Error subiendo PDF a Supabase Storage: ' + uploadError.message)
+      if (!uploadErr) {
+        const { data: signedData } = await supabase.storage.from(bucket).createSignedUrl(filePath, 60 * 60 * 24 * 30)
+        if (signedData?.signedUrl) return signedData.signedUrl
+
+        const { data: pubData } = supabase.storage.from(bucket).getPublicUrl(filePath)
+        if (pubData?.publicUrl) return pubData.publicUrl
       }
+    } catch (e) {
+      console.warn(`[getDocumentoPdfUrl] Error en bucket ${bucket}:`, e)
     }
-
-    // 2. Intentar obtener Signed URL con 30 días de caducidad
-    const { data: signedData } = await supabase.storage
-      .from(bucketName)
-      .createSignedUrl(filePath, 60 * 60 * 24 * 30)
-
-    if (signedData?.signedUrl) {
-      return signedData.signedUrl
-    }
-
-    // 3. Fallback: Obtener Public URL
-    const { data: publicData } = supabase.storage
-      .from(bucketName)
-      .getPublicUrl(filePath)
-
-    if (publicData?.publicUrl) {
-      return publicData.publicUrl
-    }
-
-    return null
-  } catch (e) {
-    console.error('[getDocumentoPdfUrl Exception]', e)
-    if (e instanceof Error) {
-      alert('Error de Supabase (Storage): ' + e.message)
-    }
-    return null
   }
+
+  return null
 }
 
 /**

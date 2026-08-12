@@ -1,6 +1,27 @@
 import { jsPDF } from 'jspdf'
 import type { Presupuesto, Factura, Cliente, Vehiculo, Configuracion } from './types'
 import { sendEstimate, sendInvoice } from '../services/communicationService'
+import { supabase } from './supabase'
+
+const PROVINCIAS_ESPANOLAS: Record<string, string> = {
+  '01': 'Araba / Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
+  '06': 'Badajoz', '07': 'Illes Balears', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
+  '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
+  '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
+  '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
+  '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
+  '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
+  '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
+  '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
+  '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
+  '51': 'Ceuta', '52': 'Melilla'
+}
+
+export function getLocalidadFromCP(cp: string): string {
+  if (!cp) return ''
+  const prefix = cp.substring(0, 2)
+  return PROVINCIAS_ESPANOLAS[prefix] || ''
+}
 
 export function generatePresupuestoPDF(
   presupuesto: Partial<Presupuesto>,
@@ -19,7 +40,8 @@ export function generatePresupuestoPDF(
   const fecha = presupuesto.fecha ? new Date(presupuesto.fecha).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')
   const conceptos = presupuesto.conceptos || []
   const subtotal = conceptos.reduce((acc, c) => acc + (c.cantidad * c.precio), 0)
-  const iva = subtotal * 0.21
+  const aplicarIva = (presupuesto as any).aplicarIva !== undefined ? (presupuesto as any).aplicarIva : true
+  const iva = aplicarIva ? subtotal * 0.21 : 0
   const total = subtotal + iva
 
   // Palette
@@ -84,7 +106,15 @@ export function generatePresupuestoPDF(
   if (cliente?.dni) infoLine += `DNI/CIF: ${cliente.dni}   `
   if (cliente?.telefono) infoLine += `Tel: ${cliente.telefono}   `
   if (cliente?.email) infoLine += `Email: ${cliente.email}`
-  if (infoLine) doc.text(infoLine, 18, yCliente + 18)
+  if (infoLine) doc.text(infoLine, 18, yCliente + 17)
+
+  // Dirección y Localidad Auto-detectada por CP
+  const autoLoc = cliente?.cp ? getLocalidadFromCP(cliente.cp) : (cliente?.localidad || '')
+  let addrLine = ''
+  if (cliente?.direccion) addrLine += cliente.direccion
+  if (cliente?.cp) addrLine += `${addrLine ? ' - ' : ''}CP ${cliente.cp}`
+  if (autoLoc) addrLine += ` (${autoLoc})`
+  if (addrLine) doc.text(addrLine, 18, yCliente + 22)
 
   if (vehiculo) {
     doc.setFont('Helvetica', 'bold')
@@ -152,8 +182,13 @@ export function generatePresupuestoPDF(
   doc.text('Base Imponible:', 124, curY + 7)
   doc.text(`${subtotal.toFixed(2)} €`, 190, curY + 7, { align: 'right' })
 
-  doc.text('IVA (21%):', 124, curY + 13)
-  doc.text(`${iva.toFixed(2)} €`, 190, curY + 13, { align: 'right' })
+  if (aplicarIva) {
+    doc.text('IVA (21%):', 124, curY + 13)
+    doc.text(`${iva.toFixed(2)} €`, 190, curY + 13, { align: 'right' })
+  } else {
+    doc.text('IVA (0%):', 124, curY + 13)
+    doc.text('0.00 €', 190, curY + 13, { align: 'right' })
+  }
 
   doc.setDrawColor(15, 23, 42)
   doc.line(124, curY + 16, 192, curY + 16)
@@ -436,9 +471,15 @@ export async function sendPresupuestoByEmail(
   })
 
   if (result.success) {
-    alert(`✅ PDF ENVIADO CON ÈXITO`)
-  } else {
-    alert(`⚠️ No se pudo completar el envío del presupuesto: ${result.error}`)
+    if (presupuesto.id) {
+      const nowIso = new Date().toISOString()
+      localStorage.setItem(`presupuesto_${presupuesto.id}_email_at`, nowIso)
+      try {
+        await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', presupuesto.id)
+      } catch (e) {
+        console.warn('Error actualizando enviado_email_at:', e)
+      }
+    }
   }
 
   return result
@@ -473,9 +514,15 @@ export async function sendFacturaByEmail(
   })
 
   if (result.success) {
-    alert(`✅ PDF ENVIADO CON ÈXITO`)
-  } else {
-    alert(`⚠️ No se pudo completar el envío de la factura: ${result.error}`)
+    if (factura.id) {
+      const nowIso = new Date().toISOString()
+      localStorage.setItem(`factura_${factura.id}_email_at`, nowIso)
+      try {
+        await supabase.from('facturas').update({ enviado_email_at: nowIso }).eq('id', factura.id)
+      } catch (e) {
+        console.warn('Error actualizando enviado_email_at en factura:', e)
+      }
+    }
   }
 
   return result

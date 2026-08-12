@@ -1,24 +1,71 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Configuracion, ThemePreset, ThemeSettings } from '../lib/types'
-import { PageHeader, Card, Button } from '../components/UI'
+import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } from '../lib/types'
+import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
 import { Box, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, LayoutTemplate, Type, ArrowLeft } from 'lucide-react'
+import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
+
+// Servicios centralizados
+import { getAiConfig, getFallbackConfig, testAiConnection } from '../services/aiProviderService'
+import { getDocumentOcrConfig, testDocumentOcrConnection } from '../services/documentOcrService'
+import { getPlateRecognizerConfig, testPlateRecognizerConnection } from '../services/plateRecognizerService'
+import { getStorageConfig } from '../services/storageService'
 
 export function ConfiguracionPage() {
   const navigate = useNavigate()
   const [config, setConfig] = useState<Configuracion | null>(null)
-  const [apiKey, setApiKey] = useState(localStorage.getItem('gestarian_groq_api_key') || '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')
-  const [hfKey, setHfKey] = useState(localStorage.getItem('gestarian_hf_api_key') || '')
-  const [hfModel, setHfModel] = useState(localStorage.getItem('gestarian_hf_model') || 'meta-llama/Llama-2-7b-chat')
   const [themePreset, setThemePreset] = useState<ThemePreset>(DEFAULT_THEME_SETTINGS.theme_preset)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance, setAppearance } = useTheme()
+
+  // ----------------------------------------------------
+  // ESTADOS DE SERVICIOS Y CLAVES API (OBJETIVO 1, 2, 3)
+  // ----------------------------------------------------
+  // 1. Ayudante IA
+  const [aiProvider, setAiProvider] = useState<'gemini' | 'groq' | 'openai'>('gemini')
+  const [aiModel, setAiModel] = useState('gemini-1.5-flash')
+  const [aiApiKey, setAiApiKey] = useState('')
+  const [showAiKey, setShowAiKey] = useState(false)
+  const [aiStatus, setAiStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
+
+  // 2. OCR Documentos
+  const [docOcrProvider, setDocOcrProvider] = useState<'gemini' | 'tesseract'>('gemini')
+  const [docOcrModel, setDocOcrModel] = useState('gemini-1.5-flash')
+  const [docOcrApiKey, setDocOcrApiKey] = useState('')
+  const [showDocOcrKey, setShowDocOcrKey] = useState(false)
+  const [docOcrStatus, setDocOcrStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
+
+  // 3. OCR Matrículas (Plate Recognizer)
+  const [plateApiKey, setPlateApiKey] = useState('')
+  const [showPlateKey, setShowPlateKey] = useState(false)
+  const [plateEndpoint, setPlateEndpoint] = useState('https://api.platerecognizer.com/v1/plate-reader/')
+  const [plateStatus, setPlateStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
+
+  // 4. Fallback IA
+  const [fallbackEnabled, setFallbackEnabled] = useState(false)
+  const [fallbackModel, setFallbackModel] = useState('llama-3.3-70b-versatile')
+  const [fallbackApiKey, setFallbackApiKey] = useState('')
+  const [showFallbackKey, setShowFallbackKey] = useState(false)
+  const [fallbackStatus, setFallbackStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
+
+  // Mensajes de prueba de conexión
+  const [testResult, setTestResult] = useState<{ service: string; message: string; success: boolean } | null>(null)
+
+  // ----------------------------------------------------
+  // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
+  // ----------------------------------------------------
+  const [textColors, setTextColors] = useState<TextColorSettings>({
+    text_title: '#ffffff',
+    text_primary: '#f8fafc',
+    text_input: '#ffffff',
+    text_secondary: '#94a3b8',
+    text_card: '#f8fafc',
+  })
 
   const sharedTextFieldProps = {
     fullWidth: true,
@@ -29,6 +76,7 @@ export function ConfiguracionPage() {
 
   useEffect(() => {
     loadConfig()
+    loadServicesAndColors()
   }, [])
 
   async function loadConfig() {
@@ -50,6 +98,37 @@ export function ConfiguracionPage() {
         fondo_portrait: '',
         tipo_empresa: 'empresa'
       } as any)
+    }
+  }
+
+  function loadServicesAndColors() {
+    // Cargar IA principal
+    const aiCfg = getAiConfig()
+    setAiProvider(aiCfg.provider as any || 'gemini')
+    setAiModel(aiCfg.model || 'gemini-1.5-flash')
+    setAiApiKey(aiCfg.api_key || localStorage.getItem('gestarian_gemini_api_key') || '')
+
+    // Cargar OCR Documentos
+    const docCfg = getDocumentOcrConfig()
+    setDocOcrProvider(docCfg.provider as any || 'gemini')
+    setDocOcrModel(docCfg.model || 'gemini-1.5-flash')
+    setDocOcrApiKey(docCfg.api_key || localStorage.getItem('gestarian_gemini_api_key') || '')
+
+    // Cargar Plate Recognizer
+    const plateCfg = getPlateRecognizerConfig()
+    setPlateApiKey(plateCfg.api_key || localStorage.getItem('gestarian_plate_recognizer_key') || '')
+    setPlateEndpoint(plateCfg.endpoint_url || 'https://api.platerecognizer.com/v1/plate-reader/')
+
+    // Cargar Fallback IA
+    const fallbackCfg = getFallbackConfig()
+    setFallbackEnabled(fallbackCfg.enabled || false)
+    setFallbackModel(fallbackCfg.model || 'llama-3.3-70b-versatile')
+    setFallbackApiKey(fallbackCfg.api_key || localStorage.getItem('gestarian_groq_api_key') || '')
+
+    // Cargar Colores de Texto
+    const savedColors = localStorage.getItem('gestarian_text_colors')
+    if (savedColors) {
+      try { setTextColors({ ...textColors, ...JSON.parse(savedColors) }) } catch (e) {}
     }
   }
 
@@ -78,9 +157,37 @@ export function ConfiguracionPage() {
     }
   }, [setThemeSettings])
 
+  // Guardar configuración completa y persistir API Keys de forma segura
   async function handleSave() {
     if (!config) return
     setSaving(true)
+
+    // 1. Guardar configuraciones de Servicios externos de forma aislada
+    const aiConfigObj = { provider: aiProvider, model: aiModel, api_key: aiApiKey, status: aiStatus }
+    localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify(aiConfigObj))
+    if (aiApiKey) localStorage.setItem('gestarian_gemini_api_key', aiApiKey)
+
+    const docOcrConfigObj = { provider: docOcrProvider, model: docOcrModel, api_key: docOcrApiKey, status: docOcrStatus }
+    localStorage.setItem('gestarian_document_ocr_config', JSON.stringify(docOcrConfigObj))
+
+    const plateConfigObj = { provider: 'plate_recognizer', api_key: plateApiKey, endpoint_url: plateEndpoint, status: plateStatus }
+    localStorage.setItem('gestarian_plate_recognizer_config', JSON.stringify(plateConfigObj))
+    if (plateApiKey) localStorage.setItem('gestarian_plate_recognizer_key', plateApiKey)
+
+    const fallbackConfigObj = { provider: 'groq', model: fallbackModel, api_key: fallbackApiKey, enabled: fallbackEnabled, status: fallbackStatus }
+    localStorage.setItem('gestarian_fallback_ai_config', JSON.stringify(fallbackConfigObj))
+    if (fallbackApiKey) localStorage.setItem('gestarian_groq_api_key', fallbackApiKey)
+
+    // 2. Guardar Colores de Texto y aplicarlos mediante Variables CSS Dinámicas
+    localStorage.setItem('gestarian_text_colors', JSON.stringify(textColors))
+    const root = document.documentElement
+    root.style.setProperty('--text-title', textColors.text_title)
+    root.style.setProperty('--text-primary', textColors.text_primary)
+    root.style.setProperty('--text-input', textColors.text_input)
+    root.style.setProperty('--text-secondary', textColors.text_secondary)
+    root.style.setProperty('--text-card', textColors.text_card)
+
+    // 3. Persistir en Supabase
     await supabase.from('configuracion').upsert({
       id: 1,
       nombre_empresa: config.nombre_empresa,
@@ -114,10 +221,41 @@ export function ConfiguracionPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  // ----------------------------------------------------
+  // PRUEBAS DE CONEXIÓN A SERVICIOS (OBJETIVOS 1, 2, 3)
+  // ----------------------------------------------------
+  async function handleTestAi() {
+    setAiStatus('testing')
+    const res = await testAiConnection({ provider: aiProvider, model: aiModel, api_key: aiApiKey, status: 'testing' })
+    setAiStatus(res.success ? 'connected' : 'error')
+    setTestResult({ service: 'AYUDANTE IA GESTARIAN', message: res.message, success: res.success })
+  }
+
+  async function handleTestDocOcr() {
+    setDocOcrStatus('testing')
+    const res = await testDocumentOcrConnection({ provider: docOcrProvider, model: docOcrModel, api_key: docOcrApiKey, status: 'testing' })
+    setDocOcrStatus(res.success ? 'connected' : 'error')
+    setTestResult({ service: 'OCR DE FACTURAS Y DOCUMENTOS', message: res.message, success: res.success })
+  }
+
+  async function handleTestPlate() {
+    setPlateStatus('testing')
+    const res = await testPlateRecognizerConnection({ provider: 'plate_recognizer', api_key: plateApiKey, endpoint_url: plateEndpoint, status: 'testing' })
+    setPlateStatus(res.success ? 'connected' : 'error')
+    setTestResult({ service: 'OCR DE MATRÍCULAS', message: res.message, success: res.success })
+  }
+
+  async function handleTestFallback() {
+    setFallbackStatus('testing')
+    const res = await testAiConnection({ provider: 'groq', model: fallbackModel, api_key: fallbackApiKey, status: 'testing' })
+    setFallbackStatus(res.success ? 'connected' : 'error')
+    setTestResult({ service: 'IA ALTERNATIVA / FALLBACK', message: res.message, success: res.success })
+  }
+
   if (!config) return <div className="text-center py-16 text-slate-500">Cargando...</div>
 
   return (
-    <div>
+    <div className="space-y-6 pb-12">
       <PageHeader title="CONFIGURACIÓN">
         <div className="flex items-center gap-3">
           <button
@@ -131,15 +269,490 @@ export function ConfiguracionPage() {
         </div>
       </PageHeader>
 
-      <div className="mb-4 flex items-center">
-        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-xl px-4 py-2 disabled:opacity-50">
-          <Save className="w-4 h-4" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar configuración'}
+      <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
+        <h2 className="text-xl font-black text-white tracking-tight">Panel de Control de Ajustes</h2>
+        <button 
+          onClick={handleSave} 
+          disabled={saving} 
+          className="flex items-center gap-2 text-white font-bold bg-cyan-600 hover:bg-cyan-500 transition-all rounded-xl px-5 py-2.5 shadow-lg active:scale-95 disabled:opacity-50"
+        >
+          <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar todo'}
         </button>
       </div>
 
+      {/* Banner de Resultado de Prueba de Conexión */}
+      {testResult && (
+        <div className={`p-4 rounded-2xl border flex items-center justify-between animate-fade-in ${
+          testResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}>
+          <div className="flex items-center gap-3">
+            {testResult.success ? <CheckCircle2 className="w-6 h-6 shrink-0" /> : <XCircle className="w-6 h-6 shrink-0" />}
+            <div>
+              <span className="font-extrabold text-xs uppercase tracking-wider block opacity-75">{testResult.service}</span>
+              <p className="text-sm font-semibold">{testResult.message}</p>
+            </div>
+          </div>
+          <button onClick={() => setTestResult(null)} className="text-slate-400 hover:text-white text-xs font-bold px-2 py-1">
+            Cerrar
+          </button>
+        </div>
+      )}
 
+      {/* ================================================== */}
+      {/* SECCIÓN 1: INTELIGENCIA ARTIFICIAL Y SERVICIOS */}
+      {/* ================================================== */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 pt-2">
+          <Sparkles className="w-6 h-6 text-cyan-400" />
+          <h2 className="text-xl font-black text-white uppercase tracking-tight">INTELIGENCIA ARTIFICIAL Y SERVICIOS</h2>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* 1. AYUDANTE IA GESTARIAN */}
+          <Card className="p-6 space-y-4 border border-cyan-500/20 shadow-xl relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-cyan-500/10 rounded-xl text-cyan-400">
+                  <Bot className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">AYUDANTE IA GESTARIAN</h3>
+                  <span className="text-xs text-slate-400 font-medium">IA Conversacional en Lenguaje Natural</span>
+                </div>
+              </div>
+              <StatusChip status={aiStatus} />
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              IA conversacional para hablar con GESTARIAN en lenguaje natural, entender instrucciones y ayudar a gestionar las tareas de la aplicación.
+            </p>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor</label>
+                  <select 
+                    value={aiProvider} 
+                    onChange={(e) => setAiProvider(e.target.value as any)}
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                  >
+                    <option value="gemini">Google Gemini (Recomendado)</option>
+                    <option value="groq">Groq Llama 3</option>
+                    <option value="openai">OpenAI GPT-4</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
+                  <input 
+                    type="text" 
+                    value={aiModel} 
+                    onChange={(e) => setAiModel(e.target.value)}
+                    placeholder="gemini-1.5-flash"
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Clave API</label>
+                <div className="relative">
+                  <input 
+                    type={showAiKey ? "text" : "password"} 
+                    value={aiApiKey} 
+                    onChange={(e) => setAiApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-cyan-300 focus:outline-none"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowAiKey(!showAiKey)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showAiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={handleTestAi}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 transition-colors"
+                >
+                  Probar conexión
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSave}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* 2. OCR DE FACTURAS Y DOCUMENTOS */}
+          <Card className="p-6 space-y-4 border border-blue-500/20 shadow-xl relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400">
+                  <FileSearch className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">OCR DE FACTURAS Y DOCUMENTOS</h3>
+                  <span className="text-xs text-slate-400 font-medium">Lectura Multimodal y Extracción JSON</span>
+                </div>
+              </div>
+              <StatusChip status={docOcrStatus} />
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              Lectura automática de facturas, presupuestos y documentos mediante fotografía o archivo para rellenar datos automáticamente.
+            </p>
+
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor</label>
+                  <select 
+                    value={docOcrProvider} 
+                    onChange={(e) => setDocOcrProvider(e.target.value as any)}
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                  >
+                    <option value="gemini">Google Gemini Vision</option>
+                    <option value="tesseract">Tesseract Local</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
+                  <input 
+                    type="text" 
+                    value={docOcrModel} 
+                    onChange={(e) => setDocOcrModel(e.target.value)}
+                    placeholder="gemini-1.5-flash"
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Clave API</label>
+                <div className="relative">
+                  <input 
+                    type={showDocOcrKey ? "text" : "password"} 
+                    value={docOcrApiKey} 
+                    onChange={(e) => setDocOcrApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-blue-300 focus:outline-none"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowDocOcrKey(!showDocOcrKey)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showDocOcrKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={handleTestDocOcr}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-blue-300 border border-blue-500/30 transition-colors"
+                >
+                  Probar OCR
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSave}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white shadow-md transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* 3. OCR DE MATRÍCULAS — PLATE RECOGNIZER */}
+          <Card className="p-6 space-y-4 border border-amber-500/20 shadow-xl relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-amber-500/10 rounded-xl text-amber-400">
+                  <Car className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">OCR DE MATRÍCULAS — PLATE RECOGNIZER</h3>
+                  <span className="text-xs text-amber-400 font-semibold">Proveedor Exclusivo para Matrículas</span>
+                </div>
+              </div>
+              <StatusChip status={plateStatus} />
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              Reconocimiento automático de matrículas españolas mediante fotografía utilizando la API especializada Plate Recognizer.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor Específico</label>
+                <input 
+                  type="text" 
+                  disabled 
+                  value="Plate Recognizer (Normalizado Español)" 
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-bold text-slate-400 cursor-not-allowed"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">API Key</label>
+                <div className="relative">
+                  <input 
+                    type={showPlateKey ? "text" : "password"} 
+                    value={plateApiKey} 
+                    onChange={(e) => setPlateApiKey(e.target.value)}
+                    placeholder="Token de Plate Recognizer"
+                    className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-amber-300 focus:outline-none"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPlateKey(!showPlateKey)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showPlateKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Servicio / Endpoint</label>
+                <input 
+                  type="text" 
+                  value={plateEndpoint} 
+                  onChange={(e) => setPlateEndpoint(e.target.value)}
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-slate-300 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button 
+                  type="button" 
+                  onClick={handleTestPlate}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 transition-colors"
+                >
+                  Probar reconocimiento
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSave}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* 4. ALMACENAMIENTO DE FOTOS Y DOCUMENTOS (SUPABASE STORAGE) */}
+          <Card className="p-6 space-y-4 border border-emerald-500/20 shadow-xl relative overflow-hidden">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-emerald-500/10 rounded-xl text-emerald-400">
+                  <HardDrive className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">ALMACENAMIENTO DE FOTOS Y DOCUMENTOS</h3>
+                  <span className="text-xs text-emerald-400 font-semibold">SUPABASE STORAGE</span>
+                </div>
+              </div>
+              <StatusChip status="connected" />
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              Almacenamiento nativo de fotografías, documentos y archivos asociados a clientes, vehículos y expedientes sin solicitar credenciales duplicadas.
+            </p>
+
+            <div className="space-y-3 bg-slate-950 p-4 rounded-xl border border-slate-800">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-bold">Estado del Bucket:</span>
+                <span className="text-emerald-400 font-black">Conectado (gestarian-files)</span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-400 font-bold">Estructura Jerárquica:</span>
+                <span className="text-slate-300 font-mono text-[11px]">clientes/cliente_id/vehiculo_id/expediente_id/</span>
+              </div>
+            </div>
+          </Card>
+
+          {/* 5. PROVEEDOR IA ALTERNATIVO / FALLBACK */}
+          <Card className="p-6 space-y-4 border border-purple-500/20 shadow-xl relative overflow-hidden lg:col-span-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2.5 bg-purple-500/10 rounded-xl text-purple-400">
+                  <RefreshCw className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">PROVEEDOR IA ALTERNATIVO / FALLBACK</h3>
+                  <span className="text-xs text-slate-400 font-medium">Groq Llama 3 (Conmutación por Fallo)</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <span className="text-xs font-bold text-slate-300">Activar Fallback</span>
+                  <Switch 
+                    checked={fallbackEnabled} 
+                    onChange={(e) => setFallbackEnabled(e.target.checked)} 
+                    color="primary"
+                  />
+                </label>
+                <StatusChip status={fallbackStatus} />
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
+              Servidor IA alternativo preparado para responder cuando Gemini no esté disponible o cuando se requiera máxima velocidad de respuesta.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Modelo Fallback</label>
+                <input 
+                  type="text" 
+                  value={fallbackModel} 
+                  onChange={(e) => setFallbackModel(e.target.value)}
+                  placeholder="llama-3.3-70b-versatile"
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Clave API de Groq</label>
+                <div className="relative">
+                  <input 
+                    type={showFallbackKey ? "text" : "password"} 
+                    value={fallbackApiKey} 
+                    onChange={(e) => setFallbackApiKey(e.target.value)}
+                    placeholder="gsk_..."
+                    className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-purple-300 focus:outline-none"
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowFallbackKey(!showFallbackKey)}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    {showFallbackKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button 
+                type="button" 
+                onClick={handleTestFallback}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 transition-colors"
+              >
+                Probar conexión
+              </button>
+              <button 
+                type="button" 
+                onClick={handleSave}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-md transition-colors"
+              >
+                Guardar
+              </button>
+            </div>
+          </Card>
+
+        </div>
+      </div>
+
+      {/* ================================================== */}
+      {/* SECCIÓN 2: PERSONALIZACIÓN DE LA INTERFAZ & COLORES DE TEXTO (OBJETIVOS 4 & 5) */}
+      {/* ================================================== */}
+      <Card className="p-6 space-y-6 border border-slate-800">
+        <div className="flex items-center gap-2.5">
+          <Palette className="w-6 h-6 text-[var(--primary)]" />
+          <div>
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">PERSONALIZACIÓN DE LA INTERFAZ</h2>
+            <span className="text-xs text-slate-400 font-medium">Ajuste fino de Colores de Texto Centralizados</span>
+          </div>
+        </div>
+
+        <div className="space-y-5 bg-slate-950 p-5 rounded-2xl border border-slate-800">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <h3 className="text-base font-bold text-white">COLORES DE TEXTO</h3>
+            <span className="text-xs text-cyan-400 font-semibold bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
+              Los botones mantienen su diseño propio
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            
+            {/* A. TÍTULOS */}
+            <TextColorSelector
+              label="A. TÍTULOS"
+              value={textColors.text_title}
+              onChange={(val) => setTextColors({ ...textColors, text_title: val })}
+            />
+
+            {/* B. TEXTOS PRINCIPALES */}
+            <TextColorSelector
+              label="B. TEXTOS PRINCIPALES"
+              value={textColors.text_primary}
+              onChange={(val) => setTextColors({ ...textColors, text_primary: val })}
+            />
+
+            {/* C. TEXTOS DE INPUTS */}
+            <TextColorSelector
+              label="C. TEXTOS DE INPUTS"
+              value={textColors.text_input}
+              onChange={(val) => setTextColors({ ...textColors, text_input: val })}
+            />
+
+            {/* D. TEXTOS SECUNDARIOS */}
+            <TextColorSelector
+              label="D. TEXTOS SECUNDARIOS"
+              value={textColors.text_secondary}
+              onChange={(val) => setTextColors({ ...textColors, text_secondary: val })}
+            />
+
+            {/* E. TEXTOS DE TARJETAS */}
+            <TextColorSelector
+              label="E. TEXTOS DE TARJETAS"
+              value={textColors.text_card}
+              onChange={(val) => setTextColors({ ...textColors, text_card: val })}
+            />
+
+          </div>
+        </div>
+
+        {/* Presets de Estilo Visual Global */}
+        <div>
+          <h3 className="text-sm font-bold text-slate-300 mb-3">Presets de Estilo Visual General</h3>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
+              <Chip
+                key={preset}
+                label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
+                clickable
+                color={themePreset === preset ? 'primary' : 'default'}
+                onClick={() => handlePresetChange(preset)}
+                variant={themePreset === preset ? 'filled' : 'outlined'}
+                className="text-xs rounded-full"
+              />
+            ))}
+          </Stack>
+        </div>
+      </Card>
+
+      {/* Datos Fiscales y Comunicaciones */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Datos fiscales */}
         <Card className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Building2 className="w-5 h-5 text-[var(--primary)]" />
@@ -150,77 +763,36 @@ export function ConfiguracionPage() {
               label="Nombre empresa"
               value={config.nombre_empresa}
               onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
-              fullWidth
-              variant="filled"
-              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
-              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+              {...sharedTextFieldProps}
             />
             <TextField
               label="CIF / NIF"
               value={config.cif}
               onChange={(e) => setConfig({ ...config, cif: e.target.value })}
-              fullWidth
-              variant="filled"
-              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
-              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+              {...sharedTextFieldProps}
             />
             <TextField
               label="Dirección"
               value={config.direccion}
               onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
-              fullWidth
-              variant="filled"
-              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
-              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+              {...sharedTextFieldProps}
             />
             <TextField
               label="Teléfono"
               value={config.telefono ?? ''}
               onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
-              fullWidth
-              variant="filled"
-              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
-              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+              {...sharedTextFieldProps}
             />
             <TextField
               label="Email"
               value={config.email ?? ''}
               onChange={(e) => setConfig({ ...config, email: e.target.value })}
-              fullWidth
               type="email"
-              variant="filled"
-              InputProps={{ sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } }}
-              InputLabelProps={{ sx: { color: '#94a3b8' } }}
+              {...sharedTextFieldProps}
             />
-            <div>
-              <label className="block text-sm text-slate-400 mb-2">Tipo de empresa</label>
-              <ToggleButtonGroup
-                value={config.tipo_empresa || 'autonomo'}
-                exclusive
-                onChange={(_, value) => value && setConfig({ ...config, tipo_empresa: value })}
-                className="rounded-3xl bg-slate-900 p-1"
-                fullWidth
-              >
-                <ToggleButton
-                  value="autonomo"
-                  className="text-white rounded-2xl bg-slate-950 border border-slate-700"
-                  sx={{ '&.Mui-selected': { bgcolor: 'primary.main', color: 'white' } }}
-                >
-                  Autónomo
-                </ToggleButton>
-                <ToggleButton
-                  value="sociedad_limitada"
-                  className="text-white rounded-2xl bg-slate-950 border border-slate-700"
-                  sx={{ '&.Mui-selected': { bgcolor: 'primary.main', color: 'white' } }}
-                >
-                  Sociedad Limitada
-                </ToggleButton>
-              </ToggleButtonGroup>
-            </div>
           </div>
         </Card>
 
-        {/* Gestoría & Comunicaciones */}
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
@@ -241,327 +813,74 @@ export function ConfiguracionPage() {
               type="email"
               value={config.email_gestoria ?? ''}
               onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
-              placeholder="gestoria@asessoria.es"
+              placeholder="gestoria@asesoria.es"
               {...sharedTextFieldProps}
-            />
-            <p className="text-xs text-slate-500">
-              A este email se enviarán automáticamente las facturas y los informes trimestrales.
-            </p>
-          </div>
-        </Card>
-
-        <CommunicationHistoryModal
-          isOpen={showHistoryModal}
-          onClose={() => setShowHistoryModal(false)}
-        />
-
-        {/* Inteligencia Artificial METIS */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-cyan-400" />
-            <h2 className="text-lg font-semibold text-white">Inteligencia Artificial METIS</h2>
-          </div>
-          <div className="space-y-3">
-            <TextField
-              label="Clave API de Groq (Llama 3)"
-              value={apiKey}
-              onChange={(e) => {
-                setApiKey(e.target.value)
-                localStorage.setItem('gestarian_groq_api_key', e.target.value)
-              }}
-              type="text"
-              placeholder="gsk_..."
-              {...sharedTextFieldProps}
-            />
-            <p className="text-xs text-slate-400">
-              METIS funciona de forma ultrarrápida utilizando el modelo Llama 3 a través de Groq. Puedes obtener tu clave gratuita en <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="text-cyan-400 underline">console.groq.com</a>.
-            </p>
-            <TextField
-              label="Clave API Hugging Face (opcional)"
-              value={hfKey}
-              onChange={(e) => { setHfKey(e.target.value); localStorage.setItem('gestarian_hf_api_key', e.target.value) }}
-              type="text"
-              placeholder="hf_..."
-              {...sharedTextFieldProps}
-            />
-            <TextField
-              label="Modelo Hugging Face (opcional)"
-              value={hfModel}
-              onChange={(e) => { setHfModel(e.target.value); localStorage.setItem('gestarian_hf_model', e.target.value) }}
-              type="text"
-              placeholder="meta-llama/Llama-2-7b-chat"
-              helperText="Si no se especifica, se usará meta-llama/Llama-2-7b-chat. Puedes elegir un modelo smaller si lo deseas."
-              {...sharedTextFieldProps}
-            />
-          </div>
-        </Card>
-
-        {/* Logos and Media */}
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <ImageIcon className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-white">Multimedia y Marca</h2>
-          </div>
-          <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Nombre comercial (mostrado en interfaz)</p>
-              <TextField
-                label=""
-                placeholder="Ej: Talleres Paco"
-                value={themeSettings.commercial_name ?? ''}
-                onChange={(e) => setThemeSettings({ ...themeSettings, commercial_name: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Logo del taller (Principal)</p>
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                {themeSettings.logo_url && <img src={themeSettings.logo_url} alt="Logo" className="w-12 h-12 rounded-lg object-contain bg-white/10" />}
-                <TextField
-                  label=""
-                  placeholder="URL del logo"
-                  value={themeSettings.logo_url ?? ''}
-                  onChange={(e) => setThemeSettings({ ...themeSettings, logo_url: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Logo pantalla de inicio</p>
-              <TextField
-                label=""
-                placeholder="URL del logo para el inicio"
-                value={themeSettings.logo_inicio_url ?? ''}
-                onChange={(e) => setThemeSettings({ ...themeSettings, logo_inicio_url: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Imagen de Dashboard</p>
-              <TextField
-                label=""
-                placeholder="URL de la imagen"
-                value={themeSettings.dashboard_image_url ?? ''}
-                onChange={(e) => setThemeSettings({ ...themeSettings, dashboard_image_url: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Imagen de fondo</p>
-              <TextField
-                label=""
-                placeholder="URL de la imagen de fondo"
-                value={themeSettings.background_image_url ?? ''}
-                onChange={(e) => setThemeSettings({ ...themeSettings, background_image_url: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Favicon (Icono pestaña)</p>
-              <TextField
-                label=""
-                placeholder="URL del favicon (.ico o .png)"
-                value={themeSettings.favicon_url ?? ''}
-                onChange={(e) => setThemeSettings({ ...themeSettings, favicon_url: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            
-            <hr className="border-slate-800" />
-            
-            {/* Legacy Logos */}
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Logo a color (Documentos)</p>
-              <TextField
-                label=""
-                placeholder="URL del logo a color"
-                value={config.logo_color ?? ''}
-                onChange={(e) => setConfig({ ...config, logo_color: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-            <div>
-              <p className="text-sm text-slate-400 mb-2">Logo blanco y negro (Documentos)</p>
-              <TextField
-                label=""
-                placeholder="URL del logo B/N"
-                value={config.logo_bn ?? ''}
-                onChange={(e) => setConfig({ ...config, logo_bn: e.target.value })}
-                {...sharedTextFieldProps}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Apariencia Visual */}
-        <Card className="p-6 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <Palette className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-white">Apariencia Visual</h2>
-          </div>
-          
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-medium text-slate-300 mb-3">Presets de Estilo</h3>
-              <Stack direction="row" spacing={1} flexWrap="wrap">
-                {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
-                  <Chip
-                    key={preset}
-                    label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
-                    clickable
-                    color={themePreset === preset ? 'primary' : 'default'}
-                    onClick={() => handlePresetChange(preset)}
-                    variant={themePreset === preset ? 'filled' : 'outlined'}
-                    className="text-xs rounded-full"
-                  />
-                ))}
-              </Stack>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
-                <div>
-                  <Typography variant="subtitle2" className="text-white">Modo Oscuro</Typography>
-                  <Typography variant="caption" className="text-slate-400">Activa el modo noche y ajusta el contraste general.</Typography>
-                </div>
-                <Switch
-                  checked={themeSettings.is_dark_mode}
-                  onChange={(e) => {
-                    const value = e.target.checked
-                    setThemeSettings({ ...themeSettings, is_dark_mode: value })
-                    playSound('click')
-                  }}
-                  color="primary"
-                />
-              </Box>
-
-              <Box className="flex items-center justify-between gap-4 p-4 bg-bg-700 rounded-2xl border border-bg-600">
-                <div>
-                  <Typography variant="subtitle2" className="text-white">Visualización actual</Typography>
-                  <Typography variant="caption" className="text-slate-400">Preset: {themePreset === 'custom' ? 'Personalizado' : themePreset}</Typography>
-                </div>
-                <Chip label={themeSettings.is_dark_mode ? 'Noche' : 'Día'} size="small" color={themeSettings.is_dark_mode ? 'default' : 'primary'} />
-              </Box>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <ColorPicker
-                label="Color Principal"
-                value={themeSettings.primary_color}
-                onChange={(v) => setThemeSettings({ ...themeSettings, primary_color: v })}
-              />
-              <ColorPicker
-                label="Color Secundario"
-                value={themeSettings.secondary_color}
-                onChange={(v) => setThemeSettings({ ...themeSettings, secondary_color: v })}
-              />
-              <ColorPicker
-                label="Botones"
-                value={themeSettings.button_color}
-                onChange={(v) => setThemeSettings({ ...themeSettings, button_color: v })}
-              />
-              <ColorPicker
-                label="Iconos"
-                value={themeSettings.icon_color}
-                onChange={(v) => setThemeSettings({ ...themeSettings, icon_color: v })}
-              />
-            </div>
-          </div>
-        </Card>
-
-        {/* Preferencias: animaciones y sonido */}
-        <Card className="p-6 lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <Sparkles className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-white">Preferencias de Experiencia</h2>
-          </div>
-          <div className="space-y-4">
-            <ToggleRow
-              icon={<Sparkles className="w-5 h-5" />}
-              label="Animaciones"
-              description="Activa o desactiva las animaciones de la interfaz"
-              checked={appearance.animaciones_activadas}
-              onChange={(v) => setAppearance({ ...appearance, animaciones_activadas: v })}
-            />
-            <ToggleRow
-              icon={<Volume2 className="w-5 h-5" />}
-              label="Sonido"
-              description="Activa o desactiva los efectos de sonido al interactuar"
-              checked={appearance.sonido_activado}
-              onChange={(v) => { setAppearance({ ...appearance, sonido_activado: v }); if (v) playSound('success') }}
             />
           </div>
         </Card>
       </div>
 
-      <div className="mt-6 flex justify-end">
-        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-cyan-400 hover:text-cyan-300 font-semibold transition-colors bg-bg-800 border border-bg-700 rounded-xl px-4 py-2 disabled:opacity-50">
-          <Save className="w-4 h-4" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar cambios'}
+      <CommunicationHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => setShowHistoryModal(false)}
+      />
+
+      <div className="flex justify-end pt-4">
+        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-white font-bold bg-cyan-600 hover:bg-cyan-500 transition-colors rounded-xl px-6 py-3 shadow-lg disabled:opacity-50">
+          <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar Cambios de Configuración'}
         </button>
       </div>
     </div>
   )
 }
 
-function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <FormControl fullWidth variant="filled" className="bg-bg-700 rounded-2xl p-3">
-      <InputLabel shrink className="text-slate-400">{label}</InputLabel>
-      <Box className="flex items-center gap-3 mt-2">
-        <TextField
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          variant="filled"
-          sx={{ width: 56, minWidth: 56, padding: 0, '& .MuiInputBase-input': { padding: 0, minHeight: 56, borderRadius: '16px' } }}
-          InputProps={{ sx: { bgcolor: 'transparent', borderRadius: '16px', border: '1px solid rgba(148,163,184,0.2)' } }}
-        />
-        <TextField
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          variant="filled"
-          size="small"
-          placeholder="#123456"
-          className="w-full"
-          InputProps={{ sx: { color: '#fff', borderRadius: '16px' } }}
-        />
-      </Box>
-    </FormControl>
-  )
+function StatusChip({ status }: { status: 'connected' | 'disconnected' | 'testing' | 'error' }) {
+  if (status === 'connected') {
+    return <Chip label="Conectado ✓" size="small" className="bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30 text-xs" />
+  }
+  if (status === 'testing') {
+    return <Chip label="Verificando..." size="small" className="bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30 text-xs" />
+  }
+  if (status === 'error') {
+    return <Chip label="Error Conexión ✗" size="small" className="bg-rose-500/20 text-rose-300 font-bold border border-rose-500/30 text-xs" />
+  }
+  return <Chip label="Sin Conectar" size="small" className="bg-slate-800 text-slate-400 font-bold border border-slate-700 text-xs" />
 }
 
-function ToggleRow({
-  icon,
-  label,
-  description,
-  checked,
-  onChange,
-}: {
-  icon: React.ReactNode
-  label: string
-  description: string
-  checked: boolean
-  onChange: (v: boolean) => void
+function TextColorSelector({ 
+  label, 
+  value, 
+  onChange 
+}: { 
+  label: string; 
+  value: TextColorValue; 
+  onChange: (val: TextColorValue) => void 
 }) {
+  const options: Array<{ label: string; color: TextColorValue; bg: string }> = [
+    { label: 'Negro', color: '#000000', bg: 'bg-black text-white' },
+    { label: 'Blanco', color: '#ffffff', bg: 'bg-white text-black' },
+    { label: 'Gris 50%', color: '#808080', bg: 'bg-gray-500 text-white' },
+  ]
+
   return (
-    <div className="flex items-center justify-between gap-4 p-3 bg-bg-700 rounded-lg">
-      <div className="flex items-center gap-3">
-        <div className="text-[var(--primary)]">{icon}</div>
-        <div>
-          <p className="text-sm font-medium text-white">{label}</p>
-          <p className="text-xs text-slate-500">{description}</p>
-        </div>
+    <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 space-y-2">
+      <label className="block text-xs font-black text-slate-300">{label}</label>
+      <div className="grid grid-cols-3 gap-1.5">
+        {options.map((opt) => (
+          <button
+            key={opt.color}
+            type="button"
+            onClick={() => onChange(opt.color)}
+            className={`py-2 px-1 rounded-lg text-xs font-extrabold flex items-center justify-center gap-1 transition-all ${
+              value === opt.color 
+                ? 'ring-2 ring-cyan-400 scale-105 shadow-md font-black' 
+                : 'opacity-60 hover:opacity-100'
+            } ${opt.bg}`}
+          >
+            <span>● {opt.label}</span>
+          </button>
+        ))}
       </div>
-      <button
-        onClick={() => onChange(!checked)}
-        className={`relative w-12 h-6 rounded-full transition-colors duration-200 ${
-          checked ? 'bg-[var(--primary)]' : 'bg-bg-600'
-        }`}
-      >
-        <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200 ${
-          checked ? 'translate-x-6' : ''
-        }`} />
-      </button>
     </div>
   )
 }

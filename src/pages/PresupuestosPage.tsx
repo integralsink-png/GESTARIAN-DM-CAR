@@ -10,7 +10,8 @@ import type {
   Configuracion,
   Cita,
 } from "../lib/types";
-import { sendPresupuestoByEmail, generatePresupuestoPDF } from "../lib/pdfGenerator";
+import { sendPresupuestoByEmail, generatePresupuestoPDF, getLocalidadFromCP } from "../lib/pdfGenerator";
+import { fetchExpedienteFotos, saveExpedienteFoto } from "../lib/expedienteService";
 import { shareDocumentoViaWhatsApp } from "../services/documentShareService";
 import { getExpediente } from "../lib/utils";
 import {
@@ -26,7 +27,6 @@ import {
   Check,
   X,
   FileText,
-  Camera,
   Calendar,
   ArrowLeft,
   Search,
@@ -188,9 +188,16 @@ function ConceptoMobileCard({
 export function PresupuestosPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const navState = location.state as { clienteId?: string; openForm?: boolean } | null;
+  const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean } | null;
   const clienteIdFromNav = navState?.clienteId;
+  const vehiculoIdFromNav = navState?.vehiculoId;
   const openFormFromNav = navState?.openForm;
+
+  useEffect(() => {
+    if (clienteIdFromNav) setSelectedClienteId(clienteIdFromNav);
+    if (vehiculoIdFromNav) setSelectedVehiculoId(vehiculoIdFromNav);
+    if (openFormFromNav) setShowForm(true);
+  }, [clienteIdFromNav, vehiculoIdFromNav, openFormFromNav]);
 
   const [search, setSearch] = useState("");
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
@@ -209,11 +216,20 @@ export function PresupuestosPage() {
   const defaultPresupuestoObs = "Puede acceder al seguimiento de su reparación en tiempo real online a través de nuestra aplicación donde también podrá descargar documentos.\nEl presente documento puede verse alterado por incidencias o nuevas circunstancias no contempladas en primera valoración\n\n";
 
   const [observaciones, setObservaciones] = useState(defaultPresupuestoObs);
+  const [aplicarIva, setAplicarIva] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null);
-  const [fotosExpandida, setFotosExpandida] = useState<string | null>(null);
-  const [escaneandoOCR, setEscaneandoOCR] = useState(false);
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([]);
+  const [showExpedienteViewer, setShowExpedienteViewer] = useState(false);
+  const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente");
   const [showSentToast, setShowSentToast] = useState<string | null>(null);
+
+  async function openExpedienteViewer(cliId?: string | null, vehId?: string | null, entityFotos: string[] = [], title: string = "Fotos del Expediente") {
+    const fotos = await fetchExpedienteFotos(cliId, vehId, entityFotos)
+    setExpedienteFotos(fotos)
+    setExpedienteViewerTitle(title)
+    setShowExpedienteViewer(true)
+  }
   const { listening, transcript, reset } = useVoice();
   const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -338,62 +354,7 @@ export function PresupuestosPage() {
     }
   }, [selectedClienteId]);
 
-  const fileToDataUrl = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
 
-  async function handleDeletePresupuestoFoto(id: string, index: number) {
-    if (!confirm('¿Eliminar esta foto?')) return;
-    const p = presupuestos.find(x => x.id === id);
-    if (!p) return;
-
-    const nuevasFotos = [...(p.fotos ?? [])];
-    nuevasFotos.splice(index, 1);
-
-    try {
-      const { error } = await supabase.from('presupuestos').update({ fotos: nuevasFotos }).eq('id', id);
-      if (error) throw error;
-      await loadPresupuestos();
-    } catch (err) {
-      console.error(err);
-      alert('Error eliminando foto');
-    }
-  }
-
-  async function handleScanOCR(e: React.ChangeEvent<HTMLInputElement>, id: string) {
-    if (!e.target.files || e.target.files.length === 0) return;
-    setEscaneandoOCR(true);
-    try {
-      const file = e.target.files[0];
-      const dataUrl = await fileToDataUrl(file);
-      
-      const { extractTextFromImage } = await import('../lib/ocrService');
-      const text = await extractTextFromImage(dataUrl);
-      
-      if (text.trim()) {
-        const { processMetisMessage } = await import('../lib/metisAiEngine');
-        const p = presupuestos.find(x => x.id === id);
-        if (p) {
-          const res = await processMetisMessage(
-            `He escaneado un ticket. Añade los conceptos encontrados a este presupuesto. Texto OCR: ${text}`,
-            { tipo: 'presupuesto', id: p.id, data: p }
-          );
-          alert(`OCR Procesado:\n${res.text}`);
-          await loadPresupuestos();
-        }
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error al escanear OCR. Puede que Tesseract tarde un poco en cargar.');
-    } finally {
-      setEscaneandoOCR(false);
-    }
-  }
 
   async function loadClientes() {
     const { data } = await supabase
@@ -472,6 +433,7 @@ export function PresupuestosPage() {
         conceptos: cleanConceptos,
         total,
         observaciones: observaciones || null,
+        fotos: navState?.initialFotos || [],
         estado: "pendiente",
       });
       resetForm();
@@ -703,6 +665,7 @@ export function PresupuestosPage() {
                       <div className="text-xs gestarian-paper-muted space-y-0.5">
                         {c.dni && <p>DNI: {c.dni}</p>}
                         {c.direccion && <p>{c.direccion}</p>}
+                        {c.cp && <p>CP: {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
                         {c.telefono && <p>Tel: {c.telefono}</p>}
                         {c.email && <p>{c.email}</p>}
                       </div>
@@ -861,22 +824,38 @@ export function PresupuestosPage() {
             {/* El Panel de dictado clásico se ha eliminado a favor del Icono Flotante METIS */}
 
             {/* Totales */}
-            <div className="flex justify-end mb-6">
-              <div className="w-64 space-y-1.5 text-sm">
-                <div className="flex justify-between">
-                  <span className="gestarian-paper-muted">Base imponible</span>
-                  <span className="font-medium">{subtotal.toFixed(2)} €</span>
+            {(() => {
+              const subtotal = conceptos.reduce((acc, c) => acc + (c.cantidad * c.precio), 0);
+              const iva = aplicarIva ? subtotal * IVA_RATE : 0;
+              const total = subtotal + iva;
+
+              return (
+                <div className="flex justify-end mb-6">
+                  <div className="w-64 space-y-1.5 text-sm">
+                    <div className="flex justify-between">
+                      <span className="gestarian-paper-muted">Base imponible</span>
+                      <span className="font-medium">{subtotal.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between items-center py-0.5">
+                      <label className="flex items-center gap-1.5 cursor-pointer select-none gestarian-paper-muted hover:text-gray-800">
+                        <input
+                          type="checkbox"
+                          checked={aplicarIva}
+                          onChange={(e) => setAplicarIva(e.target.checked)}
+                          className="w-4 h-4 rounded border-gray-400 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+                        />
+                        <span>IVA (21%)</span>
+                      </label>
+                      <span className="font-medium">{iva.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-base border-t-2 border-gray-800 pt-1.5">
+                      <span>TOTAL</span>
+                      <span>{total.toFixed(2)} €</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="gestarian-paper-muted">IVA (21%)</span>
-                  <span className="font-medium">{iva.toFixed(2)} €</span>
-                </div>
-                <div className="flex justify-between font-bold text-base border-t-2 border-gray-800 pt-1.5">
-                  <span>TOTAL</span>
-                  <span>{total.toFixed(2)} €</span>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
 
             {/* Observaciones */}
             <div className="mb-6">
@@ -901,7 +880,6 @@ export function PresupuestosPage() {
 
                 const emailSentAt = currentP?.enviado_email_at
                 const whatsappSentAt = currentP?.enviado_whatsapp_at
-                const isEditing = !!editingId
 
                 const formatSentDate = (isoStr: string) => {
                   try {
@@ -924,7 +902,7 @@ export function PresupuestosPage() {
                             onClick={async () => {
                               const numero = currentP?.numero || "BORRADOR"
                               const numExpediente = getExpediente(currentP || {}, cliente, clientes)
-                              await sendPresupuestoByEmail({ numero, conceptos, observaciones }, cliente, veh, config, numExpediente)
+                              await sendPresupuestoByEmail({ numero, conceptos, observaciones, aplicarIva }, cliente, veh, config, numExpediente)
                               if (currentP?.id) {
                                 const nowIso = new Date().toISOString()
                                 localStorage.setItem(`presupuesto_${currentP.id}_email_at`, nowIso)
@@ -946,18 +924,17 @@ export function PresupuestosPage() {
                           </button>
                         )}
 
-                        {/* 2. IMÁGENES (Icono de galería) */}
+                        {/* 2. IMÁGENES (Muestra TODAS las fotos del expediente) */}
                         <button
                           onClick={() => {
-                            if (veh?.matricula) {
-                              setViewerMatricula(veh.matricula)
-                            } else {
-                              alert('No hay un vehículo asociado para ver imágenes.')
-                            }
+                            const cId = selectedClienteId || currentP?.cliente_id
+                            const vId = selectedVehiculoId || currentP?.vehiculo_id
+                            const eFotos = currentP?.fotos || []
+                            openExpedienteViewer(cId, vId, eFotos, `Expediente Presupuesto ${currentP?.numero || ''}`)
                           }}
                           className="w-16 h-16 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
-                          title="IMÁGENES"
-                          aria-label="IMÁGENES"
+                          title="IMÁGENES DEL EXPEDIENTE"
+                          aria-label="IMÁGENES DEL EXPEDIENTE"
                         >
                           <ImageIcon className="w-8 h-8 text-amber-400" />
                         </button>
@@ -979,7 +956,7 @@ export function PresupuestosPage() {
                               try {
                                 const numStr = currentP?.numero || 'BORRADOR'
                                 const numExpediente = getExpediente(currentP || {}, cliente, clientes)
-                                const doc = generatePresupuestoPDF({ numero: numStr, conceptos, observaciones }, cliente, veh, config, numExpediente)
+                                const doc = generatePresupuestoPDF({ numero: numStr, conceptos, observaciones, aplicarIva }, cliente, veh, config, numExpediente)
                                 const pdfBlob = doc.output('blob')
 
                                 const res = await shareDocumentoViaWhatsApp({
@@ -1266,31 +1243,20 @@ export function PresupuestosPage() {
       />
 
       <GlobalImageViewer
-        isOpen={!!fotosExpandida}
-        onClose={() => setFotosExpandida(null)}
-        images={presupuestos.find(p => p.id === fotosExpandida)?.fotos ?? []}
+        isOpen={showExpedienteViewer}
+        onClose={() => setShowExpedienteViewer(false)}
+        images={expedienteFotos}
         onAddImage={async (dataUrl) => {
-          if (!fotosExpandida) return;
-          const p = presupuestos.find(x => x.id === fotosExpandida);
-          if (p) {
-            const nuevasFotos = [...(p.fotos ?? []), dataUrl];
-            await supabase.from('presupuestos').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
-            await loadPresupuestos();
-          }
+          const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null
+          const cId = selectedClienteId || currentP?.cliente_id
+          const vId = selectedVehiculoId || currentP?.vehiculo_id
+          await saveExpedienteFoto(dataUrl, cId, vId)
+          setExpedienteFotos(prev => [...prev, dataUrl])
         }}
         onDeleteImage={async (index) => {
-          if (fotosExpandida) await handleDeletePresupuestoFoto(fotosExpandida, index)
+          setExpedienteFotos(prev => prev.filter((_, i) => i !== index))
         }}
-        title={`Presupuesto ${presupuestos.find(p => p.id === fotosExpandida)?.numero ?? ''}`}
-        customAction={
-          <label className={`cursor-pointer flex items-center justify-center w-full h-full text-xs transition-colors font-medium ${escaneandoOCR ? 'text-amber-400' : 'text-amber-500 hover:text-amber-400'}`}>
-            <div className="flex flex-col items-center justify-center gap-1 bg-amber-500/10 border-2 border-dashed border-amber-500/30 hover:bg-amber-500/20 rounded-xl w-20 h-20 p-1 text-center leading-tight">
-              <Camera className="w-6 h-6" />
-              {escaneandoOCR ? 'OCR...' : 'OCR'}
-            </div>
-            <input type="file" accept="image/*" className="hidden" onChange={(e) => fotosExpandida && handleScanOCR(e, fotosExpandida)} disabled={escaneandoOCR} />
-          </label>
-        }
+        title={expedienteViewerTitle}
       />
       {showSentToast && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none p-4">

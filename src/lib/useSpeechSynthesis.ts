@@ -1,75 +1,137 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 export function useSpeechSynthesis() {
   const [speaking, setSpeaking] = useState(false)
   const [supported, setSupported] = useState(true)
+  const currentAudioRef = useRef<HTMLAudioElement | null>(null)
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+    if (typeof window === 'undefined') {
       setSupported(false)
     }
   }, [])
 
+  // 1. Fallback Web Speech API (Nativo del navegador con filtro estricto es-ES)
+  const speakWebSpeech = useCallback((text: string, onEnd?: () => void) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      if (onEnd) onEnd()
+      return
+    }
+
+    try {
+      window.speechSynthesis.cancel()
+
+      const utterance = new SpeechSynthesisUtterance(text)
+      utterance.lang = 'es-ES'
+      utterance.rate = 1.0
+      utterance.pitch = 1.0
+      utterance.volume = 1.0
+
+      const allVoices = window.speechSynthesis.getVoices()
+      // Filtrar estrictamente voces en español de España (es-ES) o español
+      const spanishVoices = allVoices.filter((v) => {
+        const lang = v.lang.toLowerCase()
+        const name = v.name.toLowerCase()
+        // Excluir cualquier voz asiática o no castellana
+        if (name.includes('chinese') || name.includes('mandarin') || name.includes('cantonese') || lang.startsWith('zh') || lang.startsWith('ja') || lang.startsWith('ko')) {
+          return false
+        }
+        return lang.includes('es')
+      })
+
+      const bestVoice =
+        spanishVoices.find((v) => v.lang.toLowerCase() === 'es-es' || v.lang.toLowerCase() === 'es_es') ||
+        spanishVoices.find((v) => {
+          const name = v.name.toLowerCase()
+          return name.includes('spain') || name.includes('españ') || name.includes('helena') || name.includes('laura') || name.includes('monica') || name.includes('jorge') || name.includes('google español')
+        }) ||
+        spanishVoices[0]
+
+      if (bestVoice) {
+        utterance.voice = bestVoice
+      }
+
+      utterance.onstart = () => setSpeaking(true)
+      utterance.onend = () => {
+        setSpeaking(false)
+        if (onEnd) onEnd()
+      }
+      utterance.onerror = () => {
+        setSpeaking(false)
+        if (onEnd) onEnd()
+      }
+
+      window.speechSynthesis.speak(utterance)
+    } catch (e) {
+      setSpeaking(false)
+      if (onEnd) onEnd()
+    }
+  }, [])
+
+  // 2. Voz Principal: Google Native Spanish TTS (Voz 100% natural castellana de España)
   const speak = useCallback((text: string, onEnd?: () => void) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
+    if (typeof window === 'undefined' || !text.trim()) return
 
-    window.speechSynthesis.cancel() // Stop any current speech
+    // Detener cualquier reproducción previa
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+      currentAudioRef.current = null
+    }
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
 
-    // Clean markdown/symbols for clean audio reading
+    // Limpiar caracteres especiales y formatear moneda para pronunciación castellana perfecta
     const cleanText = text
       .replace(/[*_~#`]/g, '')
       .replace(/https?:\/\/\S+/g, '')
       .replace(/•/g, '')
-      .replace(/(\d+)[.,](\d+)\s*€/g, '$1 euros con $2')
+      .replace(/(\d+)[.,](\d+)\s*€/g, '$1 euros con $2 céntimos')
       .replace(/(\d+)\s*€/g, '$1 euros')
+      .trim()
 
-    const utterance = new SpeechSynthesisUtterance(cleanText)
-    utterance.lang = 'es-ES'
-    // Ajustes más naturales y comprensibles
-    utterance.rate = 1.0
-    utterance.pitch = 1.0
-    utterance.volume = 1.0
+    if (!cleanText) return
 
-    const voices = window.speechSynthesis.getVoices()
-    const spanishVoices = voices.filter((v) => v.lang.toLowerCase().startsWith('es'))
+    // Intentar reproducir con Voz Humana Castellana de Google
+    try {
+      const shortText = cleanText.slice(0, 200)
+      const encoded = encodeURIComponent(shortText)
+      const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-ES&client=tw-ob&q=${encoded}`
+      
+      const audio = new Audio(ttsUrl)
+      audio.playbackRate = 1.05
+      currentAudioRef.current = audio
 
-    const preferredVoice = spanishVoices.find((v) => {
-      const name = v.name.toLowerCase()
-      return (
-        name.includes('espa') ||
-        name.includes('spanish') ||
-        name.includes('elena') ||
-        name.includes('laura') ||
-        name.includes('monica') ||
-        name.includes('lucia') ||
-        name.includes('sofia') ||
-        name.includes('isabel') ||
-        name.includes('celia') ||
-        name.includes('natalia') ||
-        name.includes('paola') ||
-        name.includes('anna')
-      )
-    }) || spanishVoices[0]
+      audio.onplay = () => setSpeaking(true)
+      audio.onended = () => {
+        setSpeaking(false)
+        currentAudioRef.current = null
+        if (onEnd) onEnd()
+      }
 
-    if (preferredVoice) {
-      utterance.voice = preferredVoice
+      audio.onerror = () => {
+        // Si hay un bloqueo de CORS u offline, usar el motor Web Speech con filtro es-ES
+        speakWebSpeech(cleanText, onEnd)
+      }
+
+      audio.play().catch(() => {
+        // Fallback a Web Speech API
+        speakWebSpeech(cleanText, onEnd)
+      })
+    } catch (err) {
+      speakWebSpeech(cleanText, onEnd)
     }
-
-    utterance.onstart = () => setSpeaking(true)
-    utterance.onend = () => {
-      setSpeaking(false)
-      if (onEnd) onEnd()
-    }
-    utterance.onerror = () => setSpeaking(false)
-
-    window.speechSynthesis.speak(utterance)
-  }, [])
+  }, [speakWebSpeech])
 
   const stop = useCallback(() => {
+    if (currentAudioRef.current) {
+      currentAudioRef.current.pause()
+      currentAudioRef.current = null
+    }
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel()
-      setSpeaking(false)
     }
+    setSpeaking(false)
   }, [])
 
   return { speak, stop, speaking, supported }

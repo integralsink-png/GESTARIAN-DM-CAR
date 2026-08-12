@@ -284,6 +284,55 @@ export interface Incidencia {
   asignado_a: string | null
   resolucion: string | null
   created_at: string
-  updated_at: string
+export type TextColorValue = '#000000' | '#ffffff' | '#808080'
+
+export interface TextColorSettings {
+  text_title: TextColorValue
+  text_primary: TextColorValue
+  text_input: TextColorValue
+  text_secondary: TextColorValue
+  text_card: TextColorValue
 }
 
+export interface AiAssistantConfig {
+  provider: 'gemini' | 'groq' | 'huggingface' | 'openai'
+  model: string
+  api_key: string
+  status: 'connected' | 'disconnected' | 'testing' | 'error'
+}
+
+export interface DocumentOcrConfig {
+  provider: 'gemini' | 'tesseract' | 'google_vision'
+  model: string
+  api_key: string
+  status: 'connected' | 'disconnected' | 'testing' | 'error'
+}
+
+export interface PlateRecognizerConfig {
+  provider: 'plate_recognizer'
+  api_key: string
+  endpoint_url?: string
+  status: 'connected' | 'disconnected' | 'testing' | 'error'
+}
+
+export interface StorageConfig {
+  provider: 'supabase_storage'
+  bucket_name: string
+  status: 'connected' | 'disconnected'
+}
+
+export interface FallbackAiConfig {
+  provider: 'groq' | 'huggingface' | 'openai'
+  model: string
+  api_key: string
+  enabled: boolean
+  status: 'connected' | 'disconnected' | 'testing' | 'error'
+}
+
+export interface ServicesConfig {
+  ai_assistant: AiAssistantConfig
+  document_ocr: DocumentOcrConfig
+  plate_ocr: PlateRecognizerConfig
+  storage: StorageConfig
+  fallback_ai: FallbackAiConfig
+}

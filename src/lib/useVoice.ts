@@ -43,8 +43,13 @@ export function useVoice() {
   const finalRef = useRef('')
 
   useEffect(() => {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { setSupported(false) }
+  }, [])
+
+  const initRecognition = useCallback(() => {
     const r = getRecognition()
-    if (!r) { setSupported(false); return }
+    if (!r) { setSupported(false); return null }
     r.lang = 'es-ES'
     r.continuous = true
     r.interimResults = true
@@ -53,11 +58,11 @@ export function useVoice() {
       let finalTranscript = finalRef.current
 
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const transcript = e.results[i][0].transcript
+        const text = e.results[i][0].transcript
         if (e.results[i].isFinal) {
-          finalTranscript = `${finalTranscript}${finalTranscript ? ' ' : ''}${transcript}`.trim()
+          finalTranscript = `${finalTranscript}${finalTranscript ? ' ' : ''}${text}`.trim()
         } else {
-          interimTranscript += transcript
+          interimTranscript += text
         }
       }
 
@@ -70,22 +75,37 @@ export function useVoice() {
       setInterim('')
       setTranscript(finalRef.current)
     }
-    r.onerror = () => {
+    r.onerror = (e: any) => {
+      console.warn('SpeechRecognition error:', e)
       setListening(false)
       setInterim('')
     }
     recRef.current = r
-    return () => { r.onresult = null; r.onend = null; r.onerror = null }
+    return r
   }, [])
 
   const start = useCallback(() => {
-    if (!recRef.current) return
     finalRef.current = ''
     setTranscript('')
     setInterim('')
+
+    try {
+      if (recRef.current) {
+        recRef.current.stop()
+      }
+    } catch {}
+
+    const r = initRecognition()
+    if (!r) return
+
     setListening(true)
-    try { recRef.current.start() } catch {}
-  }, [])
+    try {
+      r.start()
+    } catch (err) {
+      console.warn('Cannot start recognition:', err)
+      setListening(false)
+    }
+  }, [initRecognition])
 
   const stop = useCallback(() => {
     if (!recRef.current) return

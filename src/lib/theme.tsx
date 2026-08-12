@@ -63,6 +63,19 @@ function applyCssVars(t: ThemeSettings) {
   root.style.setProperty('--radius', t.border_radius)
   root.style.setProperty('--font-family', t.typography)
 
+  // Variables Centralizadas de Colores de Texto (OBJETIVO 4 & 5)
+  // Regla de Oro: Los botones NUNCA heredan estas variables de texto.
+  const storedTextColors = localStorage.getItem('gestarian_text_colors')
+  let textColors = { text_title: '#ffffff', text_primary: '#f8fafc', text_input: '#ffffff', text_secondary: '#94a3b8', text_card: '#f8fafc' }
+  if (storedTextColors) {
+    try { textColors = { ...textColors, ...JSON.parse(storedTextColors) } } catch (e) {}
+  }
+  root.style.setProperty('--text-title', textColors.text_title)
+  root.style.setProperty('--text-primary', textColors.text_primary)
+  root.style.setProperty('--text-input', textColors.text_input)
+  root.style.setProperty('--text-secondary', textColors.text_secondary)
+  root.style.setProperty('--text-card', textColors.text_card)
+
   const shadowsMap = {
     none: 'none',
     sm: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
@@ -74,7 +87,7 @@ function applyCssVars(t: ThemeSettings) {
   
   // Backwards compatibility with old variables
   root.style.setProperty('--color-fondo', t.dashboard_color)
-  root.style.setProperty('--color-texto', t.is_dark_mode ? '#f8fafc' : '#0f172a')
+  root.style.setProperty('--color-texto', textColors.text_primary || (t.is_dark_mode ? '#f8fafc' : '#0f172a'))
   root.style.setProperty('--color-glow', t.button_color)
   root.style.setProperty('--color-linea', t.secondary_color)
   root.style.setProperty('--color-relleno', t.card_color)

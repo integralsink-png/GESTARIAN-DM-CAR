@@ -93,29 +93,86 @@ export async function processMetisMessage(
   userText: string,
   context?: MetisContext
 ): Promise<MetisResponse> {
-  // Prefer Hugging Face Inference API if configured (free tier available).
+  // 1. Prefer Google Gemini API key if configured
+  const geminiKey = localStorage.getItem('gestarian_gemini_api_key')?.trim()
+  if (geminiKey) {
+    try {
+      return await processWithGemini(geminiKey, userText, context)
+    } catch (e: any) {
+      console.error('Error con Gemini API:', e)
+    }
+  }
+
+  // 2. Prefer Hugging Face Inference API if configured
   const hfKey = localStorage.getItem('gestarian_hf_api_key')?.trim()
   if (hfKey) {
     try {
       return await processWithHuggingFace(hfKey, userText, context)
     } catch (e: any) {
-      console.error('Error with Hugging Face Inference API:', e)
-      // fallthrough to other engines
+      console.error('Error con Hugging Face Inference API:', e)
     }
   }
 
-  // Next preference: Groq (Llama 3) if API key present
-  const groqKey = localStorage.getItem('gestarian_groq_api_key')?.trim() || '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'
+  // 3. Groq (Llama 3) if API key present
+  const groqKey = localStorage.getItem('gestarian_groq_api_key')?.trim()
   if (groqKey) {
     try {
       return await processWithGroq(groqKey, userText, context)
     } catch (e: any) {
       console.error('Error con Groq API:', e)
-      // fallthrough to basic engine
     }
   }
 
   return processWithBasicEngine(userText, context)
+}
+
+// ── GEMINI INFERENCE ENGINE ──
+async function processWithGemini(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
+  const systemInstruction = `Eres METIS, la inteligencia artificial conversacional experta de GESTARIAN en gestión de talleres mecánicos y fiscalidad en España.
+REGLAS DE ORO:
+1. Responde SIEMPRE en Español de España nativo y castellano fluido (como ChatGPT Voice).
+2. Tu campo "text" SERÁ LEÍDO EN VOZ ALTA por altavoz en castellano. Redacta frases completas, claras, sin abreviaturas extrañas, sin código ni caracteres extraños.
+3. Si el usuario te solicita crear un presupuesto, cita, o buscar datos, responde en JSON con la estructura:
+{
+  "text": "Tu respuesta explicativa en español fluido para hablar por altavoz.",
+  "actionResult": {
+    "type": "presupuesto_creado" | "cita_creada" | "busqueda_realizada" | "info",
+    "title": "Título corto",
+    "details": "Detalles",
+    "navigationPath": "/presupuestos" | "/citas" | "/clientes"
+  }
+}
+4. Si es una pregunta conversacional, responde directamente en castellano nativo de España.`
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [
+          { parts: [{ text: `${systemInstruction}\n\nContexto UI actual: ${JSON.stringify(context || {})}\n\nInstrucción del usuario: ${userText}` }] }
+        ]
+      })
+    }
+  )
+
+  if (!response.ok) {
+    const errTxt = await response.text()
+    throw new Error(`Gemini API error ${response.status}: ${errTxt}`)
+  }
+
+  const data = await response.json()
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
+  const cleanJsonText = rawText.replace(/```json/g, '').replace(/```/g, '').trim()
+
+  try {
+    const parsed = JSON.parse(cleanJsonText)
+    const text = parsed.text || parsed.respuesta || rawText
+    return { text, actionResult: parsed.actionResult }
+  } catch (e) {
+    return { text: rawText || 'Instrucción procesada con éxito.' }
+  }
 }
 
 

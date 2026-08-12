@@ -1,74 +1,148 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Camera, Check, Upload, Mic, ArrowLeft, Send, X, Loader2, PlusCircle } from 'lucide-react'
+import { Camera, Check, Upload, Mic, ArrowLeft, Send, X, Loader2, PlusCircle, FileText, Shield, Save, Car, UserPlus } from 'lucide-react'
 import { supabase } from '../lib/supabase'
 import { useSpeechSynthesis } from '../lib/useSpeechSynthesis'
-import { useVoice, parseVoiceToConceptos } from '../lib/useVoice'
-import { fetchVehicleImages, addVehicleImage } from '../lib/vehicleImages'
+import { useVoice } from '../lib/useVoice'
 import { PageHeader, Button } from '../components/UI'
 import { Box, Chip, Stack, TextField, Typography } from '@mui/material'
-import { extractTextFromImage } from '../lib/ocrService'
 import type { Cliente, Concepto, Vehiculo } from '../lib/types'
 
-const PLATE_PATTERN = /([A-Z0-9]{4,7})/gi
+// Servicios Centralizados
+import { recognizeVehiclePlate, normalizeSpanishPlate } from '../services/plateRecognizerService'
+import { processDocumentOcr } from '../services/documentOcrService'
+import { uploadFileToStorage } from '../services/storageService'
+import { saveExpedienteFoto } from '../lib/expedienteService'
 
-function normalizePlate(value: string) {
-  return value.replace(/[^A-Z0-9]/gi, '').toUpperCase()
+function EuropeanLicensePlate({ plate }: { plate: string }) {
+  if (!plate) return null
+  const formatted = normalizeSpanishPlate(plate)
+
+  return (
+    <div className="inline-flex items-center h-12 bg-white border-2 border-black rounded-md shadow-lg overflow-hidden font-mono select-none">
+      {/* Franja Azul Europea Izquierda */}
+      <div className="h-full bg-[#003399] px-2.5 flex flex-col items-center justify-between py-1 shrink-0">
+        {/* 12 Puntos Amarillos (Estrellas de la Bandera Europea dispuestas como las horas del reloj) */}
+        <div className="relative w-3.5 h-3.5 flex items-center justify-center">
+          {[...Array(12)].map((_, i) => {
+            const angle = (i * 30 - 90) * (Math.PI / 180)
+            const r = 5.5 // Radio en px
+            const x = r * Math.cos(angle)
+            const y = r * Math.sin(angle)
+            return (
+              <span
+                key={i}
+                className="absolute w-0.5 h-0.5 bg-[#FFCC00] rounded-full"
+                style={{
+                  transform: `translate(${x}px, ${y}px)`
+                }}
+              />
+            )
+          })}
+        </div>
+        {/* Letra E de España en la base */}
+        <span className="text-white font-black text-[11px] leading-none">E</span>
+      </div>
+
+      {/* Texto de la Matrícula en Negro Puro sobre Fondo Blanco */}
+      <div
+        className="px-3.5 py-1 text-2xl sm:text-3xl font-black tracking-[0.2em] font-mono leading-none select-none"
+        style={{ color: '#000000', backgroundColor: '#ffffff' }}
+      >
+        {formatted}
+      </div>
+    </div>
+  )
 }
 
-function parsePlateFromText(text: string) {
-  const cleaned = text.replace(/\s+/g, '').toUpperCase()
-  const candidate = cleaned.match(/\d{4}[A-Z]{3}/) || cleaned.match(/[A-Z0-9]{4,7}/)
-  return candidate ? normalizePlate(candidate[0]) : null
+const PROVINCIAS_ESPANOLAS: Record<string, string> = {
+  '01': 'Araba / Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
+  '06': 'Badajoz', '07': 'Illes Balears', '08': 'Barcelona', '09': 'Burgos', '10': 'Cáceres',
+  '11': 'Cádiz', '12': 'Castellón', '13': 'Ciudad Real', '14': 'Córdoba', '15': 'A Coruña',
+  '16': 'Cuenca', '17': 'Girona', '18': 'Granada', '19': 'Guadalajara', '20': 'Gipuzkoa',
+  '21': 'Huelva', '22': 'Huesca', '23': 'Jaén', '24': 'León', '25': 'Lleida',
+  '26': 'La Rioja', '27': 'Lugo', '28': 'Madrid', '29': 'Málaga', '30': 'Murcia',
+  '31': 'Navarra', '32': 'Ourense', '33': 'Asturias', '34': 'Palencia', '35': 'Las Palmas',
+  '36': 'Pontevedra', '37': 'Salamanca', '38': 'Santa Cruz de Tenerife', '39': 'Cantabria', '40': 'Segovia',
+  '41': 'Sevilla', '42': 'Soria', '43': 'Tarragona', '44': 'Teruel', '45': 'Toledo',
+  '46': 'Valencia', '47': 'Valladolid', '48': 'Bizkaia', '49': 'Zamora', '50': 'Zaragoza',
+  '51': 'Ceuta', '52': 'Melilla'
 }
 
-function formatMoney(value: number) {
-  return value.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+function getLocalidadFromCP(cp: string): string {
+  const prefix = cp.substring(0, 2)
+  return PROVINCIAS_ESPANOLAS[prefix] || ''
 }
 
 export function PresupuestoHibridoPage() {
   const navigate = useNavigate()
-  const { speak, supported: ttsSupported } = useSpeechSynthesis()
+  const { speak } = useSpeechSynthesis()
   const { listening, transcript, interim, supported: sttSupported, start, stop, reset } = useVoice()
+  
   const [phase, setPhase] = useState<'matricula' | 'confirmPlate' | 'burst' | 'cliente' | 'conceptos' | 'review' | 'done'>('matricula')
   const [plateText, setPlateText] = useState('')
   const [manualPlate, setManualPlate] = useState('')
+  const [plateConfidence, setPlateConfidence] = useState<number | null>(null)
   const [ocrError, setOcrError] = useState<string | null>(null)
   const [cameraOn, setCameraOn] = useState(false)
-  const [photos, setPhotos] = useState<string[]>([])
+
+  // Fotos de trabajo vs Fotos de documentación interna (Permiso / Ficha técnica)
+  const [photos, setPhotos] = useState<string[]>([]) // Fotos de trabajo/daños (hasta 5 se envían en factura)
+  const [docPhotos, setDocPhotos] = useState<string[]>([]) // Fotos de documentos (NUNCA se envían por email al cliente)
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null)
+  
   const [uploading, setUploading] = useState(false)
   const [clientData, setClientData] = useState<Cliente | null>(null)
   const [vehicleData, setVehicleData] = useState<Vehiculo | null>(null)
   const [clientExists, setClientExists] = useState(false)
+  
   const [clientForm, setClientForm] = useState({
     nombre: '',
     dni: '',
     calle: '',
-    numero: '',
     cp: '',
     localidad: '',
-    provincia: '',
     telefono: '',
     email: '',
   })
+
+  // Auto-relleno de localidad según Código Postal (CP)
+  const handleCpChange = useCallback(async (cpValue: string) => {
+    const cleanCp = cpValue.replace(/\D/g, '').slice(0, 5)
+    const autoLocalidad = getLocalidadFromCP(cleanCp)
+
+    setClientForm((prev) => ({
+      ...prev,
+      cp: cleanCp,
+      localidad: autoLocalidad || prev.localidad,
+    }))
+
+    if (cleanCp.length === 5) {
+      try {
+        const res = await fetch(`https://api.zippopotam.us/es/${cleanCp}`)
+        if (res.ok) {
+          const data = await res.json()
+          const place = data.places?.[0]?.['place name']
+          if (place) {
+            setClientForm((prev) => ({
+              ...prev,
+              localidad: autoLocalidad ? `${place} (${autoLocalidad})` : place,
+            }))
+          }
+        }
+      } catch (e) {
+        // Fallback se mantiene con autoLocalidad
+      }
+    }
+  }, [])
+
   const [concepto, setConcepto] = useState<Concepto>({ descripcion: '', cantidad: 1, precio: 0 })
   const [conceptos, setConceptos] = useState<Concepto[]>([])
-  const [voiceIntent, setVoiceIntent] = useState<'descripcion' | 'cantidad' | 'precio' | 'decision' | 'cliente' | 'none'>('none')
   const [sending, setSending] = useState(false)
-  const [whatsappUrl, setWhatsappUrl] = useState('')
-  const [smsFeedback, setSmsFeedback] = useState('')
-  const [cpLoading, setCpLoading] = useState(false)
+
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const audioContextRef = useRef<AudioContext | null>(null)
-  const voiceTimerRef = useRef<number | null>(null)
-
-  const total = useMemo(
-    () => conceptos.reduce((sum, c) => sum + c.cantidad * c.precio, 0),
-    [conceptos],
-  )
 
   const sharedFieldProps = {
     fullWidth: true,
@@ -77,67 +151,60 @@ export function PresupuestoHibridoPage() {
     InputLabelProps: { sx: { color: '#94a3b8' } },
   }
 
-  const playSound = useCallback(() => {
-    if (typeof window === 'undefined') return
-
-    // Try a simple media file first if available
-    try {
-      const audio = new Audio('/pistola_neumatica.mp3')
-      audio.currentTime = 0
-      audio.play().catch(() => {
-        // fallback to simple tone if file is unavailable
-        if ('AudioContext' in window) {
-          const ctx = new AudioContext()
-          audioContextRef.current = ctx
-          const osc = ctx.createOscillator()
-          const gain = ctx.createGain()
-          osc.type = 'triangle'
-          osc.frequency.value = 880
-          gain.gain.value = 0.06
-          osc.connect(gain)
-          gain.connect(ctx.destination)
-          osc.start()
-          osc.stop(ctx.currentTime + 0.1)
-          osc.onended = () => ctx.close()
-        }
-      })
-    } catch {
-      if (typeof window !== 'undefined' && 'AudioContext' in window) {
-        const ctx = new AudioContext()
-        audioContextRef.current = ctx
-        const osc = ctx.createOscillator()
-        const gain = ctx.createGain()
-        osc.type = 'triangle'
-        osc.frequency.value = 880
-        gain.gain.value = 0.06
-        osc.connect(gain)
-        gain.connect(ctx.destination)
-        osc.start()
-        osc.stop(ctx.currentTime + 0.1)
-        osc.onended = () => ctx.close()
-      }
-    }
-  }, [])
-
+  // --------------------------------------------------
+  // GESTIÓN DE CÁMARA ROBUSTA Y SIN PANTALLA NEGRA
+  // --------------------------------------------------
   const startCamera = useCallback(async () => {
-    if (cameraOn) return
     setOcrError(null)
     if (!navigator.mediaDevices?.getUserMedia) {
       setOcrError('Tu navegador no soporta la cámara.')
       return
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((t) => t.stop())
+        streamRef.current = null
+      }
+
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' } },
+          audio: false
+        })
+      } catch (e) {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      }
+
       streamRef.current = stream
+      setCameraOn(true)
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream
+        videoRef.current.setAttribute('playsinline', 'true')
+        videoRef.current.setAttribute('autoplay', 'true')
+        videoRef.current.setAttribute('muted', 'true')
         await videoRef.current.play().catch(() => {})
       }
-      setCameraOn(true)
     } catch (err: any) {
-      setOcrError('No se pudo acceder a la cámara. Revisa permisos o dispositivo.')
+      console.error('Camera error:', err)
+      setOcrError('No se pudo acceder a la cámara. Revisa los permisos en tu navegador.')
     }
-  }, [cameraOn])
+  }, [])
+
+  // Garantizar que la cámara se asigna al elemento <video> tan pronto como se monta en el DOM
+  useEffect(() => {
+    if (cameraOn && streamRef.current && videoRef.current) {
+      const video = videoRef.current
+      if (video.srcObject !== streamRef.current) {
+        video.srcObject = streamRef.current
+        video.setAttribute('playsinline', 'true')
+        video.setAttribute('autoplay', 'true')
+        video.setAttribute('muted', 'true')
+        video.play().catch(() => {})
+      }
+    }
+  }, [cameraOn, phase, previewPhoto])
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
@@ -148,42 +215,14 @@ export function PresupuestoHibridoPage() {
   }, [])
 
   useEffect(() => {
-    if (phase === 'matricula') {
-      speak('Pulsa iniciar cámara para capturar la matrícula')
-    }
-    if (phase === 'burst') {
-      playSound()
-      speak('Sigue subiendo imágenes pulsando el botón de cámara, o di Subir si has terminado')
-    }
-    if (phase === 'cliente') {
-      speak('Incluye los datos del cliente')
-    }
-    if (phase === 'conceptos') {
-      speak('Dicta el concepto o repuesto')
-      setVoiceIntent('descripcion')
-    }
-    if (phase === 'review') {
-      speak('Presupuesto generado correctamente. Confírmalo, por favor, para enviar al cliente')
-    }
-    return () => {
-      if (voiceTimerRef.current) {
-        window.clearTimeout(voiceTimerRef.current)
-        voiceTimerRef.current = null
-      }
-    }
-  }, [phase, speak, playSound])
-
-  useEffect(() => {
     return () => stopCamera()
   }, [stopCamera])
 
-  // Auto-start camera if navigation state requests it (e.g., footer camera button)
+  // Inicio automático desde navegación
   const location = useLocation()
   useEffect(() => {
-    // location.state may be a plain object; guard access
     const state: any = (location as any)?.state
     if (state && state.startCamera) {
-      // startCamera is called in response to a user gesture that triggered navigation
       startCamera()
     }
   }, [location, startCamera])
@@ -192,41 +231,80 @@ export function PresupuestoHibridoPage() {
     if (!videoRef.current || !canvasRef.current) return null
     const video = videoRef.current
     const canvas = canvasRef.current
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    canvas.width = video.videoWidth || 1280
+    canvas.height = video.videoHeight || 720
     const ctx = canvas.getContext('2d')
     if (!ctx) return null
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-    return canvas.toDataURL('image/jpeg', 0.85)
+    return canvas.toDataURL('image/jpeg', 0.90)
   }, [])
 
+  // --------------------------------------------------
+  // PASO 1: RECONOCIMIENTO DE MATRÍCULA CON PLATE RECOGNIZER
+  // --------------------------------------------------
   const handleCapturePlate = useCallback(async () => {
     const dataUrl = captureFrame()
     if (!dataUrl) return
     setOcrError(null)
+    setUploading(true)
+
     try {
-      const text = await extractTextFromImage(dataUrl)
-      const plate = parsePlateFromText(text)
-      if (!plate) {
-        setOcrError('No se detectó la matrícula. Escribe o vuelve a intentarlo.')
-        return
+      const resBlob = await fetch(dataUrl).then((r) => r.blob())
+      const result = await recognizeVehiclePlate(resBlob)
+
+      if (result.success && result.matricula_normalizada) {
+        const plate = result.matricula_normalizada
+        setPlateText(plate)
+        setManualPlate(plate)
+        setPlateConfidence(result.confidence || 95)
+
+        const cleanPlate = plate.replace(/\s+/g, '')
+        const { data: vehs } = await supabase
+          .from('vehiculos')
+          .select('*, clientes(*)')
+          .ilike('matricula', `%${cleanPlate}%`)
+          .limit(1)
+
+        if (vehs && vehs.length > 0) {
+          const veh = vehs[0]
+          setVehicleData(veh)
+          if ((veh as any).clientes) {
+            const cli = (veh as any).clientes as Cliente
+            setClientData(cli)
+            setClientExists(true)
+          }
+        } else {
+          setClientExists(false)
+        }
+
+        setPhase('confirmPlate')
+        speak(`Matrícula detectada: ${plate}. Acepta para iniciar fotos.`)
+      } else {
+        setOcrError(result.error_message || 'No se pudo leer la matrícula. Escríbela manualmente.')
       }
-      setPlateText(plate)
-      setManualPlate(plate)
-      setPhase('confirmPlate')
-      speak('Pulsa aceptar si la matrícula es correcta')
-    } catch (error) {
-      setOcrError('Error al extraer la matrícula. Intenta otra foto.')
+    } catch (error: any) {
+      console.error('Error en captura Plate Recognizer:', error)
+      setOcrError('No se pudo conectar con Plate Recognizer. Introduce la matrícula manualmente.')
+    } finally {
+      setUploading(false)
     }
   }, [captureFrame, speak])
 
+  // Aceptar matrícula -> Activa la cámara automáticamente de inmediato
   const handleConfirmPlate = useCallback(() => {
     if (!manualPlate) return
-    setPlateText(normalizePlate(manualPlate))
+    const plate = normalizeSpanishPlate(manualPlate)
+    setPlateText(plate)
     setPhase('burst')
     setPreviewPhoto(null)
-    setPhotos([])
-  }, [manualPlate])
+    setCameraOn(true)
+    
+    // REGLA DEL USUARIO: Al confirmar matrícula la cámara se reactiva automáticamente de inmediato
+    setTimeout(() => {
+      startCamera()
+    }, 150)
+    speak('Matrícula confirmada. Cámara activa para tomar fotos del trabajo o documentos.')
+  }, [manualPlate, startCamera, speak])
 
   const handleRetakePlate = useCallback(() => {
     setManualPlate('')
@@ -236,330 +314,250 @@ export function PresupuestoHibridoPage() {
     startCamera()
   }, [startCamera])
 
+  // --------------------------------------------------
+  // PASO 2: TOMA DE FOTOS DEL TRABAJO / DAÑOS
+  // --------------------------------------------------
   const addCapturedPhoto = useCallback(async () => {
     const dataUrl = captureFrame()
     if (!dataUrl) return
-    const nextPhotos = [dataUrl, ...photos]
-    setPhotos(nextPhotos)
+    setPhotos((prev) => [dataUrl, ...prev])
     setPreviewPhoto(dataUrl)
-    window.setTimeout(() => setPreviewPhoto(null), 1500)
-  }, [captureFrame, photos])
+    setTimeout(() => setPreviewPhoto(null), 1200)
+    speak('Foto de trabajo guardada.')
+  }, [captureFrame, speak])
 
-  const handleUpload = useCallback(async () => {
-    if (!plateText || photos.length === 0) return
+  // --------------------------------------------------
+  // PASO 3: BOTÓN DEDICADO PARA DOCUMENTOS (PERMISO / FICHA TÉCNICA)
+  // --------------------------------------------------
+  const handleCaptureDocument = useCallback(async () => {
+    const dataUrl = captureFrame()
+    if (!dataUrl) return
+    setOcrError(null)
+    setUploading(true)
+
+    try {
+      const docData = await processDocumentOcr(dataUrl)
+      if (docData.cif_nif || docData.proveedor) {
+        setClientForm((prev) => ({
+          ...prev,
+          nombre: docData.proveedor || prev.nombre,
+          dni: docData.cif_nif || prev.dni,
+        }))
+      }
+
+      setDocPhotos((prev) => [dataUrl, ...prev])
+      speak('Documento escaneado y guardado en el expediente interno.')
+    } catch (e) {
+      setDocPhotos((prev) => [dataUrl, ...prev])
+      speak('Documento capturado.')
+    } finally {
+      setUploading(false)
+    }
+  }, [captureFrame, speak])
+
+  // --------------------------------------------------
+  // PASO 4: GUARDAR EXPEDIENTE E IMÁGENES EN SUPABASE STORAGE Y TABLAS
+  // --------------------------------------------------
+  const handleSaveExpedienteImages = useCallback(async (cliId?: string | null, vehId?: string | null) => {
+    const cId = cliId || clientData?.id || null
+    const vId = vehId || vehicleData?.id || null
+    if (!plateText || (photos.length === 0 && docPhotos.length === 0)) return
+
     setUploading(true)
     try {
       for (const photo of photos) {
-        await addVehicleImage(plateText, photo)
+        await saveExpedienteFoto(photo, cId, vId, 'fotos')
       }
-      const { data: vehiculos } = await supabase.from('vehiculos').select('*').eq('matricula', plateText).limit(1)
-      if (vehiculos && vehiculos.length > 0) {
-        const veh = vehiculos[0] as Vehiculo
-        setVehicleData(veh)
-        if (veh.cliente_id) {
-          const { data: clientes } = await supabase.from('clientes').select('*').eq('id', veh.cliente_id).limit(1)
-          if (clientes && clientes.length > 0) {
-            setClientData(clientes[0] as Cliente)
-            setClientExists(true)
-            setPhase('conceptos')
-            speak('Cliente registrado. Añadiendo conceptos')
-            return
-          }
-        }
+
+      for (const docPhoto of docPhotos) {
+        await saveExpedienteFoto(docPhoto, cId, vId, 'documentos')
       }
-      setClientExists(false)
-      setPhase('cliente')
-    } catch (error) {
-      console.error(error)
-      setOcrError('Error subiendo las fotos o consultando el cliente. Intenta de nuevo.')
+
+      speak('Imágenes guardadas correctamente en el expediente interno.')
+    } catch (err: any) {
+      console.error('Error guardando fotos del expediente:', err)
     } finally {
       setUploading(false)
     }
-  }, [photos, plateText, speak])
+  }, [plateText, photos, docPhotos, clientData, vehicleData, speak])
 
-  useEffect(() => {
-    if (clientForm.cp.length === 5) {
-      const cp = clientForm.cp
-      setCpLoading(true)
-      fetch(`https://api.zippopotam.us/es/${cp}`)
-        .then((res) => res.ok ? res.json() : Promise.reject('no zip'))
-        .then((data) => {
-          const place = data.places?.[0]
-          if (place) {
-            setClientForm((prev) => ({
-              ...prev,
-              localidad: place['place name'] || prev.localidad,
-              provincia: place['state'] || prev.provincia,
-            }))
-          }
-        })
-        .catch(() => {})
-        .finally(() => setCpLoading(false))
+  // --------------------------------------------------
+  // PASO 5: GENERAR PRESUPUESTO
+  // --------------------------------------------------
+  const handleGenerarPresupuesto = useCallback(async () => {
+    if (clientExists && clientData && vehicleData) {
+      await handleSaveExpedienteImages(clientData.id, vehicleData.id)
+      navigate('/presupuestos', {
+        state: {
+          clienteId: clientData.id,
+          vehiculoId: vehicleData.id,
+          openForm: true,
+          initialFotos: photos,
+        }
+      })
+    } else {
+      setPhase('cliente')
+      speak('Matrícula no encontrada en la base de datos. Por favor, cumplimentar los datos del nuevo cliente.')
     }
-  }, [clientForm.cp])
+  }, [clientExists, clientData, vehicleData, navigate, handleSaveExpedienteImages, photos, speak])
 
-  const handleClientField = useCallback((field: keyof typeof clientForm, value: string) => {
-    setClientForm((prev) => ({ ...prev, [field]: value }))
-  }, [])
-
+  // Guardar cliente nuevo cuando no existía
   const handleSaveNewClient = useCallback(async () => {
-    const nombre = clientForm.nombre.trim()
-    if (!nombre || !clientForm.cp || !clientForm.localidad || !clientForm.provincia) {
-      setOcrError('Completa al menos nombre y dirección para continuar.')
+    if (!clientForm.nombre?.trim()) {
+      alert('Por favor, introduce al menos el nombre completo del cliente.')
       return
     }
     setUploading(true)
+    setOcrError(null)
+
     try {
-      const { data: existing, error: existingError } = await supabase
-        .from('clientes')
-        .select('*')
-        .ilike('nombre', nombre)
-        .limit(1)
-      if (existingError) throw existingError
-      let clienteId: string
-      if (existing && existing.length > 0) {
-        clienteId = existing[0].id
-        setClientData(existing[0] as Cliente)
-      } else {
-        const { data: inserted, error: insertError } = await supabase
-          .from('clientes')
-          .insert([{ ...clientForm, nombre }])
-          .select()
-          .single()
-        if (insertError || !inserted) throw insertError
-        clienteId = inserted.id
-        setClientData(inserted as Cliente)
+      const payload: any = {
+        nombre: clientForm.nombre.trim(),
+        dni: clientForm.dni?.trim() || null,
+        direccion: clientForm.calle?.trim() || null,
+        telefono: clientForm.telefono?.trim() || null,
+        email: clientForm.email?.trim() || null,
       }
-      const { data: vehInserted, error: vehError } = await supabase
-        .from('vehiculos')
-        .insert([{ cliente_id: clienteId, matricula: plateText, marca: null, modelo: null, anio: null, vin: null }])
+      if (clientForm.cp?.trim()) {
+        payload.cp = clientForm.cp.trim()
+      }
+
+      let newCli: any = null
+      const { data, error: cliErr } = await supabase
+        .from('clientes')
+        .insert(payload)
         .select()
         .single()
-      if (vehError || !vehInserted) throw vehError
-      setVehicleData(vehInserted as Vehiculo)
+
+      if (cliErr) {
+        delete payload.cp
+        const { data: fbData, error: fbErr } = await supabase
+          .from('clientes')
+          .insert(payload)
+          .select()
+          .single()
+
+        if (fbErr) throw fbErr
+        newCli = fbData
+      } else {
+        newCli = data
+      }
+
+      // 2. Crear o asociar el vehículo a la matrícula reconocida
+      const cleanPlate = (plateText || manualPlate || '1234ABC').replace(/\s+/g, '').toUpperCase()
+      
+      let vehId = null
+      const { data: newVeh, error: vehErr } = await supabase
+        .from('vehiculos')
+        .insert({
+          cliente_id: newCli.id,
+          matricula: cleanPlate,
+        })
+        .select()
+        .single()
+
+      if (vehErr) {
+        const { data: existingVeh } = await supabase.from('vehiculos').select('*').eq('matricula', cleanPlate).maybeSingle()
+        if (existingVeh) {
+          vehId = existingVeh.id
+          setVehicleData(existingVeh)
+        }
+      } else if (newVeh) {
+        vehId = newVeh.id
+        setVehicleData(newVeh)
+      }
+
+      setClientData(newCli)
       setClientExists(true)
-      setPhase('conceptos')
-      setOcrError(null)
-      speak('Cliente creado. Ahora añade conceptos para el presupuesto')
-    } catch (error) {
-      console.error(error)
-      setOcrError('No se pudo guardar el cliente. Revisa los datos e intenta de nuevo.')
+
+      // Guardar fotos en expediente_imagenes y vehiculos.fotos
+      await handleSaveExpedienteImages(newCli.id, vehId)
+
+      speak('Cliente registrado correctamente. Abriendo presupuesto A4.')
+
+      // 3. Navegar directamente al Presupuesto A4/PDF cumplimentado
+      navigate('/presupuestos', {
+        state: {
+          clienteId: newCli.id,
+          vehiculoId: vehId,
+          openForm: true,
+          initialFotos: photos,
+        }
+      })
+    } catch (e: any) {
+      console.error('Error al guardar cliente:', e)
+      setOcrError('Error guardando cliente: ' + (e.message || 'Comprueba tu conexión'))
     } finally {
       setUploading(false)
     }
-  }, [clientForm, plateText, speak])
-
-  const handleAddConcept = useCallback(() => {
-    if (!concepto.descripcion.trim() || concepto.precio <= 0) {
-      setOcrError('Añade descripción y precio para el concepto.')
-      return
-    }
-    setConceptos((prev) => [...prev, concepto])
-    setConcepto({ descripcion: '', cantidad: 1, precio: 0 })
-    setVoiceIntent('descripcion')
-    speak('¿Añadir otro concepto o finalizar?')
-  }, [concepto, speak])
-
-  const handleFinishConcepts = useCallback(() => {
-    let finalConceptos = conceptos
-    if (concepto.descripcion.trim()) {
-      if (concepto.precio <= 0) {
-        setOcrError('Añade un precio válido antes de finalizar.')
-        return
-      }
-      finalConceptos = [...conceptos, concepto]
-      setConceptos(finalConceptos)
-      setConcepto({ descripcion: '', cantidad: 1, precio: 0 })
-    }
-    if (finalConceptos.length === 0) {
-      setOcrError('Añade al menos un concepto antes de finalizar.')
-      return
-    }
-    setPhase('review')
-  }, [concepto, conceptos])
-
-  const applyClientVoiceTranscript = useCallback((text: string) => {
-    const normalized = text.toLowerCase()
-    const updateField = (field: keyof typeof clientForm, value: string) => {
-      setClientForm((prev) => ({ ...prev, [field]: value }))
-    }
-
-    if (/nombre|llamo|llama|cliente/.test(normalized)) {
-      const match = normalized.match(/nombre(?: es|:)?\s*([a-zñáéíóúü\s]+)/i)
-      if (match) updateField('nombre', match[1].trim())
-    }
-    if (/tel[eé]fono|m[oó]vil|celular/.test(normalized)) {
-      const match = normalized.match(/(\+?\d[\d\s\-]{6,}\d)/)
-      if (match) updateField('telefono', match[1].replace(/\D/g, ''))
-    }
-    if (/email|correo/.test(normalized)) {
-      const match = normalized.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/)
-      if (match) updateField('email', match[1].trim())
-    }
-    if (/calle/.test(normalized)) {
-      const match = normalized.match(/calle(?:\s+)?([a-zñáéíóúü\s0-9]+)/i)
-      if (match) updateField('calle', match[1].trim())
-    }
-    if (/n[uú]mero/.test(normalized)) {
-      const match = normalized.match(/n[uú]mero(?:\s+)?(\d+)/i)
-      if (match) updateField('numero', match[1].trim())
-    }
-    if (/c[oó]digo postal|cp/.test(normalized)) {
-      const match = normalized.match(/(\d{4,5})/)
-      if (match) updateField('cp', match[1])
-    }
-    if (/localidad/.test(normalized)) {
-      const match = normalized.match(/localidad(?:\s+)?([a-zñáéíóúü\s]+)/i)
-      if (match) updateField('localidad', match[1].trim())
-    }
-    if (/provincia/.test(normalized)) {
-      const match = normalized.match(/provincia(?:\s+)?([a-zñáéíóúü\s]+)/i)
-      if (match) updateField('provincia', match[1].trim())
-    }
-  }, [])
-
-  const handleListenConcept = useCallback(() => {
-    if (!sttSupported) return
-    if (phase === 'cliente') {
-      setVoiceIntent('cliente')
-    } else {
-      setVoiceIntent('descripcion')
-    }
-    reset()
-    stop()
-    start()
-  }, [phase, reset, start, stop, sttSupported])
-
-  useEffect(() => {
-    if (!listening && voiceIntent !== 'none' && transcript.trim()) {
-      const text = `${transcript} ${interim}`.trim()
-      if (voiceIntent === 'cliente') {
-        applyClientVoiceTranscript(text)
-        speak('He actualizado los datos según tu dictado. Revisa y guarda.')
-        setVoiceIntent('none')
-      } else {
-        const parsed = parseVoiceToConceptos(text)
-        if (parsed.length > 0) {
-          const first = parsed[0]
-          if (voiceIntent === 'descripcion') {
-            setConcepto((prev) => ({
-              ...prev,
-              descripcion: first.descripcion || prev.descripcion,
-              cantidad: first.cantidad || prev.cantidad,
-              precio: first.precio || prev.precio,
-            }))
-            setVoiceIntent('decision')
-            speak('Dime si quieres añadir otro concepto o finalizar.')
-          } else if (voiceIntent === 'decision') {
-            const normalized = text.toLowerCase()
-            if (/finaliz|termin|enviar|ya basta/.test(normalized)) {
-              handleFinishConcepts()
-            } else if (/otro|siguiente|añadir/.test(normalized)) {
-              handleAddConcept()
-            } else {
-              setVoiceIntent('descripcion')
-              speak('He guardado el concepto. Di uno nuevo o pulsa Añadir concepto.')
-            }
-          }
-        }
-      }
-      reset()
-    }
-  }, [interim, listening, transcript, voiceIntent, reset, speak, applyClientVoiceTranscript, handleFinishConcepts, handleAddConcept])
-
-  const handleSendWhatsApp = useCallback(async () => {
-    if (sending || !clientData || conceptos.length === 0) return
-    setSending(true)
-    try {
-      const presupuesto = {
-        cliente_id: clientData.id,
-        vehiculo_id: vehicleData?.id ?? null,
-        conceptos,
-        total,
-        estado: 'pendiente',
-        observaciones: null,
-      }
-      const { data, error } = await supabase.from('presupuestos').insert([presupuesto]).select().single()
-      if (error || !data) throw error
-      const url = `${window.location.origin}/presupuestos?presupuesto=${data.id}`
-      const phone = clientData.telefono?.replace(/\D+/g, '')
-      if (!phone) {
-        setSmsFeedback('No se pudo generar WhatsApp porque falta número de cliente.')
-        setPhase('done')
-        return
-      }
-      const message = `VER PRESUPUESTO PULSANDO ESTE ENLACE: ${url}`
-      const waUrl = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-      setWhatsappUrl(waUrl)
-      window.open(waUrl, '_blank')
-      playSound()
-      speak('Presupuesto enviado. Volviendo al inicio')
-      setPhase('done')
-      setTimeout(() => navigate('/presupuestos'), 2000)
-    } catch (error) {
-      console.error(error)
-      setSmsFeedback('No se pudo enviar WhatsApp. Intenta de nuevo.')
-    } finally {
-      setSending(false)
-    }
-  }, [clientData, conceptos, navigate, playSound, speak, sending, total, vehicleData?.id])
-
-  const phaseTitle = {
-    matricula: 'Captura de matrícula',
-    confirmPlate: 'Confirmación de matrícula',
-    burst: 'Fotos del vehículo',
-    cliente: 'Datos del cliente',
-    conceptos: 'Conceptos y precios',
-    review: 'Resumen y envío',
-    done: 'Finalizado',
-  }[phase]
+  }, [clientForm, plateText, manualPlate, navigate, speak])
 
   return (
-    <div className="space-y-6 pb-24">
-      <PageHeader title="Flujo Híbrido de Presupuesto" subtitle={phaseTitle}>
-        <div className="flex gap-2">
-          <Button variant="ghost" onClick={() => navigate(-1)}>
-            <ArrowLeft className="w-4 h-4" /> Volver
-          </Button>
-        </div>
-      </PageHeader>
+    <div className="min-h-screen bg-slate-950 text-white pb-12">
+      {/* Cabecera Centrada con PRESUPUESTO / ASISTIDO */}
+      <div className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+          title="Volver"
+          aria-label="Volver"
+        >
+          <ArrowLeft className="w-5 h-5 text-slate-200" />
+        </button>
 
-      <div className="gestarian-panel rounded-3xl border border-white/10 bg-slate-950/70 p-6 shadow-2xl">
+        <div className="flex flex-col items-center justify-center text-center">
+          <h1 className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">PRESUPUESTO</h1>
+          <p className="text-xs font-black uppercase tracking-widest text-cyan-400">ASISTIDO</p>
+        </div>
+
+        <div className="w-10" /> {/* Spacer */}
+      </div>
+
+      <div className="mx-auto max-w-4xl px-3 py-3 space-y-4">
+
+        {/* Banner de Error u OCR */}
         {ocrError && (
-          <div className="mb-4 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-xs font-bold text-rose-300">
             {ocrError}
           </div>
         )}
 
+        {/* -------------------------------------------------- */}
+        {/* FASE 1: CAPTURA DE MATRÍCULA */}
+        {/* -------------------------------------------------- */}
         {phase === 'matricula' && (
-          <Box className="space-y-4">
-            <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center" className="mb-2">
-              <Chip label="Paso 1 de 5" color="info" size="small" className="bg-cyan-500/10 text-cyan-200 border border-cyan-500/20" />
-              <Typography variant="subtitle2" className="text-slate-300">Captura la matrícula con la cámara o escríbela manualmente.</Typography>
+          <Box className="space-y-3">
+            <Stack direction="row" spacing={2} flexWrap="wrap" alignItems="center" className="mb-1">
+              <Chip label="Paso 1: Matrícula" color="info" size="small" className="bg-cyan-500/10 text-cyan-200 border border-cyan-500/20 font-bold" />
+              <Typography variant="subtitle2" className="text-slate-300 text-xs">
+                Captura la matrícula con Plate Recognizer o escríbela manualmente.
+              </Typography>
             </Stack>
+
             <Box className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-black/80">
               {!cameraOn ? (
-                <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 py-16 text-center">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-300">
-                    <Camera className="w-8 h-8" />
+                <div className="flex min-h-[200px] max-h-[260px] flex-col items-center justify-center gap-3 px-6 py-8 text-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-300">
+                    <Camera className="w-6 h-6" />
                   </div>
                   <div>
-                    <Typography variant="h6" className="text-white">Inicia cámara para detectar matrícula</Typography>
-                    <Typography variant="body2" className="text-slate-400">Pulsa el botón para activar la cámara en tu móvil.</Typography>
+                    <Typography variant="subtitle1" className="text-white font-bold">Inicia la cámara del móvil</Typography>
+                    <Typography variant="caption" className="text-slate-400">Reconocimiento preciso de matrícula</Typography>
                   </div>
-                  <Button onClick={startCamera} className="inline-flex items-center gap-2 px-6 py-3">
+                  <Button onClick={startCamera} className="inline-flex items-center gap-2 px-5 py-2.5 font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-sm">
                     <Camera className="w-4 h-4" /> Iniciar cámara
                   </Button>
                 </div>
               ) : (
                 <>
-                  <video ref={videoRef} className="w-full min-h-[320px] object-cover" autoPlay muted playsInline />
+                  <video ref={videoRef} className="w-full h-[220px] sm:h-[280px] object-cover" autoPlay muted playsInline />
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                    <div className="border-2 border-cyan-400/80 bg-black/20" style={{ width: '80%', aspectRatio: '4 / 1' }} />
+                    <div className="border-2 border-cyan-400/80 bg-black/20 rounded-xl" style={{ width: '80%', aspectRatio: '4 / 1' }} />
                   </div>
                 </>
               )}
             </Box>
+
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-end">
               <TextField
                 label="Matrícula manual"
@@ -569,293 +567,248 @@ export function PresupuestoHibridoPage() {
                 {...sharedFieldProps}
               />
               <Stack direction="row" spacing={2} className="w-full sm:w-auto">
-                <Button onClick={handleCapturePlate} className="inline-flex items-center gap-2">
-                  <Camera className="w-4 h-4" /> Capturar matrícula
+                <Button onClick={handleCapturePlate} disabled={uploading} className="inline-flex items-center gap-2 font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl py-3 px-5">
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />} CAPTURA OCR
                 </Button>
-                <Button variant="secondary" onClick={handleConfirmPlate} disabled={!manualPlate} className="inline-flex items-center gap-2">
-                  <Check className="w-4 h-4" /> Usar matrícula
+                <Button variant="secondary" onClick={handleConfirmPlate} disabled={!manualPlate} className="inline-flex items-center gap-2 py-3">
+                  <Check className="w-4 h-4" /> Usar esta matrícula
                 </Button>
               </Stack>
             </Stack>
-            <Typography variant="caption" className="text-slate-400">Coloca la matrícula dentro del rectángulo 4:1 y pulsa el botón de captura. También puedes escribirla manualmente si no se detecta.</Typography>
-            <canvas ref={canvasRef} className="hidden" />
           </Box>
         )}
 
+        {/* -------------------------------------------------- */}
+        {/* FASE 2: CONFIRMAR MATRÍCULA Y ESTADO DB */}
+        {/* -------------------------------------------------- */}
         {phase === 'confirmPlate' && (
           <div className="space-y-4">
-            <div className="rounded-3xl border border-slate-700 bg-slate-950/90 p-4 text-center">
-              <p className="text-sm text-slate-400">Matrícula detectada</p>
-              <p className="text-4xl font-semibold tracking-[0.35em] text-white">{plateText}</p>
-              <p className="text-xs text-slate-500">Solo guardaremos el texto; la imagen se descarta.</p>
+            <div className="rounded-3xl border border-cyan-500/30 bg-slate-900/90 p-5 text-center space-y-3 shadow-2xl flex flex-col items-center">
+              <p className="text-xs uppercase tracking-widest text-cyan-400 font-black">CAPTURA OCR MATRÍCULA</p>
+              
+              {/* Matrícula Europea Oficial (Envoltorio rectangular con franja azul 'E' y 12 estrellas amarillas) */}
+              <div className="py-2">
+                <EuropeanLicensePlate plate={plateText} />
+              </div>
+
+              {plateConfidence && (
+                <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 px-3 py-1 rounded-full border border-emerald-500/30 inline-block">
+                  Confianza API: {plateConfidence}%
+                </span>
+              )}
+              {clientExists ? (
+                <div className="pt-1 text-emerald-400 font-bold text-sm flex items-center justify-center gap-1.5">
+                  <Check className="w-4 h-4" /> Vehículo encontrado en la Base de Datos: {clientData?.nombre}
+                </div>
+              ) : (
+                <div className="pt-1 text-amber-400 font-bold text-xs flex items-center justify-center gap-1.5">
+                  Matrícula no registrada en la base de datos de GESTARIAN
+                </div>
+              )}
             </div>
+
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button onClick={handleConfirmPlate}>
-                <Check className="w-4 h-4" /> Aceptar matrícula
+              <Button onClick={handleConfirmPlate} className="font-bold bg-cyan-600 text-white py-3 text-sm">
+                <Check className="w-5 h-5 mr-2" /> Aceptar Matrícula e Iniciar Captura de Fotos
               </Button>
-              <Button variant="secondary" onClick={handleRetakePlate}>
-                <X className="w-4 h-4" /> Volver a capturar
+              <Button variant="secondary" onClick={handleRetakePlate} className="py-3 text-sm">
+                <X className="w-5 h-5 mr-2" /> Volver a capturar
               </Button>
             </div>
           </div>
         )}
 
+        {/* -------------------------------------------------- */}
+        {/* FASE 3: CAPTURA CONTINUA DE FOTOS Y DOCUMENTOS */}
+        {/* -------------------------------------------------- */}
         {phase === 'burst' && (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="relative overflow-hidden rounded-3xl border border-cyan-500/30 bg-black/80">
               {previewPhoto ? (
-                <img src={previewPhoto} alt="Foto capturada" className="w-full h-[360px] object-cover" />
+                <img src={previewPhoto} alt="Foto capturada" className="w-full h-[220px] sm:h-[280px] object-cover" />
               ) : (
-                <video ref={videoRef} className="w-full min-h-[320px] object-cover" autoPlay muted playsInline />
+                <video ref={videoRef} className="w-full h-[220px] sm:h-[280px] object-cover" autoPlay muted playsInline />
               )}
-              <div className="absolute left-1/2 top-4 -translate-x-1/2 rounded-full bg-black/50 px-4 py-2 text-xs uppercase tracking-[.2em] text-cyan-200">
-                Matrícula: {plateText}
+              {/* Matrícula Europea Flotante en el visor de cámara */}
+              <div className="absolute left-1/2 top-3 -translate-x-1/2 shadow-2xl z-10 scale-90">
+                <EuropeanLicensePlate plate={plateText} />
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Button onClick={addCapturedPhoto}>
-                  <Camera className="w-4 h-4" /> Tomar foto
+
+            {/* BARRA DE ACCIONES PRINCIPALES Y DEDICADAS */}
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                
+                {/* Botón 1: Foto del Trabajo */}
+                <Button onClick={addCapturedPhoto} className="py-2.5 font-bold bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl flex items-center justify-center gap-2 text-sm shadow">
+                  <Camera className="w-4 h-4" /> Tomar Foto del Trabajo ({photos.length})
                 </Button>
-                <Button variant="secondary" onClick={handleUpload} disabled={photos.length === 0 || uploading}>
-                  <Upload className="w-4 h-4" /> Subir fotos
+
+                {/* Botón 2: Foto de Documento en Relleno Gris 80% (Sin morados) */}
+                <Button onClick={handleCaptureDocument} disabled={uploading} className="py-2.5 font-bold bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-200 rounded-xl flex items-center justify-center gap-2 text-sm shadow">
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4 text-slate-300" />} 
+                  Capturar Permiso / Ficha Técnica ({docPhotos.length})
                 </Button>
-                <Button variant="ghost" onClick={handleRetakePlate}>
-                  <X className="w-4 h-4" /> Cambiar matrícula
-                </Button>
+
               </div>
-              <div className="text-right text-slate-400">
-                <p className="text-xs uppercase tracking-[.2em] text-slate-500">Fotos tomadas</p>
-                <p className="text-3xl font-semibold text-white">{photos.length}</p>
-              </div>
-            </div>
-            {photos.length > 0 && (
-              <div className="grid grid-cols-4 gap-2 overflow-x-auto pb-2">
-                {photos.map((photo, index) => (
-                  <div key={index} className="h-20 overflow-hidden rounded-2xl border border-white/10">
-                    <img src={photo} alt={`Foto ${index + 1}`} className="h-full w-full object-cover" />
+
+              {/* MUESTRA DE FOTOS CAPTURADAS */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div className="bg-slate-900 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
+                  <span className="text-[11px] font-bold text-cyan-300 block uppercase">Fotos de Trabajo ({photos.length})</span>
+                  <div className="flex gap-2 overflow-x-auto">
+                    {photos.map((p, idx) => (
+                      <img key={idx} src={p} alt={`Trabajo ${idx}`} className="w-12 h-12 object-cover rounded-lg border border-slate-700 shrink-0" />
+                    ))}
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {phase === 'cliente' && (
-          <Box className="space-y-4">
-            <Stack spacing={3}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="Nombre"
-                  value={clientForm.nombre}
-                  onChange={(e) => handleClientField('nombre', e.target.value)}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  label="DNI / NIF"
-                  value={clientForm.dni}
-                  onChange={(e) => handleClientField('dni', e.target.value)}
-                  {...sharedFieldProps}
-                />
-              </Stack>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <TextField
-                  label="Calle"
-                  value={clientForm.calle}
-                  onChange={(e) => handleClientField('calle', e.target.value)}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  label="Número"
-                  value={clientForm.numero}
-                  onChange={(e) => handleClientField('numero', e.target.value)}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  label="Código Postal"
-                  value={clientForm.cp}
-                  onChange={(e) => handleClientField('cp', e.target.value)}
-                  {...sharedFieldProps}
-                />
-              </Stack>
-              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-                <TextField
-                  label="Localidad"
-                  value={clientForm.localidad}
-                  onChange={(e) => handleClientField('localidad', e.target.value)}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  label="Provincia"
-                  value={clientForm.provincia}
-                  onChange={(e) => handleClientField('provincia', e.target.value)}
-                  {...sharedFieldProps}
-                />
-              </Stack>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <TextField
-                  label="Teléfono"
-                  value={clientForm.telefono}
-                  onChange={(e) => handleClientField('telefono', e.target.value)}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  label="Email"
-                  value={clientForm.email}
-                  onChange={(e) => handleClientField('email', e.target.value)}
-                  {...sharedFieldProps}
-                />
-              </Stack>
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
-              <Stack direction="row" spacing={2} alignItems="center" className="text-sm text-slate-400">
-                {sttSupported && (
-                  <Button variant="ghost" onClick={handleListenConcept} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 text-cyan-100 hover:bg-cyan-500/20">
-                    <Mic className="w-4 h-4" /> Dictar datos
-                  </Button>
-                )}
-                <Typography variant="caption" className="text-slate-400">Pulsa para dictar datos del cliente en esta sección.</Typography>
-              </Stack>
-              <Stack direction="row" spacing={2} className="w-full sm:w-auto">
-                <Button variant="ghost" onClick={() => setPhase('burst')}>
-                  <X className="w-4 h-4" /> Volver atrás
-                </Button>
-                <Button onClick={handleSaveNewClient} disabled={uploading}>
-                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Guardar cliente
-                </Button>
-              </Stack>
-            </Stack>
-            {cpLoading && <Typography variant="caption" className="text-slate-400">Consultando localidad y provincia...</Typography>}
-          </Box>
-        )}
-
-        {phase === 'conceptos' && (
-          <Box className="space-y-4">
-            <Stack spacing={3}>
-              <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-                <TextField
-                  label="Concepto / Repuesto"
-                  value={concepto.descripcion}
-                  onChange={(e) => setConcepto((prev) => ({ ...prev, descripcion: e.target.value }))}
-                  {...sharedFieldProps}
-                  className="lg:col-span-2"
-                />
-                <TextField
-                  type="number"
-                  label="Cantidad"
-                  value={concepto.cantidad || ''}
-                  min={1}
-                  onChange={(e) => setConcepto((prev) => ({ ...prev, cantidad: Number(e.target.value) || 1 }))}
-                  {...sharedFieldProps}
-                />
-                <TextField
-                  type="number"
-                  label="Precio unitario €"
-                  value={concepto.precio || ''}
-                  min={0}
-                  onChange={(e) => setConcepto((prev) => ({ ...prev, precio: Number(e.target.value) || 0 }))}
-                  {...sharedFieldProps}
-                />
-              </Stack>
-
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" justifyContent="space-between">
-                <Stack direction="row" spacing={2} alignItems="center" className="text-sm text-slate-400">
-                  {sttSupported ? (
-                    <Button variant="ghost" onClick={handleListenConcept} className="inline-flex items-center gap-2 rounded-2xl bg-cyan-500/10 px-4 py-2 text-cyan-100 hover:bg-cyan-500/20">
-                      <Mic className="w-4 h-4" /> Dictar concepto
-                    </Button>
-                  ) : (
-                    <Typography variant="caption" className="text-slate-400">Dictado por voz no disponible en este navegador.</Typography>
-                  )}
-                  <Typography variant="caption" className="text-slate-400">Pulsa cuando quieras dictar el concepto completo o dictar campos si estás en cliente.</Typography>
-                </Stack>
-
-                <Stack direction="row" spacing={2} flexWrap="wrap">
-                  <Button onClick={handleAddConcept}>
-                    <PlusCircle className="w-4 h-4" /> Añadir concepto
-                  </Button>
-                  <Button variant="secondary" onClick={handleFinishConcepts}>
-                    <Send className="w-4 h-4" /> Finalizar
-                  </Button>
-                </Stack>
-              </Stack>
-            </Stack>
-
-            {listening && (
-              <Box className="rounded-3xl border border-cyan-500/40 bg-cyan-500/10 p-4 text-sm text-cyan-100">
-                Escuchando: {(transcript || interim).trim() || '...'}
-              </Box>
-            )}
-
-            {!!conceptos.length && (
-              <Box className="rounded-3xl border border-slate-700 bg-slate-950/70 p-4">
-                <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <Typography variant="caption" className="uppercase tracking-[.2em] text-slate-400">Conceptos añadidos</Typography>
-                  <Typography variant="body2" className="text-slate-300">Total {formatMoney(total)} €</Typography>
                 </div>
-                <Stack spacing={3}>
-                  {conceptos.map((item, index) => (
-                    <Box key={index} className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <Typography variant="body2" className="font-semibold text-white">{item.descripcion}</Typography>
-                          <Typography variant="caption" className="text-slate-400">{item.cantidad} x {formatMoney(item.precio)} €</Typography>
-                        </div>
-                        <Typography variant="body2" className="text-right font-semibold text-white">{formatMoney(item.cantidad * item.precio)} €</Typography>
-                      </div>
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            )}
-          </Box>
-        )}
 
-        {phase === 'review' && (
-          <div className="space-y-4">
-            <div className="rounded-3xl border border-slate-700 bg-slate-950/80 p-4">
-              <p className="text-sm text-slate-400">Cliente</p>
-              <p className="text-lg font-semibold text-white">{clientData?.nombre ?? 'Cliente nuevo'}</p>
-              <p className="text-sm text-slate-500">Matrícula: {plateText}</p>
-            </div>
-            <div className="rounded-3xl border border-slate-700 bg-slate-950/80 p-4">
-              <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
-                <span>Subtotal</span>
-                <span>{formatMoney(total)} €</span>
+                <div className="bg-slate-900 p-2.5 rounded-2xl border border-slate-800 space-y-1.5">
+                  <span className="text-[11px] font-bold text-slate-300 block uppercase">Documentos Internos ({docPhotos.length})</span>
+                  <p className="text-[9px] text-slate-400">Archivos internos (No se envían por email)</p>
+                  <div className="flex gap-2 overflow-x-auto">
+                    {docPhotos.map((p, idx) => (
+                      <img key={idx} src={p} alt={`Doc ${idx}`} className="w-12 h-12 object-cover rounded-lg border border-slate-700 shrink-0" />
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-sm text-slate-400 mb-2">
-                <span>IVA 21%</span>
-                <span>{formatMoney(total * 0.21)} €</span>
-              </div>
-              <div className="border-t border-slate-700 pt-3 flex items-center justify-between text-base font-semibold text-white">
-                <span>Total</span>
-                <span>{formatMoney(total * 1.21)} €</span>
+
+              {/* LÍNEA DE ACCIONES DE FINALIZACIÓN */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-800">
+                
+                {/* Botón Guardar Expediente / Imágenes en Gris 80% */}
+                <Button variant="secondary" onClick={handleSaveExpedienteImages} disabled={uploading} className="py-3 font-bold bg-slate-800 border border-slate-700 text-slate-200 flex items-center justify-center gap-2 text-sm">
+                  <Save className="w-4 h-4" /> Guardar Imágenes en Expediente
+                </Button>
+
+                {/* Botón Generar Presupuesto A4/PDF */}
+                <Button onClick={handleGenerarPresupuesto} disabled={uploading} className="py-3 font-black bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl flex items-center justify-center gap-2 text-sm shadow-lg">
+                  <FileText className="w-4 h-4" /> Generar Presupuesto A4/PDF
+                </Button>
+
               </div>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button variant="ghost" onClick={() => setPhase('conceptos')}>
-                <X className="w-4 h-4" /> Volver atrás
-              </Button>
-              <Button onClick={handleSendWhatsApp} disabled={sending || !clientData}>
-                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />} Enviar por WhatsApp
-              </Button>
-            </div>
-            {smsFeedback && <p className="text-sm text-slate-300">{smsFeedback}</p>}
           </div>
         )}
 
-        {phase === 'done' && (
-          <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center text-white">
-            <p className="text-xl font-semibold mb-2">Presupuesto enviado</p>
-            <p className="text-sm text-slate-200 mb-4">Se ha abierto WhatsApp para seguir con el envío.</p>
-            {whatsappUrl && (
-              <a href={whatsappUrl} target="_blank" rel="noreferrer" className="text-cyan-300 underline">
-                Abrir WhatsApp manualmente
-              </a>
-            )}
+        {/* -------------------------------------------------- */}
+        {/* FASE 4: FORMULARIO NUEVO CLIENTE (TEXTOS x1.5 Y VISIBILIDAD TOTAL) */}
+        {/* -------------------------------------------------- */}
+        {phase === 'cliente' && (
+          <div className="space-y-6 bg-slate-900 p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl">
+            <div className="border-b border-slate-800 pb-4">
+              <h2 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-3 uppercase tracking-wide">
+                <UserPlus className="w-8 h-8 text-cyan-400" /> Registro de Nuevo Cliente
+              </h2>
+              <p className="text-sm sm:text-base text-slate-300 mt-2 font-medium">
+                La matrícula <span className="text-cyan-300 font-mono font-black bg-cyan-950 px-2 py-0.5 rounded border border-cyan-700">{plateText}</span> no está registrada. Cumplimenta los datos para generar el expediente.
+              </p>
+            </div>
+            
+            <div className="space-y-6">
+              {/* Nombre completo + DNI */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    Nombre completo <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.nombre}
+                    onChange={(e) => setClientForm({ ...clientForm, nombre: e.target.value })}
+                    placeholder="Ej: Juan Pérez González"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    DNI / CIF / NIF
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.dni}
+                    onChange={(e) => setClientForm({ ...clientForm, dni: e.target.value })}
+                    placeholder="Ej: 12345678X"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner uppercase font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Teléfono + Email */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    Teléfono Móvil
+                  </label>
+                  <input
+                    type="tel"
+                    value={clientForm.telefono}
+                    onChange={(e) => setClientForm({ ...clientForm, telefono: e.target.value })}
+                    placeholder="Ej: 612345678"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    Correo Electrónico
+                  </label>
+                  <input
+                    type="email"
+                    value={clientForm.email}
+                    onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                    placeholder="Ej: cliente@email.com"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                  />
+                </div>
+              </div>
+
+              {/* Calle / Dirección + Código Postal (CP) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div className="sm:col-span-2">
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    Calle / Dirección
+                  </label>
+                  <input
+                    type="text"
+                    value={clientForm.calle}
+                    onChange={(e) => setClientForm({ ...clientForm, calle: e.target.value })}
+                    placeholder="Ej: Av. Principal 45"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                    Código Postal (CP)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={5}
+                    value={clientForm.cp}
+                    onChange={(e) => setClientForm({ ...clientForm, cp: e.target.value.replace(/\D/g, '').slice(0, 5) })}
+                    placeholder="Ej: 28001"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-6 border-t border-slate-800">
+              <Button variant="ghost" onClick={() => setPhase('burst')} className="px-6 py-3.5 text-lg font-bold text-slate-300">
+                Volver
+              </Button>
+              <Button onClick={handleSaveNewClient} disabled={uploading} className="font-black bg-cyan-600 hover:bg-cyan-500 text-white px-8 py-4 text-lg sm:text-xl rounded-2xl shadow-xl flex items-center gap-3">
+                {uploading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />} Guardar y Abrir Presupuesto A4
+              </Button>
+            </div>
           </div>
         )}
+
+        {/* Canvas permanente e invisible para captura de fotogramas en cualquier fase */}
+        <canvas ref={canvasRef} className="hidden" />
       </div>
     </div>
   )

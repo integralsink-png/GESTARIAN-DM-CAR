@@ -6,6 +6,7 @@ import { PageHeader, Card, Button, Badge, EmptyState } from '../components/UI'
 import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2, ArrowLeft } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 
 type Fase = 'antes' | 'durante' | 'despues'
 
@@ -38,6 +39,9 @@ export function ReparacionesPage() {
   const [emailSent, setEmailSent] = useState(false)
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
   const [fotosExpandida, setFotosExpandida] = useState<string | null>(null)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
+  const [showExpedienteViewer, setShowExpedienteViewer] = useState(false)
+  const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
   const [subiendoFoto, setSubiendoFoto] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   // Mapa de reparacion_id -> numero de factura ya creada
@@ -261,13 +265,15 @@ export function ReparacionesPage() {
                     color={selected.estado === 'en_proceso' ? 'blue' : 'green'}
                   />
                     <button
-                      onClick={(e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
-                        const v = vehiculos[selected.vehiculo_id || '']
-                        if (v) setViewerMatricula(v.matricula)
+                        const fotos = await fetchExpedienteFotos(selected.cliente_id, selected.vehiculo_id, selected.fotos || [])
+                        setExpedienteFotos(fotos)
+                        setExpedienteViewerTitle(`Fotos Expediente Reparación`)
+                        setShowExpedienteViewer(true)
                       }}
-                      className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-cyan-400 transition-colors"
-                      title="Imágenes"
+                      className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-amber-400 transition-colors"
+                      title="Imágenes del Expediente"
                     >
                     <ImageIcon className="w-[40px] h-[40px]" />
                   </button>
@@ -421,35 +427,19 @@ export function ReparacionesPage() {
       <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
 
       <GlobalImageViewer
-        isOpen={!!fotosExpandida}
-        onClose={() => setFotosExpandida(null)}
-        images={(reparaciones.find(r => r.id === fotosExpandida)?.fotos ?? []).map(fotoUrl)}
+        isOpen={showExpedienteViewer}
+        onClose={() => setShowExpedienteViewer(false)}
+        images={expedienteFotos}
         onAddImage={async (dataUrl) => {
-          // Fallback to "durante" if added globally without custom action (though hidden in UI)
-          if (!fotosExpandida) return;
-          const r = reparaciones.find(x => x.id === fotosExpandida);
-          if (r) {
-            const nuevasFotos = [...(r.fotos ?? []), `durante:${dataUrl}`];
-            await supabase.from('reparaciones').update({ fotos: nuevasFotos }).eq('id', fotosExpandida);
-            await loadReparaciones();
-            if (selected?.id === fotosExpandida) setSelected({ ...r, fotos: nuevasFotos });
-          }
+          const cId = selected?.cliente_id
+          const vId = selected?.vehiculo_id
+          await saveExpedienteFoto(dataUrl, cId, vId)
+          setExpedienteFotos((prev) => [...prev, dataUrl])
         }}
         onDeleteImage={async (index) => {
-          if (fotosExpandida) await handleDeleteReparacionFoto(fotosExpandida, index)
+          setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
         }}
-        title="Fotos de la Reparación"
-        customAction={
-          <div className="flex gap-2 justify-center w-full">
-            {(['antes', 'durante', 'despues'] as Fase[]).map(fase => (
-              <label key={fase} className={`cursor-pointer flex flex-col items-center justify-center gap-1 w-20 h-20 p-1 text-xs transition-colors font-medium rounded-xl border-2 border-dashed ${subiendoFoto ? 'bg-bg-800 border-bg-700 text-slate-500' : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/20'}`}>
-                <Camera className="w-6 h-6" />
-                <span className="capitalize">{fase}</span>
-                <input type="file" accept="image/*" className="hidden" onChange={(e) => fotosExpandida && handleAddFoto(e, fase, fotosExpandida)} disabled={subiendoFoto} />
-              </label>
-            ))}
-          </div>
-        }
+        title={expedienteViewerTitle}
       />
     </div>
   )
