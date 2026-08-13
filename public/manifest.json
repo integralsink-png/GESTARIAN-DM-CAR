@@ -1,20 +1,20 @@
 {
-  "name": "METIS App",
-  "short_name": "METIS",
+  "name": "GESTARIAN",
+  "short_name": "GESTARIAN",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#10b981",
   "icons": [
     {
-      "src": "/vite.svg",
+      "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/png"
     },
     {
-      "src": "/vite.svg",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/png"
     }
   ]
 }
