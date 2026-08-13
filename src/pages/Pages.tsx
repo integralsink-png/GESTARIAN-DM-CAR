@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Usuario, RolUsuario, Proveedor, FacturaRecibida, Concepto, Incidencia, PrioridadIncidencia, EstadoIncidencia, Cliente, Vehiculo } from '../lib/types'
 
+export { ExpedientePage } from './ExpedientePage'
+
 /* ──────────────── Facturas Recibidas (RFP) ──────────────── */
 export function FacturasRecibidasPage() {
   const [facturas, setFacturas] = useState<FacturaRecibida[]>([])

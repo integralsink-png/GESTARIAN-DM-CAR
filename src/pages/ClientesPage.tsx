@@ -766,12 +766,17 @@ export function ClientesPage() {
                                 {/* Desplegable con los datos detallados del vehículo */}
                                 {isSelectedVeh && (
                                   <div className="p-3 bg-bg-950/70 border-t border-bg-800 text-xs space-y-2">
-                                    <div className="grid grid-cols-2 gap-2 text-slate-300">
+                                    <div className="grid grid-cols-2 gap-2 text-slate-300 mb-3">
                                       <div><span className="text-slate-500 font-medium">Matrícula:</span> <strong className="text-white">{v.matricula}</strong></div>
                                       <div><span className="text-slate-500 font-medium">Marca:</span> {v.marca || '—'}</div>
                                       <div><span className="text-slate-500 font-medium">Modelo:</span> {v.modelo || '—'}</div>
                                       <div><span className="text-slate-500 font-medium">Código Color:</span> {v.codigo_color || '—'}</div>
                                       <div className="col-span-2"><span className="text-slate-500 font-medium">VIN / Bastidor:</span> {v.vin || '—'}</div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                      <Button variant="primary" onClick={() => navigate(`/expediente/${v.id}`)} className="bg-emerald-600 hover:bg-emerald-500 border-emerald-500/50">
+                                        <span className="flex items-center gap-1.5"><Car className="w-4 h-4" /> ABRIR EXPEDIENTE</span>
+                                      </Button>
                                     </div>
                                   </div>
                                 )}

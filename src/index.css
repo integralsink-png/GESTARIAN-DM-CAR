@@ -23,10 +23,12 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background: var(--color-fondo);
   color: var(--color-texto);
   font-family: 'Calibri Light', Calibri, 'Segoe UI', system-ui, sans-serif;

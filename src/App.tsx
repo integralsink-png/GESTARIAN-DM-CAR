@@ -5,6 +5,7 @@ import { ThemeProvider } from './lib/theme'
 import { MobileModeContext } from './lib/mobileMode'
 import { UIStateProvider } from './lib/uiState'
 import { supabase } from './lib/supabase'
+import { ToastProvider } from './lib/ToastContext'
 import { DesktopHeader, MobileFooter, DesktopFooter, FullscreenExitButton } from './components/Navigation'
 import { MetisAssistant } from './components/MetisAssistant'
 import { CameraModal } from './components/CameraModal'
@@ -22,6 +23,7 @@ import { NAV_ITEMS } from './lib/navigation'
 import {
   ProveedoresPage,
   IncidenciasPage, UsuariosPage,
+  ExpedientePage
 } from './pages/Pages'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -234,6 +236,7 @@ function Layout() {
               <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<InicioPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
+                <Route path="/expediente/:vehiculoId" element={<ExpedientePage />} />
                 <Route path="/presupuestos" element={<PresupuestosPage />} />
                 <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
                 <Route path="/citas" element={<CitasPage />} />
@@ -299,6 +302,7 @@ export default function App() {
     <ThemeProvider>
       <UIStateProvider>
         
+        <ToastProvider>
         {/* COMPONENTE DE INTRODUCCIÓN AUTOMÁTICO */}
         <IntroAnimation 
           showIntro={showIntro} 
@@ -311,6 +315,7 @@ export default function App() {
             <Route path="/*" element={<Layout />} />
           </Routes>
         </BrowserRouter>
+        </ToastProvider>
       </UIStateProvider>
     </ThemeProvider>
   )

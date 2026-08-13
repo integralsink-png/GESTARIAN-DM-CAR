@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
 
 import { useNavigate } from 'react-router-dom'
+export { ActionMenu } from './ActionMenu'
+export { TimelineVisual } from './TimelineVisual'
 
 export function PageHeader({ title, children }: { title: string; subtitle?: string; children?: ReactNode }) {
   const navigate = useNavigate()
