@@ -59,13 +59,13 @@ export function ConfiguracionPage() {
   // ----------------------------------------------------
   // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
   // ----------------------------------------------------
-  const [textColors, setTextColors] = useState<TextColorSettings>({
-    text_title: '#ffffff',
-    text_primary: '#f8fafc',
-    text_input: '#ffffff',
-    text_secondary: '#94a3b8',
-    text_card: '#f8fafc',
-  })
+const [textColors, setTextColors] = useState<TextColorSettings>({
+  text_title: '#ffffff',
+  text_primary: '#ffffff',
+  text_input: '#ffffff',
+  text_secondary: '#808080',
+  text_card: '#ffffff',
+})
 
   const sharedTextFieldProps = {
     fullWidth: true,
@@ -735,7 +735,11 @@ export function ConfiguracionPage() {
         {/* Presets de Estilo Visual Global */}
         <div>
           <h3 className="text-sm font-bold text-slate-300 mb-3">Presets de Estilo Visual General</h3>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+          <Stack
+  direction="row"
+  spacing={1}
+  sx={{ flexWrap: 'wrap' }}
+>
             {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
               <Chip
                 key={preset}

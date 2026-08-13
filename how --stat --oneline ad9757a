@@ -1,0 +1,71 @@
+ GESTARIAN GPT/.gitignore                           |   41 [32m+[m
+ GESTARIAN GPT/AGENTS.md                            |    9 [32m+[m
+ GESTARIAN GPT/CLAUDE.md                            |    1 [32m+[m
+ GESTARIAN GPT/README.md                            |   36 [32m+[m
+ GESTARIAN GPT/eslint.config.mjs                    |   18 [32m+[m
+ GESTARIAN GPT/next.config.ts                       |    7 [32m+[m
+ GESTARIAN GPT/package-lock.json                    | 6448 [32m++++++++++++++++++++[m
+ GESTARIAN GPT/package.json                         |   35 [32m+[m
+ GESTARIAN GPT/postcss.config.mjs                   |    7 [32m+[m
+ GESTARIAN GPT/public/file.svg                      |    1 [32m+[m
+ GESTARIAN GPT/public/globe.svg                     |    1 [32m+[m
+ GESTARIAN GPT/public/next.svg                      |    1 [32m+[m
+ GESTARIAN GPT/public/vercel.svg                    |    1 [32m+[m
+ GESTARIAN GPT/public/window.svg                    |    1 [32m+[m
+ GESTARIAN GPT/src/app/app/layout.tsx               |   21 [32m+[m
+ GESTARIAN GPT/src/app/app/page.tsx                 |  154 [32m+[m
+ GESTARIAN GPT/src/app/favicon.ico                  |  Bin [31m0[m -> [32m25931[m bytes
+ GESTARIAN GPT/src/app/globals.css                  |  115 [32m+[m
+ GESTARIAN GPT/src/app/layout.tsx                   |   24 [32m+[m
+ GESTARIAN GPT/src/app/page.tsx                     |   78 [32m+[m
+ .../src/components/layout/FloatingWallMenu.tsx     |  164 [32m+[m
+ GESTARIAN GPT/src/components/layout/Header.tsx     |   95 [32m+[m
+ GESTARIAN GPT/src/components/layout/Sidebar.tsx    |  114 [32m+[m
+ GESTARIAN GPT/src/lib/colorUtils.ts                |   38 [32m+[m
+ GESTARIAN GPT/src/lib/supabase.ts                  |    6 [32m+[m
+ GESTARIAN GPT/src/lib/types/core.ts                |  152 [32m+[m
+ GESTARIAN GPT/src/lib/utils.ts                     |    6 [32m+[m
+ .../modules/balances/components/BalancesView.tsx   |  227 [32m+[m
+ .../src/modules/citas/components/CitasView.tsx     |  197 [32m+[m
+ GESTARIAN GPT/src/modules/citas/store.ts           |   60 [32m+[m
+ .../modules/clientes/components/ClientesView.tsx   |  142 [32m+[m
+ .../clientes/components/NuevoClienteModal.tsx      |  117 [32m+[m
+ GESTARIAN GPT/src/modules/clientes/store.ts        |   87 [32m+[m
+ .../configuracion/components/ConfiguracionView.tsx |  220 [32m+[m
+ GESTARIAN GPT/src/modules/core/store.ts            |   32 [32m+[m
+ .../modules/dashboard/components/DashboardView.tsx |   58 [32m+[m
+ .../expedientes/components/AlbumFotosModal.tsx     |  149 [32m+[m
+ .../expedientes/components/ExpedientesView.tsx     |  301 [32m+[m
+ .../components/NuevoExpedienteModal.tsx            |  111 [32m+[m
+ GESTARIAN GPT/src/modules/expedientes/store.ts     |  112 [32m+[m
+ .../modules/facturas/components/FacturasView.tsx   |  198 [32m+[m
+ GESTARIAN GPT/src/modules/facturas/store.ts        |   49 [32m+[m
+ .../presupuestos/components/PresupuestosView.tsx   |  229 [32m+[m
+ .../reparaciones/components/ReparacionesView.tsx   |  225 [32m+[m
+ GESTARIAN GPT/src/modules/reparaciones/store.ts    |   71 [32m+[m
+ GESTARIAN GPT/tsconfig.json                        |   34 [32m+[m
+ firebase                                           |    0
+ src/lib/aiProviderRegistry.ts                      |   43 [32m+[m
+ src/lib/expedienteService.ts                       |  163 [32m+[m
+ src/lib/metisAiEngine.ts                           |   69 [32m+[m[31m-[m
+ src/lib/pdfGenerator.ts                            |   67 [32m+[m[31m-[m
+ src/lib/theme.tsx                                  |   15 [32m+[m[31m-[m
+ src/lib/types.ts                                   |   51 [32m+[m[31m-[m
+ src/lib/useSpeechSynthesis.ts                      |  154 [32m+[m[31m-[m
+ src/lib/useVoice.ts                                |   38 [32m+[m[31m-[m
+ src/pages/AiPanelPage.tsx                          |  265 [32m+[m
+ src/pages/CitasPage.tsx                            |   70 [32m+[m[31m-[m
+ src/pages/ClientesPage.tsx                         |   54 [32m+[m[31m-[m
+ src/pages/ConfiguracionPage.tsx                    | 1041 [32m++[m[31m--[m
+ src/pages/FacturasPage.tsx                         |   61 [32m+[m[31m-[m
+ src/pages/LicenciasPage.tsx                        |  165 [32m+[m
+ src/pages/PresupuestoHibridoPage.tsx               | 1197 [32m++[m[31m--[m
+ src/pages/PresupuestosPage.tsx                     |  180 [32m+[m[31m-[m
+ src/pages/ReparacionesPage.tsx                     |   50 [32m+[m[31m-[m
+ src/services/aiProviderService.ts                  |  157 [32m+[m
+ src/services/communicationService.ts               |   39 [32m+[m[31m-[m
+ src/services/documentOcrService.ts                 |  103 [32m+[m
+ src/services/documentShareService.ts               |   81 [32m+[m[31m-[m
+ src/services/plateRecognizerService.ts             |  144 [32m+[m
+ src/services/storageService.ts                     |   78 [32m+[m
+ 70 files changed, 13098 insertions(+), 1380 deletions(-)

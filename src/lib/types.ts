@@ -137,7 +137,15 @@ export interface AppearanceSettings {
   sonido_activado: boolean
 }
 
-export type ThemePreset = 'classic' | 'professional' | 'dark' | 'blue' | 'green' | 'orange' | 'premium' | 'custom'
+export type ThemePreset =
+  | 'classic'
+  | 'professional'
+  | 'dark'
+  | 'blue'
+  | 'green'
+  | 'orange'
+  | 'premium'
+  | 'custom'
 
 export interface ThemeSettings {
   id: number
@@ -160,7 +168,7 @@ export interface ThemeSettings {
   shadows: string
   spacing: string
   visual_density: string
-  
+
   logo_url: string | null
   logo_inicio_url: string | null
   dashboard_image_url: string | null
@@ -170,7 +178,7 @@ export interface ThemeSettings {
   splash_screen_url: string | null
   pwa_icon_url: string | null
   notification_color: string
-  
+
   created_at?: string
   updated_at?: string
 }
@@ -270,8 +278,17 @@ export interface Usuario {
   created_at: string
 }
 
-export type PrioridadIncidencia = 'baja' | 'media' | 'alta' | 'urgente'
-export type EstadoIncidencia = 'abierta' | 'en_proceso' | 'resuelta' | 'cerrada'
+export type PrioridadIncidencia =
+  | 'baja'
+  | 'media'
+  | 'alta'
+  | 'urgente'
+
+export type EstadoIncidencia =
+  | 'abierta'
+  | 'en_proceso'
+  | 'resuelta'
+  | 'cerrada'
 
 export interface Incidencia {
   id: string
@@ -284,7 +301,12 @@ export interface Incidencia {
   asignado_a: string | null
   resolucion: string | null
   created_at: string
-export type TextColorValue = '#000000' | '#ffffff' | '#808080'
+}
+
+export type TextColorValue =
+  | '#000000'
+  | '#ffffff'
+  | '#808080'
 
 export interface TextColorSettings {
   text_title: TextColorValue
