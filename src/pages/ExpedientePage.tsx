@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { PageHeader, Card, ActionMenu, TimelineVisual } from '../components/UI';
 import { ArrowLeft, User, Car } from 'lucide-react';
 import type { Vehiculo, Cliente, Presupuesto, Cita, Reparacion, Factura } from '../lib/types';
 import type { TimelineStep } from '../components/TimelineVisual';
 import { useToast } from '../lib/ToastContext';
+import { useGoBack } from '../lib/useGoBack';
 
 export function ExpedientePage() {
   const { vehiculoId } = useParams();
-  const navigate = useNavigate();
+  const goBack = useGoBack('/clientes');
   const { showToast } = useToast();
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null);
@@ -152,7 +153,7 @@ export function ExpedientePage() {
     <div className="flex flex-col gap-6 animate-fade-in pb-24">
       <PageHeader title="EXPEDIENTE">
         <button
-          onClick={() => navigate(-1)}
+          onClick={goBack}
           className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
           title="Volver"
         >
