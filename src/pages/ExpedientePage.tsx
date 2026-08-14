@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, User, Car } from 'lucide-react'
+import { ArrowLeft, User, Car, Image as ImageIcon } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
 import { PageHeader, Card, ActionMenu, TimelineVisual } from '../components/UI'
+import { ImageViewer } from '../components/ImageViewer'
 import type {
   Vehiculo,
   Cliente,
@@ -29,6 +30,7 @@ export function ExpedientePage() {
   const [reparacion, setReparacion] = useState<Reparacion | null>(null)
   const [factura, setFactura] = useState<Factura | null>(null)
   const [loading, setLoading] = useState(true)
+  const [viewerOpen, setViewerOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -247,6 +249,11 @@ export function ExpedientePage() {
         reparacion.estado === 'finalizado'
           ? 'completed'
           : 'active',
+      action: {
+        label: 'Imágenes',
+        icon: <ImageIcon className="w-3.5 h-3.5" />,
+        onClick: () => setViewerOpen(true)
+      }
     })
   } else {
     steps.push({
@@ -584,6 +591,11 @@ export function ExpedientePage() {
 
       </div>
 
+      <ImageViewer
+        open={viewerOpen}
+        matricula={vehiculo.matricula}
+        onClose={() => setViewerOpen(false)}
+      />
     </div>
   )
 }

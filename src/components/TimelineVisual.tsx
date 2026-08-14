@@ -9,6 +9,11 @@ export interface TimelineStep {
   title: string;
   status: TimelineStatus;
   date?: string;
+  action?: {
+    label: string;
+    icon?: React.ReactNode;
+    onClick: () => void;
+  };
 }
 
 interface TimelineVisualProps {
@@ -45,11 +50,20 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${bgColor} ${step.status === 'completed' ? 'text-white' : ''} shadow-lg transition-colors`}>
                 <Icon className="w-5 h-5" />
               </div>
-              <div className="flex flex-col md:items-center md:text-center">
+              <div className="flex flex-col md:items-center md:text-center items-start">
                 <span className={`font-bold text-sm uppercase tracking-wider ${textColor}`}>
                   {step.title}
                 </span>
                 {step.date && <span className="text-xs text-slate-400">{step.date}</span>}
+                {step.action && (
+                  <button
+                    onClick={step.action.onClick}
+                    className="mt-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 transition-colors shadow-sm"
+                  >
+                    {step.action.icon && step.action.icon}
+                    {step.action.label}
+                  </button>
+                )}
               </div>
             </div>
             

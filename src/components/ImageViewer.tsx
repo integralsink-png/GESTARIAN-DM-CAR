@@ -206,23 +206,32 @@ export function ImageViewer({ open, matricula, onClose }: Props) {
     return () => document.removeEventListener('fullscreenchange', onFullscreenChange)
   }, [])
 
+  const handleClose = useCallback(() => {
+    if (window.confirm('¿Estás seguro de que quieres salir del visor de imágenes?')) {
+      onClose()
+    }
+  }, [onClose])
+
   if (!open) return null
 
   const currentImage = selectedIdx !== null ? images[selectedIdx] : null
 
   return (
-    <div id="image-viewer-container" className="fixed inset-0 z-[110] bg-black flex flex-col" onClick={onClose}>
+    <div id="image-viewer-container" className="fixed inset-0 z-[110] bg-black flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 text-white" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm">Imágenes · {matricula}</span>
-          <span className="text-xs text-white/40">{images.length} foto{images.length !== 1 ? 's' : ''}</span>
+      <div className="flex items-center justify-between p-4 text-white relative">
+        <div className="w-16"></div> {/* Spacer to balance */}
+
+        <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center z-10 pointer-events-none">
+          <span className="font-bold text-lg md:text-xl tracking-widest bg-black/40 px-6 py-1.5 rounded-full border border-white/10 backdrop-blur-md shadow-lg">{matricula}</span>
+          <span className="text-xs text-white/50 mt-1 font-medium">{images.length} foto{images.length !== 1 ? 's' : ''}</span>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={toggleFullscreen} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10" aria-label="Pantalla completa">
+
+        <div className="flex items-center gap-2 relative z-10">
+          <button onClick={toggleFullscreen} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 bg-black/40 backdrop-blur-md border border-white/5 transition-colors" aria-label="Pantalla completa">
             {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
           </button>
-          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-white/10" aria-label="Cerrar">
+          <button onClick={handleClose} className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-red-500/80 bg-black/40 backdrop-blur-md border border-white/5 transition-colors" aria-label="Cerrar">
             <X className="w-5 h-5" />
           </button>
         </div>
