@@ -5,14 +5,14 @@ import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } fr
 import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
 import { Box, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw } from 'lucide-react'
+import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 // Servicios centralizados
 import { getAiConfig, getFallbackConfig, testAiConnection } from '../services/aiProviderService'
 import { getDocumentOcrConfig, testDocumentOcrConnection } from '../services/documentOcrService'
 import { getPlateRecognizerConfig, testPlateRecognizerConnection } from '../services/plateRecognizerService'
-import { getStorageConfig } from '../services/storageService'
+
 
 export function ConfiguracionPage() {
   const navigate = useNavigate()
@@ -21,7 +21,7 @@ export function ConfiguracionPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
-  const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance, setAppearance } = useTheme()
+  const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance } = useTheme()
 
   // ----------------------------------------------------
   // ESTADOS DE SERVICIOS Y CLAVES API (OBJETIVO 1, 2, 3)
@@ -834,6 +834,29 @@ const [textColors, setTextColors] = useState<TextColorSettings>({
           <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar Cambios de Configuración'}
         </button>
       </div>
+
+      {/* ── Acceso a Usuarios ─────────────────────────────────── */}
+      <Card className="p-6">
+        <div className="flex items-center gap-3 mb-4">
+          <HardDrive className="w-5 h-5 text-teal-400" />
+          <h2 className="text-lg font-semibold text-white">Administración</h2>
+        </div>
+        <button
+          onClick={() => navigate('/usuarios')}
+          className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors">
+              <UserCog className="w-5 h-5 text-teal-400" />
+            </div>
+            <div className="text-left">
+              <p className="font-bold text-white text-sm uppercase tracking-wide">Usuarios</p>
+              <p className="text-xs text-slate-400 mt-0.5">Gestión de usuarios y permisos del sistema</p>
+            </div>
+          </div>
+          <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+        </button>
+      </Card>
     </div>
   )
 }

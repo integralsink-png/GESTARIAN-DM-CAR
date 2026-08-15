@@ -7,12 +7,13 @@ import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
+import { getExpediente } from '../lib/utils'
 
 
 export function CitasPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const navState = location.state as { presupuestoId?: string; clienteId?: string; vehiculoId?: string } | null
+  const navState = location.state as { presupuestoId?: string; clienteId?: string; vehiculoId?: string; citaId?: string } | null
 
   const [citas, setCitas] = useState<Cita[]>([])
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
@@ -34,7 +35,10 @@ export function CitasPage() {
     loadPresupuestos()
     loadClientes()
     loadVehiculos()
-  }, [])
+    if (navState?.citaId) {
+      setExpandedCita(navState.citaId)
+    }
+  }, [navState?.citaId])
 
   async function loadPresupuestos() {
     const { data } = await supabase.from('presupuestos').select('*')
@@ -159,10 +163,10 @@ export function CitasPage() {
                   </div>
                 </div>
 
-                  {/* LÍNEA 2: PRESUPUESTO | FECHA | HORA */}
+                  {/* LÍNEA 2: EXPEDIENTE | FECHA | HORA */}
                   <div className="flex items-center justify-between w-[95%] text-sm font-semibold mt-1">
-                    <span className="text-cyan-400 font-mono">
-                      {p ? p.numero : 'S/N'}
+                    <span className="text-cyan-400 font-mono text-[15px] bg-cyan-900/30 px-1 rounded border border-cyan-500/20">
+                      {p ? getExpediente(p, clientes.find(c => c.id === cita.cliente_id), clientes) : 'S/N'}
                     </span>
                     <span className="text-slate-300">
                       {new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}

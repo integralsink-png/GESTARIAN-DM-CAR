@@ -1,17 +1,16 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { Check, Clock, PlayCircle, CircleDashed } from 'lucide-react';
+import { ArrowDown, Mail, MessageCircle } from 'lucide-react';
 
-export type TimelineStatus = 'completed' | 'active' | 'pending' | 'future';
+export type TimelineColor = 'emerald' | 'amber' | 'yellow' | 'yellow_glow' | 'blue' | 'slate' | 'red';
 
 export interface TimelineStep {
   id: string;
   title: string;
-  status: TimelineStatus;
+  subtitle?: string; // Para mostrar ej. "FACTURA ENVIADA"
+  showCommunicationIcons?: boolean; // Para mostrar iconos de Email y WA
+  color: TimelineColor;
   date?: string;
   action?: {
-    label: string;
-    icon?: React.ReactNode;
     onClick: () => void;
   };
 }
@@ -22,74 +21,66 @@ interface TimelineVisualProps {
 
 export function TimelineVisual({ steps }: TimelineVisualProps) {
   return (
-    <div className="w-full flex flex-col md:flex-row items-start md:items-center justify-between gap-2 md:gap-4 p-4 bg-slate-800/50 rounded-2xl border border-white/5">
+    <div className="w-full flex flex-col items-center gap-2 py-4">
       {steps.map((step, index) => {
         const isLast = index === steps.length - 1;
         
-        let bgColor = 'bg-slate-700';
-        let textColor = 'text-slate-400';
-        let Icon = CircleDashed;
-        
-        if (step.status === 'completed') {
-          bgColor = 'bg-emerald-500';
-          textColor = 'text-emerald-500';
-          Icon = Check;
-        } else if (step.status === 'active') {
-          bgColor = 'bg-blue-500 text-white';
-          textColor = 'text-blue-400';
-          Icon = PlayCircle;
-        } else if (step.status === 'pending') {
-          bgColor = 'bg-amber-500 text-white';
-          textColor = 'text-amber-500';
-          Icon = Clock;
+        // Asignar colores según la prop
+        let bgClass = 'bg-slate-700/50 border-slate-600 text-slate-300';
+        if (step.color === 'emerald') {
+          bgClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+        } else if (step.color === 'amber') {
+          bgClass = 'bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]';
+        } else if (step.color === 'blue') {
+          bgClass = 'bg-blue-500/20 border-blue-500/50 text-blue-400 hover:bg-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]';
+        } else if (step.color === 'yellow') {
+          bgClass = 'bg-yellow-500/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.15)]';
+        } else if (step.color === 'yellow_glow') {
+          bgClass = 'bg-yellow-500/20 border-yellow-400 text-yellow-300 hover:bg-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.5)] animate-pulse';
+        } else if (step.color === 'red') {
+          bgClass = 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]';
+        } else if (step.color === 'slate') {
+          bgClass = 'bg-slate-500/10 border-slate-600/30 text-slate-500';
         }
+
+        const isInteractive = !!step.action;
+        const Container = isInteractive ? 'button' : 'div';
+        const containerProps = isInteractive ? { 
+          onClick: step.action!.onClick,
+          className: `w-full max-w-sm rounded-2xl border-2 p-4 text-center transition-all cursor-pointer active:scale-95 ${bgClass}`
+        } : {
+          className: `w-full max-w-sm rounded-2xl border-2 p-4 text-center transition-all ${bgClass}`
+        };
 
         return (
           <React.Fragment key={step.id}>
-            <div className="flex md:flex-col items-center gap-3 md:gap-2 relative z-10 w-full md:w-auto">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${bgColor} ${step.status === 'completed' ? 'text-white' : ''} shadow-lg transition-colors`}>
-                <Icon className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col md:items-center md:text-center items-start">
-                <span className={`font-bold text-sm uppercase tracking-wider ${textColor}`}>
+            <Container {...(containerProps as any)}>
+              <div className="flex flex-col items-center justify-center gap-1">
+                <span className="font-bold uppercase tracking-wider" style={{ fontSize: '1.3em' }}>
                   {step.title}
                 </span>
-                {step.date && <span className="text-xs text-slate-400">{step.date}</span>}
-                {step.action && (
-                  <button
-                    onClick={step.action.onClick}
-                    className="mt-2 text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/30 hover:bg-cyan-500/20 transition-colors shadow-sm"
-                  >
-                    {step.action.icon && step.action.icon}
-                    {step.action.label}
-                  </button>
+                {step.subtitle && (
+                  <span className="font-bold uppercase tracking-widest opacity-90 mt-1" style={{ fontSize: '1.05em' }}>
+                    {step.subtitle}
+                  </span>
+                )}
+                {step.showCommunicationIcons && (
+                  <div className="flex items-center justify-center gap-3 mt-2 text-slate-400">
+                    <Mail className="w-5 h-5 hover:text-white transition-colors" />
+                    <MessageCircle className="w-5 h-5 hover:text-white transition-colors" />
+                  </div>
+                )}
+                {step.date && (
+                  <span className="text-xs opacity-70 mt-1">
+                    {step.date}
+                  </span>
                 )}
               </div>
-            </div>
+            </Container>
             
             {!isLast && (
-              <div className="hidden md:block flex-1 h-1 bg-slate-700/50 rounded-full mx-2 overflow-hidden relative self-start mt-5">
-                {step.status === 'completed' && (
-                  <motion.div 
-                    initial={{ width: 0 }} 
-                    animate={{ width: '100%' }} 
-                    className="absolute top-0 left-0 h-full bg-emerald-500" 
-                  />
-                )}
-                {step.status === 'active' && (
-                  <motion.div 
-                    initial={{ width: 0 }} 
-                    animate={{ width: '50%' }} 
-                    className="absolute top-0 left-0 h-full bg-blue-500" 
-                  />
-                )}
-              </div>
-            )}
-            {!isLast && (
-              <div className="block md:hidden w-1 h-6 bg-slate-700/50 rounded-full ml-4 my-1 relative overflow-hidden">
-                 {step.status === 'completed' && (
-                   <div className="absolute top-0 left-0 w-full h-full bg-emerald-500" />
-                 )}
+              <div className="flex items-center justify-center py-1 text-slate-500">
+                <ArrowDown className="w-6 h-6 animate-pulse" />
               </div>
             )}
           </React.Fragment>

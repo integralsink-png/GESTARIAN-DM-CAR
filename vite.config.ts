@@ -21,4 +21,17 @@ export default defineConfig({
       'Expires': '0',
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1500,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['lucide-react', 'framer-motion'],
+          db: ['@supabase/supabase-js'],
+          utils: ['jspdf', 'html2canvas']
+        }
+      }
+    }
+  }
 })

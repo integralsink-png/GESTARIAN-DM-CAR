@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Reparacion, Cliente, Vehiculo, Concepto, Presupuesto } from '../lib/types'
-import { PageHeader, Card, Button, Badge, EmptyState } from '../components/UI'
 import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2, ArrowLeft } from 'lucide-react'
+import { getExpediente } from '../lib/utils'
+import { PageHeader, Card, Button, Badge, EmptyState, Modal } from '../components/UI'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
@@ -26,11 +27,13 @@ function fotoUrl(entry: string): string {
 export function ReparacionesPage() {
   const location = useLocation()
   const navigate = useNavigate()
-  const navState = location.state as { citaId?: string; clienteId?: string; vehiculoId?: string } | null
+  const navState = location.state as { citaId?: string; clienteId?: string; vehiculoId?: string; reparacionId?: string } | null
 
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Record<string, Vehiculo>>({})
+  const [citas, setCitas] = useState<any[]>([])
+  const [presupuestos, setPresupuestos] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Reparacion | null>(null)
   const [editDesc, setEditDesc] = useState('')
@@ -53,7 +56,18 @@ export function ReparacionesPage() {
     loadClientes()
     loadVehiculos()
     loadFacturasMap()
-  }, [])
+    loadCitasYPresupuestos()
+    if (navState?.reparacionId) {
+      setExpandedId(navState.reparacionId)
+    }
+  }, [navState?.reparacionId])
+
+  async function loadCitasYPresupuestos() {
+    const { data: cData } = await supabase.from('citas').select('*')
+    if (cData) setCitas(cData)
+    const { data: pData } = await supabase.from('presupuestos').select('*')
+    if (pData) setPresupuestos(pData)
+  }
 
   async function loadFacturasMap() {
     const { data } = await supabase.from('facturas').select('reparacion_id, numero').not('reparacion_id', 'is', null)
@@ -101,19 +115,47 @@ export function ReparacionesPage() {
         return
       }
 
-      const yearSuffix = String(new Date().getFullYear()).slice(-2)
-      const prefix = `F${yearSuffix}`
-      const { data: todasFacturasAnio } = await supabase.from('facturas').select('numero').like('numero', `${prefix}%`).order('numero', { ascending: false })
-      let maxNum = 0
-      if (todasFacturasAnio && todasFacturasAnio.length > 0) {
-        for (const f of todasFacturasAnio) {
-          if (f.numero && f.numero.startsWith(prefix)) {
-            const numPart = parseInt(f.numero.substring(prefix.length), 10)
-            if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart
+      // Generar número de factura usando los mismos 4 últimos dígitos del presupuesto vinculado
+      // Formato: F + [Trimestre]T + [AA] + [NNNN del presupuesto]
+      // Así el expediente 7E260048 siempre genera la factura F3T260048
+      let numero = ''
+      {
+        const now = new Date()
+        const quarter = Math.floor(now.getMonth() / 3) + 1
+        const yearSuffix = String(now.getFullYear()).slice(-2)
+        const prefix = `F${quarter}T${yearSuffix}`
+
+        // Buscar el presupuesto vinculado via cita para extraer su NNNN
+        let nnnn = ''
+        const { data: repData2 } = await supabase.from('reparaciones').select('cita_id').eq('id', rep.id).maybeSingle()
+        if (repData2?.cita_id) {
+          const { data: citaP } = await supabase.from('citas').select('presupuesto_id').eq('id', repData2.cita_id).maybeSingle()
+          if (citaP?.presupuesto_id) {
+            const { data: presupN } = await supabase.from('presupuestos').select('numero').eq('id', citaP.presupuesto_id).maybeSingle()
+            if (presupN?.numero) {
+              // Extraer los últimos 4 dígitos del presupuesto (P3T260048 -> 0048)
+              nnnn = presupN.numero.slice(-4)
+            }
           }
         }
+
+        if (nnnn) {
+          // Usar los 4 dígitos del presupuesto directamente
+          numero = `${prefix}${nnnn}`
+        } else {
+          // Fallback: secuencia correlativa si no hay presupuesto vinculado
+          const { data: todasFacturasAnio } = await supabase.from('facturas').select('numero').like('numero', `F%T${yearSuffix}%`).order('numero', { ascending: false })
+          let maxNum = 0
+          for (const f of todasFacturasAnio ?? []) {
+            const match = f.numero?.match(/\d{4}$/)
+            if (match) {
+              const n = parseInt(match[0], 10)
+              if (n > maxNum) maxNum = n
+            }
+          }
+          numero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
+        }
       }
-      const numero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
 
       // Buscar conceptos del presupuesto vinculado via cita
       let conceptos: Concepto[] = []
@@ -325,13 +367,18 @@ export function ReparacionesPage() {
                 </div>
               </div>
 
-              {/* LÍNEA 2: Marca/Modelo y Matrícula (justificada derecha y color distinto) */}
+              {/* LÍNEA 2: EXPEDIENTE | Marca/Modelo y Matrícula */}
               {(() => {
                 const v = rep.vehiculo_id ? vehiculos[rep.vehiculo_id] : null;
                 if (!v) return null;
+                const cita = citas.find(c => c.id === rep.cita_id);
+                const p = cita ? presupuestos.find(p => p.id === cita.presupuesto_id) : null;
                 return (
                   <div className="flex items-center justify-between mt-1">
-                    <span className="text-xs text-slate-400 uppercase font-medium">
+                    <span className="text-cyan-400 font-mono text-[15px] bg-cyan-900/30 px-1 rounded border border-cyan-500/20 mr-2">
+                      {p ? getExpediente(p, clientes.find(c => c.id === rep.cliente_id), clientes) : 'S/N'}
+                    </span>
+                    <span className="text-xs text-slate-400 uppercase font-medium flex-1">
                       {v.marca} {v.modelo}
                     </span>
                     <span className="text-xs font-bold text-emerald-400 text-right">

@@ -19,11 +19,14 @@ import { ReparacionesPage } from './pages/ReparacionesPage'
 import { FacturasPage } from './pages/FacturasPage'
 import { BalancesPage } from './pages/BalancesPage'
 import { ConfiguracionPage } from './pages/ConfiguracionPage'
+import { ExpedientesPage } from './pages/ExpedientesPage'
 import { NAV_ITEMS } from './lib/navigation'
 import {
   ProveedoresPage,
   IncidenciasPage, UsuariosPage,
-  ExpedientePage
+  ExpedientePage,
+  ClienteAdminPage,
+  VehiculoAdminPage
 } from './pages/Pages'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -83,18 +86,20 @@ function Layout() {
     const currentIndex = swipeRoutes.indexOf(location.pathname)
     if (currentIndex !== -1) {
       if (newDirection === 1) {
-        // Avanzar (+1), si estamos al final vuelve a la primera
-        const nextIndex = (currentIndex + 1) % swipeRoutes.length
-        setDirection(1)
-        navigate(swipeRoutes[nextIndex])
+        // Avanzar (+1), pero si estamos al final, no hacemos nada (no damos la vuelta)
+        if (currentIndex < swipeRoutes.length - 1) {
+          setDirection(1)
+          navigate(swipeRoutes[currentIndex + 1])
+        }
       } else if (newDirection === -1) {
-        // Retroceder (-1), si estamos al principio va a la última
-        const prevIndex = (currentIndex - 1 + swipeRoutes.length) % swipeRoutes.length
-        setDirection(-1)
-        navigate(swipeRoutes[prevIndex])
+        // Retroceder (-1), pero si estamos al principio, no hacemos nada
+        if (currentIndex > 0) {
+          setDirection(-1)
+          navigate(swipeRoutes[currentIndex - 1])
+        }
       }
     } else {
-      // Si la ruta no está directamente en el array (ej. subruta /cliente), vuelve a la primera o anterior
+      // Si la ruta no está directamente en el array, vuelve a la primera o anterior
       setDirection(newDirection)
       navigate(newDirection === 1 ? swipeRoutes[0] : swipeRoutes[swipeRoutes.length - 1])
     }
@@ -236,6 +241,8 @@ function Layout() {
               <Routes location={location} key={location.pathname}>
                 <Route path="/" element={<InicioPage />} />
                 <Route path="/clientes" element={<ClientesPage />} />
+                <Route path="/cliente-admin/:id" element={<ClienteAdminPage />} />
+                <Route path="/vehiculo-admin/:id" element={<VehiculoAdminPage />} />
                 <Route path="/expediente/:vehiculoId" element={<ExpedientePage />} />
                 <Route path="/presupuestos" element={<PresupuestosPage />} />
                 <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
@@ -243,6 +250,7 @@ function Layout() {
                 <Route path="/reparaciones" element={<ReparacionesPage />} />
                 <Route path="/facturas" element={<FacturasPage />} />
                 <Route path="/balances" element={<BalancesPage />} />
+                <Route path="/expedientes" element={<ExpedientesPage />} />
                 <Route path="/proveedores" element={<ProveedoresPage />} />
                 <Route path="/incidencias" element={<IncidenciasPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />

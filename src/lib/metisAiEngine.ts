@@ -142,7 +142,8 @@ REGLAS DE ORO:
     "navigationPath": "/presupuestos" | "/citas" | "/clientes"
   }
 }
-4. Si es una pregunta conversacional, responde directamente en castellano nativo de España.`
+4. Si es una pregunta conversacional, responde directamente en castellano nativo de España.
+5. ADAPTACIÓN AL HABLA ANDALUZA: El usuario puede hablar español de Andalucía. Interpreta el lenguaje coloquial andaluz y sus particularidades fonéticas. No confundas una pronunciación relajada, pérdida o aspiración de sonidos, contracciones o palabras parcialmente pronunciadas con una palabra diferente cuando el contexto permita determinar la intención. Evalúa siempre la frase completa, el vocabulario del taller (GESTARIAN) y la intención para recuperar correctamente posibles errores de transcripción.`
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -183,7 +184,7 @@ async function processWithHuggingFace(apiKey: string, userText: string, context?
   // If you prefer a smaller model, override via `gestarian_hf_model` in localStorage.
   const defaultModel = localStorage.getItem('gestarian_hf_model') || 'meta-llama/Llama-2-7b-chat'
 
-  const systemInstruction = `Eres METIS, un asistente experto en gestión empresarial y fiscalidad en España. Responde siempre en español de España y, cuando proceda, produce una salida JSON con la estructura esperada por la app (campo \"text\" y opcional \"action\`). Sé conciso, directo y profesional.`
+  const systemInstruction = `Eres METIS, un asistente experto en gestión empresarial y fiscalidad en España. Responde siempre en español de España y, cuando proceda, produce una salida JSON con la estructura esperada por la app (campo "text" y opcional "action"). Sé conciso, directo y profesional. IMPORTANTE: El usuario puede hablar español de Andalucía. Interpreta el lenguaje coloquial andaluz y sus particularidades fonéticas. No confundas una pronunciación relajada, pérdida o aspiración de sonidos, contracciones o palabras parcialmente pronunciadas con una palabra diferente cuando el contexto permita determinar la intención. Deduce el significado correcto apoyándote en el contexto del taller.`
 
   // Build a compact prompt combining system + UI context + user text
   const matriculaDetected = extractMatricula(userText) || context?.matricula
@@ -264,6 +265,7 @@ REGLAS DE ORO (ESTRICTAS):
 5. El usuario puede pedir modificar un documento (ej: "modifica pintar techo por pintar capó por 100€"). Aplica el cambio en los conceptos usando "action": "update".
 6. DEBES responder SIEMPRE EN ESPAÑOL DE ESPAÑA (CASTELLANO). NUNCA respondas en inglés, chino u otro idioma.
 7. DEBES responder SIEMPRE con un JSON VÁLIDO. No incluyas markdown, solo el objeto JSON crudo.
+8. ADAPTACIÓN AL HABLA ANDALUZA: El usuario puede hablar español de Andalucía. Interpreta el lenguaje coloquial andaluz y sus particularidades fonéticas. No confundas una pronunciación relajada, pérdida o aspiración de sonidos, contracciones o palabras parcialmente pronunciadas con una palabra diferente cuando el contexto de GESTARIAN permita determinar la intención. Deduce el significado real a partir del contexto (nombres, matrículas, vehículos, piezas, facturación) frente a posibles errores fonéticos en la transcripción de voz.
 
 Estructura del JSON obligatoria:
 {

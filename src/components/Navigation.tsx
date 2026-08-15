@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react'
 import { useState } from 'react'
 import { NAV_ITEMS, FOOTER_NAV } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
@@ -469,23 +469,15 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 11. USUARIOS (Fila 6, Ocupa 12 columnas centradas abajo) */}
-              {NAV_ITEMS[9] && (() => {
-                const item = NAV_ITEMS[9]
-                const Icon = item.icon
-                const color = MENU_COLORS[9]
-                const isActive = location.pathname === item.path
-                return (
-                  <button
-                    className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 12', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.8s' }}
-                    onClick={() => handleNavClick(item.path)}
-                  >
-                    <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
-                    <span className="text-white font-bold text-sm truncate">{item.label}</span>
-                  </button>
-                )
-              })()}
+              {/* 11. EXPEDIENTES (Fila 6, Ocupa 12 columnas centradas abajo) */}
+              <button
+                className={`bento-btn ${location.pathname === '/expedientes' ? 'active-page' : ''}`}
+                style={{ gridColumn: 'span 12', backgroundColor: `${MENU_COLORS[9]}28`, borderColor: MENU_COLORS[9], animationName: 'flyFromBottom', animationDelay: '0.8s' }}
+                onClick={() => handleNavClick('/expedientes')}
+              >
+                <FolderOpen className="w-6 h-6 shrink-0" style={{ color: MENU_COLORS[9] }} strokeWidth={1.8} />
+                <span className="text-white font-bold text-sm truncate">EXPEDIENTES</span>
+              </button>
             </div>
           </div>
         </div>

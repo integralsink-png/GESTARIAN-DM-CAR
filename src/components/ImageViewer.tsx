@@ -217,7 +217,7 @@ export function ImageViewer({ open, matricula, onClose }: Props) {
   const currentImage = selectedIdx !== null ? images[selectedIdx] : null
 
   return (
-    <div id="image-viewer-container" className="fixed inset-0 z-[110] bg-black flex flex-col">
+    <div id="image-viewer-container" className="fixed inset-0 z-[110] bg-black flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-4 text-white relative">
         <div className="w-16"></div> {/* Spacer to balance */}
@@ -237,8 +237,8 @@ export function ImageViewer({ open, matricula, onClose }: Props) {
         </div>
       </div>
 
-      {/* Main viewer area */}
-      <div className="flex-1 relative overflow-hidden flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+      {/* Main viewer area — fills all space above bottom bar */}
+      <div className="flex-1 min-h-0 relative overflow-hidden flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
         {loading ? (
           <div className="flex items-center gap-2 text-cyan-400 text-sm">
             <Loader2 className="w-5 h-5 animate-spin" /> Cargando imágenes...
@@ -335,15 +335,15 @@ export function ImageViewer({ open, matricula, onClose }: Props) {
         )}
       </div>
 
-      {/* Bottom bar: Thumbnails + Camera */}
-      <div className="bg-black/80 border-t border-white/10 p-3 flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
-        {/* Thumbnails strip */}
-        <div className="w-full flex gap-2 overflow-x-auto py-1">
+      {/* Bottom bar: Thumbnails + Camera — fixed height, no overflow */}
+      <div className="bg-black/80 border-t border-white/10 p-2 flex flex-col gap-2 shrink-0 max-h-[220px]" onClick={(e) => e.stopPropagation()}>
+        {/* Thumbnails strip — horizontal scroll contained */}
+        <div className="flex gap-2 overflow-x-auto overflow-y-hidden pb-1" style={{ scrollbarWidth: 'none' }}>
           {images.map((img, i) => (
             <button
               key={img.id}
               onClick={() => { setSelectedIdx(i); stopCamera() }}
-              className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+              className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition-all ${
                 selectedIdx === i ? 'border-cyan-400 scale-105' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
@@ -356,11 +356,11 @@ export function ImageViewer({ open, matricula, onClose }: Props) {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={cameraOn ? capturePhoto : startCamera}
             disabled={addingPhoto}
-            className="w-14 h-14 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 flex items-center justify-center text-cyan-400 disabled:opacity-50"
+            className="w-12 h-12 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/40 flex items-center justify-center text-cyan-400 disabled:opacity-50"
             aria-label="Añadir foto con cámara"
           >
             {addingPhoto ? <Loader2 className="w-6 h-6 animate-spin" /> : <Camera className="w-6 h-6" />}

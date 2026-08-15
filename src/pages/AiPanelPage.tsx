@@ -1,17 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { PageHeader, Card, Button, Badge, Input } from '../components/UI'
-import { AI_PROVIDERS, AIProvider } from '../lib/aiProviderRegistry'
+import { PageHeader, Card, Button, Badge } from '../components/UI'
+import { AI_PROVIDERS } from '../lib/aiProviderRegistry'
 import { 
   ArrowLeft, Sparkles, Bot, FileSearch, Car, Eye, EyeOff, 
-  ExternalLink, CheckCircle2, XCircle, RefreshCw, Save, Trash2, ShieldCheck
+  ExternalLink, CheckCircle2, XCircle, RefreshCw, Trash2, ShieldCheck
 } from 'lucide-react'
 
 export function AiPanelPage() {
   const navigate = useNavigate()
   const [configs, setConfigs] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [_loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   // Formulario para nueva config

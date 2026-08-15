@@ -29,6 +29,7 @@ export function ExpedientePage() {
   const [cita, setCita] = useState<Cita | null>(null)
   const [reparacion, setReparacion] = useState<Reparacion | null>(null)
   const [factura, setFactura] = useState<Factura | null>(null)
+  const [ultimoCobro, setUltimoCobro] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewerOpen, setViewerOpen] = useState(false)
 
@@ -151,8 +152,24 @@ export function ExpedientePage() {
         if (cancelled) return
 
         setFactura(fData)
-      } catch (error) {
-        console.error('Error cargando expediente:', error)
+
+        // ------------------------------------------------------------
+        // 7. ÚLTIMO COBRO DE LA FACTURA
+        // ------------------------------------------------------------
+        if (fData) {
+          const { data: cData } = await supabase
+            .from('cobros')
+            .select('*')
+            .eq('factura_id', fData.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+            
+          if (!cancelled) setUltimoCobro(cData)
+        }
+
+      } catch (err: any) {
+        console.error('Error cargando expediente:', err)
 
         if (!cancelled) {
           showToast('Error cargando expediente', 'error')
@@ -199,7 +216,10 @@ export function ExpedientePage() {
     {
       id: 'recepcion',
       title: 'Recepción',
-      status: 'completed',
+      color: 'emerald',
+      action: {
+        onClick: () => navigate(`/cliente-admin/${cliente.id}`)
+      }
     },
   ]
 
@@ -208,16 +228,16 @@ export function ExpedientePage() {
     steps.push({
       id: 'presupuesto',
       title: 'Presupuesto',
-      status:
-        presupuesto.estado === 'aceptado'
-          ? 'completed'
-          : 'pending',
+      color: presupuesto.estado === 'aceptado' ? 'emerald' : 'amber',
+      action: {
+        onClick: () => navigate('/presupuestos', { state: { presupuestoId: presupuesto.id, openForm: false } })
+      }
     })
   } else {
     steps.push({
       id: 'presupuesto',
       title: 'Presupuesto',
-      status: 'future',
+      color: 'slate',
     })
   }
 
@@ -226,17 +246,16 @@ export function ExpedientePage() {
     steps.push({
       id: 'cita',
       title: 'Cita',
-      status:
-        cita.estado === 'completada' ||
-        cita.estado === 'confirmada'
-          ? 'completed'
-          : 'pending',
+      color: (cita.estado === 'completada' || cita.estado === 'confirmada') ? 'emerald' : 'amber',
+      action: {
+        onClick: () => navigate('/citas', { state: { citaId: cita.id } })
+      }
     })
   } else {
     steps.push({
       id: 'cita',
       title: 'Cita',
-      status: 'future',
+      color: 'slate',
     })
   }
 
@@ -245,66 +264,67 @@ export function ExpedientePage() {
     steps.push({
       id: 'reparacion',
       title: 'Reparación',
-      status:
-        reparacion.estado === 'finalizado'
-          ? 'completed'
-          : 'active',
+      color: reparacion.estado === 'finalizado' ? 'emerald' : 'blue',
       action: {
-        label: 'Imágenes',
-        icon: <ImageIcon className="w-3.5 h-3.5" />,
-        onClick: () => setViewerOpen(true)
+        onClick: () => navigate('/reparaciones', { state: { reparacionId: reparacion.id } })
       }
     })
   } else {
     steps.push({
       id: 'reparacion',
       title: 'Reparación',
-      status: 'future',
+      color: 'slate',
     })
   }
 
   // FACTURA
   if (factura) {
+    const isEnviada = !!(factura.enviado_email_at || factura.enviado_whatsapp_at)
     steps.push({
       id: 'factura',
       title: 'Factura',
-      status:
-        factura.estado_cobro === 'pagada'
-          ? 'completed'
-          : 'pending',
+      subtitle: isEnviada ? 'FACTURA ENVIADA' : undefined,
+      showCommunicationIcons: !isEnviada,
+      color: 'emerald',
+      action: {
+        onClick: () => navigate('/facturas', { state: { facturaNumero: factura.numero } })
+      }
     })
   } else {
     steps.push({
       id: 'factura',
       title: 'Factura',
-      status: 'future',
+      color: (reparacion && reparacion.estado === 'finalizado') ? 'amber' : 'slate',
     })
   }
 
   // COBRO
-  if (factura?.estado_cobro === 'pagada') {
+  if (factura) {
+    const now = new Date();
+    const referenceDate = ultimoCobro ? new Date(ultimoCobro.created_at) : new Date(factura.fecha);
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const daysSince = (now.getTime() - referenceDate.getTime()) / msPerDay;
+    const isPasados6Meses = daysSince > 180;
+
+    let cobroColor: 'emerald' | 'amber' | 'blue' | 'red' | 'slate' = 'amber';
+    if (factura.estado_cobro === 'pagada') {
+      cobroColor = 'emerald';
+    } else if (factura.estado_cobro === 'parcial') {
+      cobroColor = isPasados6Meses ? 'red' : 'blue';
+    } else {
+      cobroColor = isPasados6Meses ? 'red' : 'amber';
+    }
+
     steps.push({
       id: 'cobro',
       title: 'Cobro',
-      status: 'completed',
-    })
-  } else if (
-    factura &&
-    (
-      factura.estado_cobro === 'pendiente' ||
-      factura.estado_cobro === 'parcial'
-    )
-  ) {
-    steps.push({
-      id: 'cobro',
-      title: 'Cobro',
-      status: 'active',
+      color: cobroColor,
     })
   } else {
     steps.push({
       id: 'cobro',
       title: 'Cobro',
-      status: 'future',
+      color: 'slate',
     })
   }
 
@@ -505,8 +525,27 @@ export function ExpedientePage() {
             <User className="w-5 h-5 text-emerald-400" />
             Datos del Cliente
           </h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => navigate(`/cliente-admin/${cliente.id}`)}
+              className="flex-1 flex flex-col items-center justify-center p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition group"
+            >
+              <User className="w-6 h-6 text-cyan-400 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium text-white">Cliente</span>
+              <span className="text-xs text-white/40 mt-1">Ver ficha</span>
+            </button>
 
-          <div className="space-y-3 text-sm">
+            <button
+              onClick={() => navigate(`/vehiculo-admin/${vehiculo.id}`)}
+              className="flex-1 flex flex-col items-center justify-center p-4 rounded-xl border border-blue-500/20 bg-blue-500/5 hover:bg-blue-500/10 transition group"
+            >
+              <Car className="w-6 h-6 text-blue-400 mb-2 group-hover:scale-110 transition-transform" />
+              <span className="text-sm font-medium text-white">Vehículo</span>
+              <span className="text-xs text-white/40 mt-1">Historial y más</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 text-sm mt-4">
 
             <div className="flex justify-between gap-4 border-b border-white/10 pb-2">
               <span className="text-slate-400">

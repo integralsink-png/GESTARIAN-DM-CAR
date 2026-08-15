@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, ClipboardList, Calendar, Wrench,
   FileText, Scale, Truck, AlertTriangle,
-  UserCog, Settings,
+  UserCog, Settings, FolderOpen
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -14,6 +14,7 @@ export interface NavItem {
 // Full menu (hamburger / sidebar)
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Inicio',              path: '/',                   icon: LayoutDashboard },
+  { label: 'Expedientes',         path: '/expedientes',        icon: FolderOpen },
   { label: 'Clientes',            path: '/clientes',            icon: Users },
   { label: 'Presupuestos',        path: '/presupuestos',        icon: ClipboardList },
   { label: 'Citas',               path: '/citas',              icon: Calendar },
@@ -28,6 +29,7 @@ export const NAV_ITEMS: NavItem[] = [
 
 // PC / Tablet Landscape footer (text buttons, no icons except mic)
 export const FOOTER_NAV: NavItem[] = [
+  { label: 'Expedientes',  path: '/expedientes',   icon: FolderOpen },
   { label: 'Clientes',     path: '/clientes',      icon: Users },
   { label: 'Presupuestos', path: '/presupuestos',  icon: ClipboardList },
   { label: 'Citas',        path: '/citas',         icon: Calendar },

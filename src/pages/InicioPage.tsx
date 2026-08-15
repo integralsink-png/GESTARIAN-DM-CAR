@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
   Calendar, Wrench, FileText, Users,
   Clock, CheckCircle2, AlertCircle, Euro, ArrowRight,
-  CarFront, BarChart3
+  CarFront, BarChart3, FolderOpen
 } from 'lucide-react'
 
 import { useGestures } from '../hooks/useGestures'
@@ -199,6 +199,18 @@ export function InicioPage() {
               {/* Acceso rápido */}
               <div className="px-2 sm:px-4">
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-3">Acceso rápido</h2>
+                
+                {/* Botón Expedientes a todo lo ancho */}
+                <button
+                  onClick={() => navigate('/expedientes')}
+                  disabled={!panelInteractable}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-4 mb-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-pink-500/60 border-[2px] backdrop-blur-md text-center"
+                  style={{ backgroundColor: 'rgba(236, 72, 153, 0.45)' }}
+                >
+                  <FolderOpen className="w-8 h-8 flex-shrink-0 drop-shadow-[0_0_8px_currentColor] text-pink-400" />
+                  <span className="text-[1.2em] font-semibold text-white drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]">Expedientes</span>
+                </button>
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {[
                     { icon: Users, label: 'Clientes', path: '/clientes', border: 'border-cyan-500/60 border-[2px]', iconColor: 'text-cyan-400', bg: 'rgba(8, 145, 178, 0.45)' },

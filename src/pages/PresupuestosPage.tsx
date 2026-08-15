@@ -188,16 +188,17 @@ function ConceptoMobileCard({
 export function PresupuestosPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean } | null;
+  const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean; presupuestoId?: string } | null;
   const clienteIdFromNav = navState?.clienteId;
   const vehiculoIdFromNav = navState?.vehiculoId;
   const openFormFromNav = navState?.openForm;
+  const presupuestoIdFromNav = navState?.presupuestoId;
 
   useEffect(() => {
     if (clienteIdFromNav) setSelectedClienteId(clienteIdFromNav);
     if (vehiculoIdFromNav) setSelectedVehiculoId(vehiculoIdFromNav);
-    if (openFormFromNav) setShowForm(true);
-  }, [clienteIdFromNav, vehiculoIdFromNav, openFormFromNav]);
+    if (openFormFromNav && !presupuestoIdFromNav) setShowForm(true);
+  }, [clienteIdFromNav, vehiculoIdFromNav, openFormFromNav, presupuestoIdFromNav]);
 
   const [search, setSearch] = useState("");
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
@@ -376,9 +377,32 @@ export function PresupuestosPage() {
     })));
   }
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
   async function loadCitas() {
     const { data } = await supabase.from("citas").select("*");
     setCitas(data ?? []);
+  }
+
+  // Efecto para abrir el presupuesto automáticamente si viene desde navegación
+  useEffect(() => {
+    if (presupuestoIdFromNav && presupuestos.length > 0 && !editingId) {
+      const p = presupuestos.find(p => p.id === presupuestoIdFromNav);
+      if (p) {
+        editPresupuesto(p);
+      }
+    }
+  }, [presupuestos, presupuestoIdFromNav, editingId]);
+
+  async function loadData() {
+    await Promise.all([
+      loadClientes(),
+      loadPresupuestos(),
+      loadCitas(),
+      loadConfig()
+    ]);
   }
 
   async function loadConfig() {
@@ -398,15 +422,26 @@ export function PresupuestosPage() {
     if (!selectedClienteId) return;
     const cleanConceptos = conceptos.filter((c) => c.descripcion.trim());
 
-    // Generar formato PAA12345 (P + 2 dígitos del año + 5 dígitos de secuencia)
-    const currentYearSuffix = new Date().getFullYear().toString().slice(-2);
-    const prefix = `P${currentYearSuffix}`;
-    const presupuestosDelAño = presupuestos.filter((p) => p.numero && p.numero.startsWith(prefix));
+    // Generar formato P3T260001 (P + [Trimestre]T + 2 dígitos del año + 4 dígitos de secuencia)
+    const now = new Date();
+    const quarter = Math.floor(now.getMonth() / 3) + 1;
+    const currentYearSuffix = now.getFullYear().toString().slice(-2);
+    const prefix = `P${quarter}T${currentYearSuffix}`;
     
+    // Buscar la máxima secuencia de presupuestos del año en curso
+    // Se contemplan ambos formatos: P261234 (antiguo) y P3T260001 (nuevo)
     let maxSeq = 0;
-    presupuestosDelAño.forEach((p) => {
-      const numPart = p.numero.substring(3); // extrae la secuencia tras PAA
-      const seq = parseInt(numPart, 10);
+    presupuestos.forEach((p) => {
+      let seq = 0;
+      if (p.numero && p.numero.includes(`T${currentYearSuffix}`)) {
+        // Formato nuevo: P3T260001 -> extraemos los últimos 4 dígitos
+        const numPart = p.numero.substring(5);
+        seq = parseInt(numPart, 10);
+      } else if (p.numero && p.numero.startsWith(`P${currentYearSuffix}`)) {
+        // Formato antiguo: P261234 -> extraemos los dígitos tras P26
+        const numPart = p.numero.substring(3);
+        seq = parseInt(numPart, 10);
+      }
       if (!isNaN(seq) && seq > maxSeq) {
         maxSeq = seq;
       }

@@ -1,6 +1,5 @@
-import { supabase } from '../lib/supabase'
 import type { MetisAction } from './metisTools'
 
-export const metisActions = async (action: MetisAction) => {
+export const metisActions = async (_action: MetisAction) => {
     // Placeholder
 }
