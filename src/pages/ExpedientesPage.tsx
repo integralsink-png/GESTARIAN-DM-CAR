@@ -17,7 +17,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useGoBack } from '../lib/useGoBack'
-import type { TimelineStep } from '../components/TimelineVisual'
+import type { TimelineStep, TimelineColor } from '../components/TimelineVisual'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -43,6 +43,7 @@ interface ExpRow {
   estadoCobro: 'pendiente' | 'parcial' | 'pagada' | null
   facturaFecha?: string | null
   ultimoCobroFecha?: string | null
+  reparacionId: string | null
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -60,14 +61,6 @@ function fase(
     }
   }
 
-  // Azul: Hay pago parcial de la factura.
-  if (r.estadoCobro === 'parcial') {
-    return {
-      label: 'Cobro Parcial',
-      borderColor: 'border-blue-500',
-    }
-  }
-
   // Rojo: Factura impagada (> 1 semana desde envío o >6 meses desde cobro parcial)
   if (r.tieneFactura) {
     const isPendienteSentAndLate = r.estadoCobro === 'pendiente' && r.facturaEnviada && r.facturaEnvioFecha && (Date.now() - new Date(r.facturaEnvioFecha).getTime() > 7 * 24 * 60 * 60 * 1000);
@@ -78,6 +71,14 @@ function fase(
         label: 'Impago',
         borderColor: 'border-red-500',
       }
+    }
+  }
+
+  // Azul: Hay pago parcial de la factura.
+  if (r.estadoCobro === 'parcial') {
+    return {
+      label: 'Cobro Parcial',
+      borderColor: 'border-blue-500',
     }
   }
 
@@ -111,16 +112,6 @@ function buildSteps(
 ): TimelineStep[] {
   const steps: TimelineStep[] = []
 
-  // ── Determinar Fase Actual para el Roadmap ──
-  let currentPhase = 0
-  if (r.presupuestoEstado) currentPhase = 1
-  if (r.tieneCita) currentPhase = 2
-  if (r.tieneReparacion) currentPhase = 3
-  if (r.estadoReparacion === 'finalizado') currentPhase = 4
-  if (r.tieneFactura) currentPhase = 5
-
-  const future = (phase: number): boolean => phase > currentPhase
-
   // ── RECEPCIÓN ──
   steps.push({
     id: 'recepcion',
@@ -132,12 +123,10 @@ function buildSteps(
   // ── PRESUPUESTO ──
   let presColor: TimelineColor = 'slate'
   let presTitle = 'Presupuesto'
-  if (!future(1)) {
-    if (r.presupuestoEstado === 'aceptado') {
-      presColor = 'emerald'; presTitle = 'Presupuesto Aceptado'
-    } else {
-      presColor = 'amber'; presTitle = 'Presupuesto Pendiente'
-    }
+  if (r.presupuestoEstado === 'aceptado') {
+    presColor = 'emerald'; presTitle = 'Presupuesto Aceptado'
+  } else if (r.presupuestoEstado === 'pendiente') {
+    presColor = 'amber'; presTitle = 'Presupuesto Pendiente'
   }
   steps.push({
     id: 'presupuesto',
@@ -149,12 +138,10 @@ function buildSteps(
   // ── CITA ──
   let citaColor: TimelineColor = 'slate'
   let citaTitle = 'Cita'
-  if (!future(2)) {
-    if (r.citaEstado === 'confirmada' || r.citaEstado === 'completada') {
-      citaColor = 'emerald'; citaTitle = 'Cita Confirmada'
-    } else {
-      citaColor = 'amber'; citaTitle = 'Cita Pendiente'
-    }
+  if (r.citaEstado === 'confirmada' || r.citaEstado === 'completada') {
+    citaColor = 'emerald'; citaTitle = 'Cita Confirmada'
+  } else if (r.citaEstado === 'pendiente') {
+    citaColor = 'amber'; citaTitle = 'Cita Pendiente'
   }
   steps.push({
     id: 'cita',
@@ -166,12 +153,10 @@ function buildSteps(
   // ── REPARACIÓN ──
   let repColor: TimelineColor = 'slate'
   let repTitle = 'Reparación'
-  if (!future(3)) {
-    if (r.estadoReparacion === 'finalizado') {
-      repColor = 'emerald'; repTitle = 'Reparación Finalizada'
-    } else {
-      repColor = 'blue'; repTitle = 'En Taller'
-    }
+  if (r.estadoReparacion === 'finalizado') {
+    repColor = 'emerald'; repTitle = 'Reparación Finalizada'
+  } else if (r.tieneReparacion) {
+    repColor = 'blue'; repTitle = 'En Taller'
   }
   steps.push({
     id: 'reparacion',
@@ -185,32 +170,35 @@ function buildSteps(
   let facTitle = 'Factura'
   let facSubtitle: string | undefined
   let facIcons = false
-  if (!future(4)) {
-    if (!r.tieneFactura) {
-      // Fase 4 sin factura (Reparación finalizada) -> contorno amarillo animado (yellow_glow)
-      facColor = 'yellow_glow'; facTitle = 'Sin Facturar'
-    } else if (r.facturaEnviada) {
-      facColor = 'emerald'; facTitle = 'Factura Enviada'
-    } else {
-      // Factura emitida sin enviar -> yellow_glow (Efecto amarillo animado en la parada)
-      facColor = 'yellow_glow'; facTitle = 'Factura'
-      facSubtitle = 'Sin enviar'
-      facIcons = true
-    }
+
+  if (r.facturaEnviada) {
+    facColor = 'emerald'; facTitle = 'Factura Enviada'
+  } else if (r.tieneFactura) {
+    facColor = 'yellow_glow'; facTitle = 'Factura'
+    facSubtitle = 'Sin enviar'
+    facIcons = true
+  } else if (r.estadoReparacion === 'finalizado') {
+    facColor = 'yellow_glow'; facTitle = 'Sin Facturar'
   }
+
   steps.push({
     id: 'factura',
     title: facTitle,
     subtitle: facSubtitle,
     showCommunicationIcons: facIcons,
     color: facColor,
-    action: r.tieneFactura ? { onClick: () => navigate('/facturas') } : undefined,
+    action: r.tieneFactura 
+      ? { onClick: () => navigate('/facturas') } 
+      : (r.estadoReparacion === 'finalizado' && r.reparacionId)
+        ? { onClick: () => navigate('/facturas', { state: { vehiculoId: r.vehiculoId, clienteId: r.clienteId, reparacionId: r.reparacionId } }) }
+        : undefined,
   })
 
   // ── COBRO ──
   let cobroColor: TimelineColor = 'slate'
   let cobroTitle = 'Cobro'
-  if (!future(5)) {
+  
+  if (r.tieneFactura) {
     const isPendienteSentAndLate = r.estadoCobro === 'pendiente' && r.facturaEnviada && r.facturaEnvioFecha && (Date.now() - new Date(r.facturaEnvioFecha).getTime() > 7 * 24 * 60 * 60 * 1000);
     const isParcialAndLate = r.estadoCobro === 'parcial' && r.ultimoCobroFecha && (Date.now() - new Date(r.ultimoCobroFecha).getTime() > 180 * 24 * 60 * 60 * 1000);
 
@@ -221,13 +209,10 @@ function buildSteps(
     } else if (r.estadoCobro === 'parcial') {
       cobroColor = 'blue'; cobroTitle = 'Cobro Parcial'
     } else if (r.facturaEnviada) {
-      // Enviada pero aún en el periodo de gracia de 1 semana
       cobroColor = 'amber'; cobroTitle = 'Cobro Pendiente'
-    } else {
-      // Factura no enviada -> el cobro está inactivo por defecto
-      cobroColor = 'slate'; cobroTitle = 'Cobro'
     }
   }
+
   steps.push({
     id: 'cobro',
     title: cobroTitle,
@@ -694,7 +679,7 @@ export function ExpedientesPage() {
 
       supabase
         .from('reparaciones')
-        .select('vehiculo_id, estado')
+        .select('id, vehiculo_id, estado')
         .in('vehiculo_id', vIds)
         .order('created_at', {
           ascending: false,
@@ -808,9 +793,10 @@ export function ExpedientesPage() {
         tieneFactura: !!fac,
         facturaEnviada: !!(fac?.enviado_email_at || fac?.enviado_whatsapp_at),
         facturaEnvioFecha,
-        estadoCobro: fac?.estado_cobro ?? null,
+        estadoCobro: (fac?.estado_cobro as 'pendiente' | 'parcial' | 'pagada') ?? null,
         facturaFecha: fac?.fecha ?? null,
         ultimoCobroFecha,
+        reparacionId: rep?.id ?? null,
       }
 
       const f = fase(row)

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useLocation } from 'react-router-dom'
 import { ArrowLeft, User, Car, Image as ImageIcon } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
@@ -20,6 +20,7 @@ import { useGoBack } from '../lib/useGoBack'
 export function ExpedientePage() {
   const { vehiculoId } = useParams<{ vehiculoId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const goBack = useGoBack('/clientes')
   const { showToast } = useToast()
 
@@ -186,7 +187,7 @@ export function ExpedientePage() {
     return () => {
       cancelled = true
     }
-  }, [vehiculoId, showToast])
+  }, [vehiculoId, showToast, location.key])
 
   // ------------------------------------------------------------
   // ESTADOS DE CARGA
@@ -282,10 +283,10 @@ export function ExpedientePage() {
     const isEnviada = !!(factura.enviado_email_at || factura.enviado_whatsapp_at)
     steps.push({
       id: 'factura',
-      title: 'Factura',
-      subtitle: isEnviada ? 'FACTURA ENVIADA' : undefined,
+      title: isEnviada ? 'Factura Enviada' : 'Factura',
+      subtitle: isEnviada ? undefined : 'Sin enviar',
       showCommunicationIcons: !isEnviada,
-      color: 'emerald',
+      color: isEnviada ? 'emerald' : 'yellow_glow',
       action: {
         onClick: () => navigate('/facturas', { state: { facturaNumero: factura.numero } })
       }
@@ -293,31 +294,51 @@ export function ExpedientePage() {
   } else {
     steps.push({
       id: 'factura',
-      title: 'Factura',
-      color: (reparacion && reparacion.estado === 'finalizado') ? 'amber' : 'slate',
+      title: (reparacion && reparacion.estado === 'finalizado') ? 'Sin Facturar' : 'Factura',
+      color: (reparacion && reparacion.estado === 'finalizado') ? 'yellow_glow' : 'slate',
+      action: reparacion ? {
+        onClick: () => navigate('/facturas', {
+          state: {
+            vehiculoId,
+            clienteId: cliente.id,
+            reparacionId: reparacion.id,
+          }
+        })
+      } : undefined
     })
   }
 
   // COBRO
   if (factura) {
-    const now = new Date();
-    const referenceDate = ultimoCobro ? new Date(ultimoCobro.created_at) : new Date(factura.fecha);
-    const msPerDay = 24 * 60 * 60 * 1000;
-    const daysSince = (now.getTime() - referenceDate.getTime()) / msPerDay;
-    const isPasados6Meses = daysSince > 180;
+    const isEnviada = !!(factura.enviado_email_at || factura.enviado_whatsapp_at)
+    const envioFecha = factura.enviado_email_at || factura.enviado_whatsapp_at
 
-    let cobroColor: 'emerald' | 'amber' | 'blue' | 'red' | 'slate' = 'amber';
+    const isPendienteSentAndLate = factura.estado_cobro === 'pendiente' && isEnviada && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 7 * 24 * 60 * 60 * 1000)
+    const isParcialAndLate = factura.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro.created_at).getTime() > 180 * 24 * 60 * 60 * 1000)
+
+    let cobroColor: TimelineColor = 'slate'
+    let cobroTitle = 'Cobro'
+
     if (factura.estado_cobro === 'pagada') {
-      cobroColor = 'emerald';
+      cobroColor = 'emerald'
+      cobroTitle = 'Factura Abonada'
+    } else if (isPendienteSentAndLate || isParcialAndLate) {
+      cobroColor = 'red'
+      cobroTitle = 'Factura Impagada'
     } else if (factura.estado_cobro === 'parcial') {
-      cobroColor = isPasados6Meses ? 'red' : 'blue';
+      cobroColor = 'blue'
+      cobroTitle = 'Cobro Parcial'
+    } else if (isEnviada) {
+      cobroColor = 'amber'
+      cobroTitle = 'Cobro Pendiente'
     } else {
-      cobroColor = isPasados6Meses ? 'red' : 'amber';
+      cobroColor = 'slate'
+      cobroTitle = 'Cobro'
     }
 
     steps.push({
       id: 'cobro',
-      title: 'Cobro',
+      title: cobroTitle,
       color: cobroColor,
     })
   } else {
@@ -327,6 +348,7 @@ export function ExpedientePage() {
       color: 'slate',
     })
   }
+
 
   // ------------------------------------------------------------
   // ACCIONES DISPONIBLES
