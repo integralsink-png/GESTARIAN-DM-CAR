@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Cita, Cliente, Vehiculo, Presupuesto } from '../lib/types'
-import { PageHeader, Card, Badge, EmptyState } from '../components/UI'
+import { PageHeader, Card, Badge, EmptyState, MatriculaBadge } from '../components/UI'
 import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { getExpediente } from '../lib/utils'
+import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
 
 
 export function CitasPage() {
@@ -184,38 +186,53 @@ export function CitasPage() {
                     if (!v) return null;
                     return (
                       <div className="flex items-center justify-between mt-1 w-[95%]">
-                        <span className="text-xs text-slate-400 uppercase font-medium">
+                        <span className="text-xs text-slate-400 uppercase font-medium truncate pr-2">
                           {v.marca} {v.modelo}
                         </span>
-                        <span className="text-xs font-bold text-emerald-400 text-right">
-                          {v.matricula}
-                        </span>
+                        <MatriculaBadge matricula={v.matricula} />
                       </div>
                     );
                   })()}
               </div>
 
-              {/* EXPANDED AREA */}
-              {isExpanded && (
-                <div className="p-4 border-t border-white/10 bg-black/20 flex flex-wrap gap-2 items-center justify-end">
-                    {/* Botón Imágenes */}
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        const fotos = await fetchExpedienteFotos(cita.cliente_id, cita.vehiculo_id, cita.fotos || []);
-                        setExpedienteFotos(fotos);
-                        setExpedienteViewerTitle(`Fotos Expediente Cita`);
-                        setShowExpedienteViewer(true);
-                      }}
-                      className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 text-amber-400"
-                      title="Imágenes del Expediente"
+              {/* EXPANDED AREA with unified 1.5s dropdown animation */}
+              <AnimatePresence initial={false}>
+                {isExpanded && (
+                  <motion.div
+                    key="citas-dropdown"
+                    initial="hidden"
+                    animate="show"
+                    exit="exit"
+                    variants={dropdownPanelVariants}
+                    className="overflow-hidden border-t border-white/10 bg-black/20"
+                  >
+                    <motion.div
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      variants={getDropdownStaggerVariants(4, 1.5)}
+                      className="p-4 flex flex-wrap gap-2 items-center justify-end"
                     >
-                      <ImageIcon className="w-[40px] h-[40px]" />
-                    </button>
+                      {/* Botón Imágenes */}
+                      <motion.button
+                        variants={dropdownItemVariants}
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const fotos = await fetchExpedienteFotos(cita.cliente_id, cita.vehiculo_id, cita.fotos || []);
+                          setExpedienteFotos(fotos);
+                          setExpedienteViewerTitle(`Fotos Expediente Cita`);
+                          setShowExpedienteViewer(true);
+                        }}
+                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 text-amber-400"
+                        title="Imágenes del Expediente"
+                      >
+                        <ImageIcon className="w-[40px] h-[40px]" />
+                      </motion.button>
 
-                    {/* Botón Ver Presupuesto */}
-                    {p && (
-                        <button
+                      {/* Botón Ver Presupuesto */}
+                      {p && (
+                        <motion.button
+                          variants={dropdownItemVariants}
                           onClick={(e) => {
                             e.stopPropagation();
                             navigate('/presupuestos', { state: { clienteId: cita.cliente_id } });
@@ -223,18 +240,19 @@ export function CitasPage() {
                           className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-cyan-400 transition-colors"
                           title="Ver Presupuesto"
                         >
-                        <svg className="w-[40px] h-[40px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                          <polyline points="14 2 14 8 20 8"></polyline>
-                          {/* P letter inside */}
-                          <path d="M12 16v-4h2.5a1.5 1.5 0 0 1 0 3H12"></path>
-                        </svg>
-                      </button>
-                    )}
+                          <svg className="w-[40px] h-[40px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            {/* P letter inside */}
+                            <path d="M12 16v-4h2.5a1.5 1.5 0 0 1 0 3H12"></path>
+                          </svg>
+                        </motion.button>
+                      )}
 
-                    {/* Botón Enviar a Taller */}
-                    {cita.estado !== 'completada' && (
-                        <button 
+                      {/* Botón Enviar a Taller */}
+                      {cita.estado !== 'completada' && (
+                        <motion.button
+                          variants={dropdownItemVariants}
                           onClick={async (e) => {
                             e.stopPropagation();
                             await cambiarEstado(cita.id, 'completada');
@@ -259,22 +277,25 @@ export function CitasPage() {
                             <line x1="2" y1="5" x2="38" y2="5"></line>
                             <polyline points="34 1 38 5 34 9"></polyline>
                           </svg>
-                        </button>
-                    )}
+                        </motion.button>
+                      )}
 
-                    {/* Botón Eliminar Cita */}
-                      <button
+                      {/* Botón Eliminar */}
+                      <motion.button
+                        variants={dropdownItemVariants}
                         onClick={(e) => {
                           e.stopPropagation();
                           eliminarCita(cita.id);
                         }}
-                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-red-400 ml-auto transition-colors"
-                        title="Eliminar cita"
+                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors bg-transparent hover:bg-red-500/10 text-red-400 ml-auto"
+                        title="Eliminar Cita"
                       >
-                      <Trash2 className="w-[40px] h-[40px]" />
-                    </button>
-                </div>
-              )}
+                        <Trash2 className="w-[40px] h-[40px]" />
+                      </motion.button>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </Card>
           );})}
         </div>

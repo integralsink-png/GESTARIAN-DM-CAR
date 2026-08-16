@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { ArrowLeft, User, Car, Image as ImageIcon } from 'lucide-react'
+import { ArrowLeft, User, Car } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
-import { PageHeader, Card, ActionMenu, TimelineVisual } from '../components/UI'
+import { PageHeader, Card, ActionMenu, TimelineVisual, MatriculaBadge } from '../components/UI'
 import { ImageViewer } from '../components/ImageViewer'
 import type {
   Vehiculo,
@@ -16,13 +16,15 @@ import type {
 import type { TimelineStep } from '../components/TimelineVisual'
 import { useToast } from '../lib/ToastContext'
 import { useGoBack } from '../lib/useGoBack'
+import { playSuccessChime } from '../lib/sound'
+import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
 
 export function ExpedientePage() {
   const { vehiculoId } = useParams<{ vehiculoId: string }>()
   const navigate = useNavigate()
   const location = useLocation()
   const goBack = useGoBack('/clientes')
-  const { showToast } = useToast()
+  const { showToast, showActionToast } = useToast()
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null)
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -85,73 +87,81 @@ export function ExpedientePage() {
         // ------------------------------------------------------------
         // 3. ÚLTIMO PRESUPUESTO
         //
-        // IMPORTANTE:
-        // Esto mantiene temporalmente la estructura actual.
-        // En la siguiente fase lo vincularemos al EXPEDIENTE real.
-        // ------------------------------------------------------------
-        const { data: pData, error: pError } = await supabase
-          .from('presupuestos')
-          .select('*')
-          .eq('vehiculo_id', vehiculoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (pError) throw pError
+        // 3. PRESUPUESTO DEL EXPEDIENTE
+        let pData: Presupuesto | null = null
+        const targetPresupuestoId = (location.state as any)?.presupuestoId
+        if (targetPresupuestoId) {
+          const { data, error: pError } = await supabase
+            .from('presupuestos')
+            .select('*')
+            .eq('id', targetPresupuestoId)
+            .maybeSingle()
+          if (pError) throw pError
+          pData = data
+        } else {
+          const { data, error: pError } = await supabase
+            .from('presupuestos')
+            .select('*')
+            .eq('vehiculo_id', vehiculoId)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (pError) throw pError
+          pData = data
+        }
 
         if (cancelled) return
-
         setPresupuesto(pData)
 
-        // ------------------------------------------------------------
-        // 4. ÚLTIMA CITA
-        // ------------------------------------------------------------
-        const { data: ciData, error: ciError } = await supabase
-          .from('citas')
-          .select('*')
-          .eq('vehiculo_id', vehiculoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (ciError) throw ciError
+        // 4. CITA VINCULADA AL PRESUPUESTO
+        let ciData: Cita | null = null
+        if (pData?.id) {
+          const { data, error: ciError } = await supabase
+            .from('citas')
+            .select('*')
+            .eq('presupuesto_id', pData.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (ciError) throw ciError
+          ciData = data
+        }
 
         if (cancelled) return
-
         setCita(ciData)
 
-        // ------------------------------------------------------------
-        // 5. ÚLTIMA REPARACIÓN
-        // ------------------------------------------------------------
-        const { data: rData, error: rError } = await supabase
-          .from('reparaciones')
-          .select('*')
-          .eq('vehiculo_id', vehiculoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (rError) throw rError
+        // 5. REPARACIÓN VINCULADA A LA CITA
+        let rData: Reparacion | null = null
+        if (ciData?.id) {
+          const { data, error: rError } = await supabase
+            .from('reparaciones')
+            .select('*')
+            .eq('cita_id', ciData.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (rError) throw rError
+          rData = data
+        }
 
         if (cancelled) return
-
         setReparacion(rData)
 
-        // ------------------------------------------------------------
-        // 6. ÚLTIMA FACTURA
-        // ------------------------------------------------------------
-        const { data: fData, error: fError } = await supabase
-          .from('facturas')
-          .select('*')
-          .eq('vehiculo_id', vehiculoId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle()
-
-        if (fError) throw fError
+        // 6. FACTURA VINCULADA A LA REPARACIÓN
+        let fData: Factura | null = null
+        if (rData?.id) {
+          const { data, error: fError } = await supabase
+            .from('facturas')
+            .select('*')
+            .eq('reparacion_id', rData.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle()
+          if (fError) throw fError
+          fData = data
+        }
 
         if (cancelled) return
-
         setFactura(fData)
 
         // ------------------------------------------------------------
@@ -213,141 +223,80 @@ export function ExpedientePage() {
   // ROADMAP
   // ------------------------------------------------------------
 
-  const steps: TimelineStep[] = [
-    {
-      id: 'recepcion',
-      title: 'Recepción',
-      color: 'emerald',
-      action: {
-        onClick: () => navigate(`/cliente-admin/${cliente.id}`)
+  const expData: ExpedienteData = {
+    clienteId: cliente.id,
+    vehiculoId: vehiculo.id,
+    presupuesto,
+    cita,
+    reparacion,
+    factura,
+    ultimoCobro
+  }
+
+  const onRefresh = () => {
+    window.location.reload()
+  }
+
+  const roadmapActions: RoadmapActions = {
+    onNavigateCliente: (clienteId) => navigate(`/cliente-admin/${clienteId}`),
+    onCrearPresupuesto: (vehiculoId, clienteId) => navigate('/presupuestos'),
+    onVerPresupuesto: (presupuestoId) => navigate('/presupuestos', { state: { presupuestoId, openForm: false } }),
+    onAceptarPresupuesto: async (presupuestoId) => {
+      const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
+      if (!error) {
+        showToast('PRESUPUESTO ACEPTADO', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al aceptar presupuesto', 'error')
       }
     },
-  ]
-
-  // PRESUPUESTO
-  if (presupuesto) {
-    steps.push({
-      id: 'presupuesto',
-      title: 'Presupuesto',
-      color: presupuesto.estado === 'aceptado' ? 'emerald' : 'amber',
-      action: {
-        onClick: () => navigate('/presupuestos', { state: { presupuestoId: presupuesto.id, openForm: false } })
+    onCrearCita: (vehiculoId, clienteId, presupuestoId) => navigate('/asignar-cita', { state: { vehiculoId, clienteId, presupuestoId } }),
+    onVerCita: (citaId) => navigate('/citas', { state: { citaId } }),
+    onConfirmarCita: async (citaId) => {
+      const { error } = await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
+      if (!error) {
+        playSuccessChime()
+        showToast('CITA CONFIRMADA', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al confirmar cita', 'error')
       }
-    })
-  } else {
-    steps.push({
-      id: 'presupuesto',
-      title: 'Presupuesto',
-      color: 'slate',
-    })
-  }
-
-  // CITA
-  if (cita) {
-    steps.push({
-      id: 'cita',
-      title: 'Cita',
-      color: (cita.estado === 'completada' || cita.estado === 'confirmada') ? 'emerald' : 'amber',
-      action: {
-        onClick: () => navigate('/citas', { state: { citaId: cita.id } })
+    },
+    onEnviarTaller: async (vehiculoId, clienteId, citaId) => {
+      const { error: repError } = await supabase.from('reparaciones').insert({
+        vehiculo_id: vehiculoId,
+        cliente_id: clienteId,
+        estado: 'en_proceso'
+      })
+      if (!repError) {
+        if (citaId) {
+          await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
+        }
+        playSuccessChime()
+        showToast('ENVIADO A TALLER', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al enviar al taller', 'error')
       }
-    })
-  } else {
-    steps.push({
-      id: 'cita',
-      title: 'Cita',
-      color: 'slate',
-    })
-  }
-
-  // REPARACIÓN
-  if (reparacion) {
-    steps.push({
-      id: 'reparacion',
-      title: 'Reparación',
-      color: reparacion.estado === 'finalizado' ? 'emerald' : 'blue',
-      action: {
-        onClick: () => navigate('/reparaciones', { state: { reparacionId: reparacion.id } })
+    },
+    onGestionarReparacion: (reparacionId) => navigate('/reparaciones', { state: { reparacionId } }),
+    onFinalizarReparacion: async (reparacionId) => {
+      const { error } = await supabase.from('reparaciones').update({ estado: 'finalizado' }).eq('id', reparacionId)
+      if (!error) {
+        showToast('Reparación finalizada', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al finalizar reparación', 'error')
       }
-    })
-  } else {
-    steps.push({
-      id: 'reparacion',
-      title: 'Reparación',
-      color: 'slate',
-    })
+    },
+    onGenerarFactura: (vehiculoId, clienteId, reparacionId) => {
+      navigate('/facturas', { state: { vehiculoId, clienteId, reparacionId } })
+    },
+    onVerFactura: (numero) => navigate('/facturas', { state: { facturaNumero: numero } })
   }
 
-  // FACTURA
-  if (factura) {
-    const isEnviada = !!(factura.enviado_email_at || factura.enviado_whatsapp_at)
-    steps.push({
-      id: 'factura',
-      title: isEnviada ? 'Factura Enviada' : 'Factura',
-      subtitle: isEnviada ? undefined : 'Sin enviar',
-      showCommunicationIcons: !isEnviada,
-      color: isEnviada ? 'emerald' : 'yellow_glow',
-      action: {
-        onClick: () => navigate('/facturas', { state: { facturaNumero: factura.numero } })
-      }
-    })
-  } else {
-    steps.push({
-      id: 'factura',
-      title: (reparacion && reparacion.estado === 'finalizado') ? 'Sin Facturar' : 'Factura',
-      color: (reparacion && reparacion.estado === 'finalizado') ? 'yellow_glow' : 'slate',
-      action: reparacion ? {
-        onClick: () => navigate('/facturas', {
-          state: {
-            vehiculoId,
-            clienteId: cliente.id,
-            reparacionId: reparacion.id,
-          }
-        })
-      } : undefined
-    })
-  }
+  const steps = buildRoadmap(expData, roadmapActions)
 
-  // COBRO
-  if (factura) {
-    const isEnviada = !!(factura.enviado_email_at || factura.enviado_whatsapp_at)
-    const envioFecha = factura.enviado_email_at || factura.enviado_whatsapp_at
-
-    const isPendienteSentAndLate = factura.estado_cobro === 'pendiente' && isEnviada && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 7 * 24 * 60 * 60 * 1000)
-    const isParcialAndLate = factura.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro.created_at).getTime() > 180 * 24 * 60 * 60 * 1000)
-
-    let cobroColor: TimelineColor = 'slate'
-    let cobroTitle = 'Cobro'
-
-    if (factura.estado_cobro === 'pagada') {
-      cobroColor = 'emerald'
-      cobroTitle = 'Factura Abonada'
-    } else if (isPendienteSentAndLate || isParcialAndLate) {
-      cobroColor = 'red'
-      cobroTitle = 'Factura Impagada'
-    } else if (factura.estado_cobro === 'parcial') {
-      cobroColor = 'blue'
-      cobroTitle = 'Cobro Parcial'
-    } else if (isEnviada) {
-      cobroColor = 'amber'
-      cobroTitle = 'Cobro Pendiente'
-    } else {
-      cobroColor = 'slate'
-      cobroTitle = 'Cobro'
-    }
-
-    steps.push({
-      id: 'cobro',
-      title: cobroTitle,
-      color: cobroColor,
-    })
-  } else {
-    steps.push({
-      id: 'cobro',
-      title: 'Cobro',
-      color: 'slate',
-    })
-  }
 
 
   // ------------------------------------------------------------
@@ -495,11 +444,7 @@ export function ExpedientePage() {
 
           <div className="flex flex-wrap items-center gap-2 text-slate-400 mt-1">
 
-            <Car className="w-4 h-4" />
-
-            <span className="font-mono bg-slate-800 px-2 py-0.5 rounded text-sm text-white border border-slate-700">
-              {vehiculo.matricula}
-            </span>
+            <MatriculaBadge matricula={vehiculo.matricula} />
 
             <span className="mx-1">•</span>
 

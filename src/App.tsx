@@ -20,6 +20,7 @@ import { FacturasPage } from './pages/FacturasPage'
 import { BalancesPage } from './pages/BalancesPage'
 import { ConfiguracionPage } from './pages/ConfiguracionPage'
 import { ExpedientesPage } from './pages/ExpedientesPage'
+import { AsignarCitaPage } from './pages/AsignarCitaPage'
 import { NAV_ITEMS } from './lib/navigation'
 import {
   ProveedoresPage,
@@ -251,6 +252,7 @@ function Layout() {
                 <Route path="/facturas" element={<FacturasPage />} />
                 <Route path="/balances" element={<BalancesPage />} />
                 <Route path="/expedientes" element={<ExpedientesPage />} />
+                <Route path="/asignar-cita" element={<AsignarCitaPage />} />
                 <Route path="/proveedores" element={<ProveedoresPage />} />
                 <Route path="/incidencias" element={<IncidenciasPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />

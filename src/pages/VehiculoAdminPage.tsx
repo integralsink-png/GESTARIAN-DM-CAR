@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Cliente, Vehiculo, Reparacion, Presupuesto, Factura, NotaVehiculo, Cita } from '../lib/types'
 import { Car, FileText, Receipt, Image as ImageIcon, StickyNote, Download, CheckCircle, Clock, AlertCircle, Loader2, Calendar } from 'lucide-react'
+import { MatriculaBadge } from '../components/UI'
 
 type EstadoReparacion = 'pendiente' | 'en_proceso' | 'completada' | 'entregado'
 
@@ -147,11 +148,9 @@ export function VehiculoAdminPage() {
             </div>
           </div>
           {vehiculo && (
-            <div className="flex items-center gap-2 text-sm">
-              <Car className="w-4 h-4 text-cyan-400/60" />
+            <div className="flex flex-wrap items-center gap-2 text-sm mt-1">
+              <MatriculaBadge matricula={vehiculo.matricula} />
               <span className="text-white font-medium">{vehiculo.marca} {vehiculo.modelo}</span>
-              <span className="text-white/40">·</span>
-              <span className="text-cyan-400 font-mono">{vehiculo.matricula}</span>
               {vehiculo.anio && <span className="text-white/40">· {vehiculo.anio}</span>}
             </div>
           )}

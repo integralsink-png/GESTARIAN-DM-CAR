@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { NAV_ITEMS, FOOTER_NAV } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
 import { useUIState } from '../lib/uiState'
@@ -151,8 +151,22 @@ export function DesktopHeader() {
 export function MobileFooter() {
   const { playSound } = useTheme()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [shouldHide, setShouldHide] = useState(false)
   const navigate = useNavigate()
   const location = useLocation()
+
+  useEffect(() => {
+    const handleToggle = (e: Event) => {
+      const detail = (e as CustomEvent).detail
+      setShouldHide(!!detail?.hide)
+    }
+    window.addEventListener('gestarian-toggle-footer', handleToggle)
+    return () => window.removeEventListener('gestarian-toggle-footer', handleToggle)
+  }, [])
+
+  if (shouldHide) {
+    return null
+  }
 
   // Sonido de tap al pulsar botón de menú
   const handleNavClick = (path: string) => {

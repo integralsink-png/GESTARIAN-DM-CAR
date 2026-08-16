@@ -1,33 +1,47 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Cliente, Vehiculo, Presupuesto, Factura, Configuracion } from '../lib/types'
-import { PageHeader, Card, Button, Badge, EmptyState, Input } from '../components/UI'
+import { PageHeader, Card, Button, Badge, EmptyState, Input, MatriculaBadge } from '../components/UI'
 import {
-  Search, Phone, MessageCircle, Edit3, Car, FileText, Check,
-  X, Plus, Trash2, Printer, Mail, ArrowLeft, Image as ImageIcon, Users, Save
+  Search, Phone, MessageCircle, Edit3, Car, Check,
+  X, Plus, Trash2, Printer, Mail, ArrowLeft, Image as ImageIcon, Users, Save, Folder
 } from 'lucide-react'
 import { sendFacturaByEmail, downloadFacturaPDF, sendPresupuestoByEmail, downloadPresupuestoPDF } from '../lib/pdfGenerator'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
-import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
-import { NuevoPresupuestoIcon, PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
+import { FacturaIcon, NuevoPresupuestoA4Icon, ExpedienteFolderIcon } from '../components/CustomIcons'
+import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
 
 export function ClientesPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [clientes, setClientes] = useState<Cliente[]>([])
+  const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
   const [vehiculos, setVehiculos] = useState<Record<string, Vehiculo[]>>({})
   const [search, setSearch] = useState('')
+  const [showSearchInput, setShowSearchInput] = useState(false)
   const [loading, setLoading] = useState(true)
-  const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null)
+  const [expandedClienteId, setExpandedClienteId] = useState<string | null>(location.state?.expandClienteId ?? null)
+
+  useEffect(() => {
+    if (location.state?.expandClienteId) {
+      setExpandedClienteId(location.state.expandClienteId)
+    }
+  }, [location.state])
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('gestarian-toggle-footer', { detail: { hide: showNuevoClienteModal } }))
+    return () => {
+      window.dispatchEvent(new CustomEvent('gestarian-toggle-footer', { detail: { hide: false } }))
+    }
+  }, [showNuevoClienteModal])
 
   // Subpaneles por cliente
   const [activeSubpanel, setActiveSubpanel] = useState<Record<string, 'editar' | 'vehiculos' | 'presupuestos' | 'facturas' | null>>({})
 
   // Estado formulario edición cliente
   const [editForm, setEditForm] = useState<Partial<Cliente>>({})
-
-  // Estado formulario vehículo
-  const [newVehForm, setNewVehForm] = useState({ matricula: '', marca: '', modelo: '', anio: '', vin: '' })
 
   // Presupuestos y facturas por cliente
   const [presupuestosCliente, setPresupuestosCliente] = useState<Record<string, Presupuesto[]>>({})
@@ -83,8 +97,9 @@ export function ClientesPage() {
         ...c,
         numero: c.numero ?? (idx + 1)
       }))
-      // Invertir para mostrar los más recientes primero, pero mantenemos el numero ordinal por fecha
-      setClientes([...clientesConNumero].reverse())
+      // Ordenar por número de cliente en orden decreciente
+      const sorted = [...clientesConNumero].sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0))
+      setClientes(sorted)
       const vehiculoMap: Record<string, Vehiculo[]> = {}
       for (const c of data) {
         const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', c.id)
@@ -364,7 +379,6 @@ export function ClientesPage() {
   }
 
   // Estados de formularios y ventanas emergentes (Pop-up)
-  const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
   const [showNuevoVehiculoModal, setShowNuevoVehiculoModal] = useState<string | null>(null)
   const [clientePopup, setClientePopup] = useState(false)
   const [vehiculoPopup, setVehiculoPopup] = useState(false)
@@ -548,7 +562,7 @@ export function ClientesPage() {
       )}
 
       {/* Título centrado con botón VOLVER a la derecha (navega a la pantalla anterior) */}
-      <PageHeader title="CLIENTES">
+      <PageHeader title="CLIENTES" doubleTitleSize={true}>
         <button
           onClick={() => navigate(-1)}
           className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
@@ -561,25 +575,47 @@ export function ClientesPage() {
 
       {/* Recuadro de búsqueda con botón + (se Oculta al estar dentro de la ficha de un cliente expandido) */}
       {!expandedClienteId && (
-        <div className="flex gap-2 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar cliente..."
-              className="w-full bg-bg-800 border border-bg-600 rounded-xl pl-10 pr-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
-            />
-          </div>
-          <button
-            onClick={() => setShowNuevoClienteModal(true)}
-            className="w-12 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 shrink-0 shadow-[0_0_12px_rgba(8,145,178,0.3)]"
-            title="Añadir nuevo cliente"
-            aria-label="Añadir nuevo cliente"
-          >
-            <Plus className="w-7 h-7" />
-          </button>
+        <div className="flex gap-4 items-center w-full">
+          {showSearchInput ? (
+            <div className="relative flex-1 flex items-center gap-2">
+              <input
+                type="text"
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar cliente..."
+                className="flex-1 bg-bg-800 border border-bg-600 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
+              />
+              <button
+                onClick={() => {
+                  setShowSearchInput(false)
+                  setSearch('')
+                }}
+                className="text-slate-400 hover:text-white p-2 shrink-0"
+                title="Cerrar búsqueda"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setShowSearchInput(true)}
+                className="w-12 h-12 flex items-center justify-center text-slate-450 hover:text-white shrink-0 transition-transform active:scale-95 bg-transparent border-0 outline-none p-0"
+                title="Buscar"
+              >
+                <Search className="w-8 h-8" />
+              </button>
+              <button
+                onClick={() => setShowNuevoClienteModal(true)}
+                className="flex-1 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 font-extrabold shadow-[0_0_12px_rgba(8,145,178,0.3)] gap-1.5 uppercase text-sm tracking-wider"
+                title="Añadir nuevo cliente"
+                aria-label="Añadir nuevo cliente"
+              >
+                <Plus className="w-5 h-5" /> NUEVO CLIENTE
+              </button>
+            </>
+          )}
         </div>
       )}
 
@@ -589,120 +625,206 @@ export function ClientesPage() {
       ) : filteredClientes.length === 0 ? (
         <EmptyState icon={<Users className="w-10 h-10 text-cyan-400" />} title="No se encontraron clientes" subtitle="Utiliza el buscador o añade un cliente" />
       ) : (
-        <div className="space-y-2.5">
+        <motion.div layout className="space-y-2.5 mx-[-1rem] sm:mx-[-1.5rem] lg:mx-[-2rem]">
           {filteredClientes.map((cliente) => {
             const isExpanded = expandedClienteId === cliente.id
             const subpanel = activeSubpanel[cliente.id]
             const clientVehs = vehiculos[cliente.id] ?? []
             const clientFacts = facturasCliente[cliente.id] ?? []
 
-            // Formatear el nombre en 2 líneas si consta de varias palabras
-            const nombreStr = cliente.nombre ? cliente.nombre.trim() : ''
-            const nombreWords = nombreStr.split(' ')
-            const line1 = nombreWords.slice(0, Math.ceil(nombreWords.length / 2)).join(' ')
-            const line2 = nombreWords.slice(Math.ceil(nombreWords.length / 2)).join(' ')
-
             return (
-              <div key={cliente.id} className="rounded-2xl border border-bg-700 bg-bg-800/80 overflow-hidden transition-all duration-200">
+              <motion.div
+                layout
+                key={cliente.id}
+                transition={{ layout: { duration: 0.28, ease: "easeInOut" } }}
+                className={`rounded-2xl border transition-all duration-300 w-[98%] mx-auto shadow-md ${
+                  isExpanded
+                    ? 'border-cyan-500/60 bg-bg-800 ring-1 ring-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.15)] z-10'
+                    : expandedClienteId
+                    ? 'border-bg-700/60 bg-bg-800/70 opacity-70 brightness-[0.70]'
+                    : 'border-bg-700 bg-bg-800/80 hover:border-bg-600'
+                }`}
+              >
                 {/* Fila principal del cliente — Ajustada exactamente al contenido */}
                 <div
                   onClick={() => toggleCliente(cliente)}
-                  className="flex items-center justify-between px-3.5 py-2.5 cursor-pointer hover:bg-bg-700/50 transition-colors gap-3"
+                  className="flex flex-col items-center justify-center py-3 px-1.5 cursor-pointer hover:bg-bg-700/50 transition-colors text-center w-full"
                 >
-                  {/* Número y Nombre en dos líneas */}
-                  <div className="flex-1 min-w-0 pr-2 flex items-start gap-2">
-                    <div className="text-cyan-400 font-bold text-base leading-tight shrink-0">
+                  {/* Número y Nombre en una única línea centrada, ocupando el 98% del ancho de la tarjeta */}
+                  <div className="w-[98%] mx-auto flex items-center px-1 overflow-hidden">
+                    <span className="text-cyan-400 font-medium text-3xl shrink-0 mr-3">
                       {cliente.numero ?? '?'}
-                    </div>
-                    <div className="font-semibold text-white text-base leading-tight">
-                      <div>{line1}</div>
-                      {line2 && <div className="text-slate-300">{line2}</div>}
-                    </div>
-                  </div>
-
-                  {/* Iconos de Nuevo Presupuesto, Teléfono y WhatsApp a la derecha */}
-                  <div className="flex items-center gap-8 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
-                      className="transition-transform hover:scale-110 active:scale-95 flex items-center justify-center shrink-0"
-                      title="Nuevo Presupuesto"
-                    >
-                      <NuevoPresupuestoIcon className="w-12 h-12" />
-                    </button>
-
-                    {cliente.telefono ? (
-                      <>
-                        <a
-                          href={`tel:${cliente.telefono.replace(/\s/g, '')}`}
-                          className="transition-transform hover:scale-110 active:scale-95"
-                          title="Llamar"
-                        >
-                          <Phone className="w-8 h-8 text-blue-400 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                        </a>
-                        <a
-                          href={`https://wa.me/${cliente.telefono.replace(/\s/g, '')}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="transition-transform hover:scale-110 active:scale-95"
-                          title="WhatsApp"
-                        >
-                          <MessageCircle className="w-8 h-8 text-green-400 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                        </a>
-                      </>
-                    ) : (
-                      <span className="text-xs text-slate-500 italic">Sin tel.</span>
-                    )}
+                    </span>
+                    <span className="font-semibold text-white text-3xl truncate text-center flex-1 pr-1">
+                      {cliente.nombre}
+                    </span>
                   </div>
                 </div>
 
                 {/* Panel desplegable con botones de subsecciones */}
-                {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-bg-700 bg-bg-900/60 space-y-4">
-                    {/* Fila de botones principales */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                      {/* Botón Editar */}
-                      <button
-                        onClick={() => toggleSubpanel(cliente.id, 'editar')}
-                        className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all ${
-                          subpanel === 'editar' ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60' : 'bg-bg-800 text-cyan-400/70 border-bg-700 hover:bg-bg-700 hover:text-cyan-400'
-                        }`}
-                        title="Editar cliente"
-                      >
-                        <Edit3 className="w-9 h-9" strokeWidth={1.25} />
-                      </button>
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      key="dropdown-panel"
+                      initial="hidden"
+                      animate="show"
+                      exit="exit"
+                      variants={dropdownPanelVariants}
+                      className="overflow-hidden border-t border-bg-700 bg-bg-900/60"
+                    >
+                      <div className="px-4 pb-4 pt-4 space-y-4">
+                        {/* Fila de 8 botones principales con animación escalonada (1.5s total del primero al último) */}
+                        <motion.div
+                          initial="hidden"
+                          animate="show"
+                          exit="exit"
+                          variants={getDropdownStaggerVariants(8, 1.5)}
+                          className="grid grid-cols-4 sm:grid-cols-8 gap-4 w-[98%] mx-auto justify-items-center py-4 border-b border-bg-800 pb-5"
+                        >
+                          {/* Nuevo Presupuesto */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
+                              className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
+                              title="Nuevo Presupuesto"
+                            >
+                              <NuevoPresupuestoA4Icon className="w-[60px] h-[60px]" />
+                            </button>
+                          </motion.div>
 
-                      {/* Botón Vehículos (Icono coche) */}
-                      <button
-                        onClick={() => toggleSubpanel(cliente.id, 'vehiculos')}
-                        className={`flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border transition-all ${
-                          subpanel === 'vehiculos' ? 'bg-amber-500/20 text-amber-400 border-amber-500/60' : 'bg-bg-800 text-amber-400/70 border-bg-700 hover:bg-bg-700 hover:text-amber-400'
-                        }`}
-                        title={`Vehículos (${clientVehs.length})`}
-                      >
-                        <Car className="w-9 h-9" strokeWidth={1.25} />
-                        <span className="text-[10px] font-bold">{clientVehs.length}</span>
-                      </button>
+                          {/* Expedientes */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => navigate('/expedientes', { state: { search: cliente.nombre } })}
+                              className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
+                              title="Expedientes"
+                            >
+                              <ExpedienteFolderIcon className="w-[60px] h-[60px]" />
+                            </button>
+                          </motion.div>
 
-                      {/* Botón Presupuestos -> Navega directamente al listado de presupuestos del cliente en la página PRESUPUESTOS */}
-                      <button
-                        onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id } })}
-                        className="flex items-center justify-center py-2.5 px-3 rounded-xl border bg-bg-800 text-violet-400 border-bg-700 hover:bg-bg-700 hover:text-violet-300 transition-all"
-                        title="Presupuestos"
-                      >
-                        <PresupuestoIcon className="w-9 h-9" strokeWidth={1.25} />
-                      </button>
+                          {/* Editar */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => toggleSubpanel(cliente.id, 'editar')}
+                              className={`transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
+                                subpanel === 'editar' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-cyan-500 hover:text-cyan-400'
+                              }`}
+                              title="Editar"
+                            >
+                              <Edit3 className="w-[60px] h-[60px]" strokeWidth={1} />
+                            </button>
+                          </motion.div>
 
-                      {/* Botón Facturas */}
-                      <button
-                        onClick={() => toggleSubpanel(cliente.id, 'facturas')}
-                        className={`flex items-center justify-center py-2.5 px-3 rounded-xl border transition-all ${
-                          subpanel === 'facturas' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/60' : 'bg-bg-800 text-emerald-400/70 border-bg-700 hover:bg-bg-700 hover:text-emerald-400'
-                        }`}
-                        title="Facturas"
-                      >
-                        <FacturaIcon className="w-9 h-9" strokeWidth={1.25} />
-                      </button>
-                    </div>
+                          {/* Teléfono */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            {cliente.telefono ? (
+                              <a
+                                href={`tel:${cliente.telefono.replace(/\s/g, '')}`}
+                                className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
+                                title="Llamar"
+                              >
+                                <Phone className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </a>
+                            ) : (
+                              <div className="text-slate-650 opacity-40 cursor-not-allowed">
+                                <Phone className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </div>
+                            )}
+                          </motion.div>
+
+                          {/* WhatsApp */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            {cliente.telefono ? (
+                              <a
+                                href={`https://wa.me/${cliente.telefono.replace(/\s/g, '')}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-green-400 hover:text-green-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
+                                title="WhatsApp"
+                              >
+                                <MessageCircle className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </a>
+                            ) : (
+                              <div className="text-slate-650 opacity-40 cursor-not-allowed">
+                                <MessageCircle className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </div>
+                            )}
+                          </motion.div>
+
+                          {/* Email */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            {cliente.email ? (
+                              <a
+                                href={`mailto:${cliente.email}`}
+                                className="text-purple-400 hover:text-purple-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
+                                title="Email"
+                              >
+                                <Mail className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </a>
+                            ) : (
+                              <div className="text-slate-650 opacity-40 cursor-not-allowed">
+                                <Mail className="w-[60px] h-[60px]" strokeWidth={1} />
+                              </div>
+                            )}
+                          </motion.div>
+
+                          {/* Vehículos */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => toggleSubpanel(cliente.id, 'vehiculos')}
+                              className={`relative transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
+                                subpanel === 'vehiculos' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-cyan-500 hover:text-cyan-400'
+                              }`}
+                              title="Vehículos"
+                            >
+                              <Car className="w-[60px] h-[60px]" strokeWidth={1} />
+                              <span className="absolute -top-1.5 -right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-cyan-600 text-white text-[11px] font-bold flex items-center justify-center shadow">
+                                {clientVehs.length}
+                              </span>
+                            </button>
+                          </motion.div>
+
+                          {/* Facturas */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => toggleSubpanel(cliente.id, 'facturas')}
+                              className={`relative transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
+                                subpanel === 'facturas' ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'text-green-500 hover:text-green-400'
+                              }`}
+                              title="Facturas"
+                            >
+                              <FacturaIcon className="w-[60px] h-[60px]" />
+                              <span className="absolute -top-1.5 -right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-green-600 text-white text-[11px] font-bold flex items-center justify-center shadow">
+                                {clientFacts.length}
+                              </span>
+                            </button>
+                          </motion.div>
+                        </motion.div>
 
                     {/* SUBPANEL EDITAR */}
                     {subpanel === 'editar' && (
@@ -739,8 +861,7 @@ export function ClientesPage() {
                                 >
                                   <div>
                                     <div className="flex items-center gap-2">
-                                      <Car className="w-4 h-4 text-amber-400" />
-                                      <span className="font-bold text-white text-sm">{v.matricula}</span>
+                                      <MatriculaBadge matricula={v.matricula} />
                                     </div>
                                     <p className="text-xs text-slate-400 mt-0.5">
                                       {v.marca || 'Sin marca'} {v.modelo ? `· ${v.modelo}` : ''}
@@ -844,20 +965,22 @@ export function ClientesPage() {
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* MODAL FORMULARIO NUEVO CLIENTE */}
       {showNuevoClienteModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoClienteModal(false)}>
-          <Card className="w-full max-w-md p-5 sm:p-6 my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoClienteModal(false)}>
+          <Card className="w-full max-w-md p-5 sm:p-6 mt-4 sm:mt-12 mb-8 max-h-[92vh] overflow-y-auto scrollbar-thin">
             <div onClick={(e) => e.stopPropagation()} className="space-y-4 pb-44 sm:pb-6">
               <div className="flex items-center justify-between border-b border-bg-700 pb-3 sticky top-0 bg-bg-800 z-10 pt-1">
-                <h2 className="text-lg font-bold text-white">Nuevo Cliente</h2>
+                <h2 className="text-3xl font-extrabold text-sky-400">Nuevo Cliente</h2>
                 <button onClick={() => setShowNuevoClienteModal(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
               </div>
 

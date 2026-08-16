@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
-import { PageHeader, EmptyState } from '../components/UI'
+import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { TimelineVisual } from '../components/TimelineVisual'
 import { getExpediente } from '../lib/utils'
 import { ImageViewer } from '../components/ImageViewer'
@@ -17,6 +17,9 @@ import {
   Trash2,
 } from 'lucide-react'
 import { useGoBack } from '../lib/useGoBack'
+import { useToast } from '../lib/ToastContext'
+import { playSuccessChime } from '../lib/sound'
+import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
 import type { TimelineStep, TimelineColor } from '../components/TimelineVisual'
 
 // ── Types ─────────────────────────────────────────────────────
@@ -32,18 +35,17 @@ interface ExpRow {
   fecha: string
   borderColor: string
   fase: string
-  presupuestoEstado: string | null
-  tieneCita: boolean
-  citaEstado: string | null          // 'pendiente' | 'confirmada' | 'completada' | 'cancelada'
-  tieneReparacion: boolean
-  estadoReparacion: string | null
-  tieneFactura: boolean
-  facturaEnviada: boolean             // true si enviado_email_at o enviado_whatsapp_at tiene valor
-  facturaEnvioFecha: string | null
-  estadoCobro: 'pendiente' | 'parcial' | 'pagada' | null
-  facturaFecha?: string | null
-  ultimoCobroFecha?: string | null
-  reparacionId: string | null
+  // Datos crudos para roadmapEngine
+  presupuesto: { id: string; estado: string } | null
+  cita: { id: string; estado: string } | null
+  reparacion: { id: string; estado: string } | null
+  factura: { 
+    numero: string, 
+    estado_cobro: string, 
+    enviado_email_at?: string | null, 
+    enviado_whatsapp_at?: string | null 
+  } | null
+  ultimoCobro: { created_at: string } | null
 }
 
 // ── Helpers ────────────────────────────────────────────────────
@@ -53,174 +55,33 @@ interface ExpRow {
 function fase(
   r: ExpRow
 ): { label: string; borderColor: string } {
-  // Verde: Llegado al final del flujo (reparación finalizada) y la factura ha sido totalmente abonada.
-  if (r.estadoReparacion === 'finalizado' && r.estadoCobro === 'pagada') {
-    return {
-      label: 'Completado',
-      borderColor: 'border-emerald-500',
-    }
+  const fac = r.factura
+  const rep = r.reparacion
+  const cobro = r.ultimoCobro
+
+  if (rep?.estado === 'finalizado' && fac?.estado_cobro === 'pagada') {
+    return { label: 'Completado', borderColor: 'border-emerald-500' }
   }
 
-  // Rojo: Factura impagada (> 1 semana desde envío o >6 meses desde cobro parcial)
-  if (r.tieneFactura) {
-    const isPendienteSentAndLate = r.estadoCobro === 'pendiente' && r.facturaEnviada && r.facturaEnvioFecha && (Date.now() - new Date(r.facturaEnvioFecha).getTime() > 7 * 24 * 60 * 60 * 1000);
-    const isParcialAndLate = r.estadoCobro === 'parcial' && r.ultimoCobroFecha && (Date.now() - new Date(r.ultimoCobroFecha).getTime() > 180 * 24 * 60 * 60 * 1000);
+  if (fac) {
+    const isEnviada = !!(fac.enviado_email_at || fac.enviado_whatsapp_at)
+    const envioFecha = fac.enviado_email_at || fac.enviado_whatsapp_at
+    const isPendienteSentAndLate = fac.estado_cobro === 'pendiente' && isEnviada && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 180 * 24 * 60 * 60 * 1000)
+    const isParcialAndLate = fac.estado_cobro === 'parcial' && cobro && (Date.now() - new Date(cobro.created_at).getTime() > 180 * 24 * 60 * 60 * 1000)
     
-    if (isPendienteSentAndLate || isParcialAndLate) {
-      return {
-        label: 'Impago',
-        borderColor: 'border-red-500',
-      }
-    }
+    if (isPendienteSentAndLate || isParcialAndLate) return { label: 'Impago', borderColor: 'border-red-500' }
+    if (fac.estado_cobro === 'parcial') return { label: 'Cobro Parcial', borderColor: 'border-blue-500' }
+    if (!isEnviada) return { label: 'Factura Sin Enviar', borderColor: 'border-yellow-400' }
   }
 
-  // Azul: Hay pago parcial de la factura.
-  if (r.estadoCobro === 'parcial') {
-    return {
-      label: 'Cobro Parcial',
-      borderColor: 'border-blue-500',
-    }
+  if (rep?.estado === 'finalizado' && !fac) {
+    return { label: 'Sin Facturar', borderColor: 'border-amber-500' }
   }
 
-  // Amarillo: Factura generada pero no enviada
-  if (r.tieneFactura && !r.facturaEnviada) {
-    return {
-      label: 'Factura Sin Enviar',
-      borderColor: 'border-yellow-400',
-    }
-  }
-
-  // Naranja: Reparación ha terminado y no se ha facturado
-  if (r.estadoReparacion === 'finalizado' && !r.tieneFactura) {
-    return {
-      label: 'Sin Facturar',
-      borderColor: 'border-amber-500',
-    }
-  }
-
-  // Default
-  return {
-    label: 'En Proceso',
-    borderColor: 'border-slate-500',
-  }
+  return { label: 'En Proceso', borderColor: 'border-slate-500' }
 }
 
-function buildSteps(
-  r: ExpRow,
-  onImagen: () => void,
-  navigate: ReturnType<typeof useNavigate>
-): TimelineStep[] {
-  const steps: TimelineStep[] = []
 
-  // ── RECEPCIÓN ──
-  steps.push({
-    id: 'recepcion',
-    title: 'Recepcionado',
-    color: 'emerald',
-    action: { onClick: () => navigate('/clientes') },
-  })
-
-  // ── PRESUPUESTO ──
-  let presColor: TimelineColor = 'slate'
-  let presTitle = 'Presupuesto'
-  if (r.presupuestoEstado === 'aceptado') {
-    presColor = 'emerald'; presTitle = 'Presupuesto Aceptado'
-  } else if (r.presupuestoEstado === 'pendiente') {
-    presColor = 'amber'; presTitle = 'Presupuesto Pendiente'
-  }
-  steps.push({
-    id: 'presupuesto',
-    title: presTitle,
-    color: presColor,
-    action: r.presupuestoEstado ? { onClick: () => navigate('/presupuestos') } : undefined,
-  })
-
-  // ── CITA ──
-  let citaColor: TimelineColor = 'slate'
-  let citaTitle = 'Cita'
-  if (r.citaEstado === 'confirmada' || r.citaEstado === 'completada') {
-    citaColor = 'emerald'; citaTitle = 'Cita Confirmada'
-  } else if (r.citaEstado === 'pendiente') {
-    citaColor = 'amber'; citaTitle = 'Cita Pendiente'
-  }
-  steps.push({
-    id: 'cita',
-    title: citaTitle,
-    color: citaColor,
-    action: r.tieneCita ? { onClick: () => navigate('/citas') } : undefined,
-  })
-
-  // ── REPARACIÓN ──
-  let repColor: TimelineColor = 'slate'
-  let repTitle = 'Reparación'
-  if (r.estadoReparacion === 'finalizado') {
-    repColor = 'emerald'; repTitle = 'Reparación Finalizada'
-  } else if (r.tieneReparacion) {
-    repColor = 'blue'; repTitle = 'En Taller'
-  }
-  steps.push({
-    id: 'reparacion',
-    title: repTitle,
-    color: repColor,
-    action: r.tieneReparacion ? { onClick: onImagen } : undefined,
-  })
-
-  // ── FACTURA ──
-  let facColor: TimelineColor = 'slate'
-  let facTitle = 'Factura'
-  let facSubtitle: string | undefined
-  let facIcons = false
-
-  if (r.facturaEnviada) {
-    facColor = 'emerald'; facTitle = 'Factura Enviada'
-  } else if (r.tieneFactura) {
-    facColor = 'yellow_glow'; facTitle = 'Factura'
-    facSubtitle = 'Sin enviar'
-    facIcons = true
-  } else if (r.estadoReparacion === 'finalizado') {
-    facColor = 'yellow_glow'; facTitle = 'Sin Facturar'
-  }
-
-  steps.push({
-    id: 'factura',
-    title: facTitle,
-    subtitle: facSubtitle,
-    showCommunicationIcons: facIcons,
-    color: facColor,
-    action: r.tieneFactura 
-      ? { onClick: () => navigate('/facturas') } 
-      : (r.estadoReparacion === 'finalizado' && r.reparacionId)
-        ? { onClick: () => navigate('/facturas', { state: { vehiculoId: r.vehiculoId, clienteId: r.clienteId, reparacionId: r.reparacionId } }) }
-        : undefined,
-  })
-
-  // ── COBRO ──
-  let cobroColor: TimelineColor = 'slate'
-  let cobroTitle = 'Cobro'
-  
-  if (r.tieneFactura) {
-    const isPendienteSentAndLate = r.estadoCobro === 'pendiente' && r.facturaEnviada && r.facturaEnvioFecha && (Date.now() - new Date(r.facturaEnvioFecha).getTime() > 7 * 24 * 60 * 60 * 1000);
-    const isParcialAndLate = r.estadoCobro === 'parcial' && r.ultimoCobroFecha && (Date.now() - new Date(r.ultimoCobroFecha).getTime() > 180 * 24 * 60 * 60 * 1000);
-
-    if (r.estadoCobro === 'pagada') {
-      cobroColor = 'emerald'; cobroTitle = 'Factura Abonada'
-    } else if (isPendienteSentAndLate || isParcialAndLate) {
-      cobroColor = 'red'; cobroTitle = 'Factura Impagada'
-    } else if (r.estadoCobro === 'parcial') {
-      cobroColor = 'blue'; cobroTitle = 'Cobro Parcial'
-    } else if (r.facturaEnviada) {
-      cobroColor = 'amber'; cobroTitle = 'Cobro Pendiente'
-    }
-  }
-
-  steps.push({
-    id: 'cobro',
-    title: cobroTitle,
-    color: cobroColor,
-  })
-
-  return steps
-}
 
 function fmtFecha(iso: string) {
   return new Date(iso).toLocaleDateString('es-ES', {
@@ -237,13 +98,16 @@ function TarjetaExpediente({
   isOpen,
   onToggle,
   onDelete,
+  onRefresh,
 }: {
   row: ExpRow
   isOpen: boolean
   onToggle: () => void
   onDelete: (row: ExpRow) => void
+  onRefresh: () => void
 }) {
   const navigate = useNavigate()
+  const { showToast, showActionToast } = useToast()
 
   const [imgOpen, setImgOpen] = useState(false)
   const [deleteVisible, setDeleteVisible] = useState(false)
@@ -253,11 +117,97 @@ function TarjetaExpediente({
 
   const { borderColor } = fase(row)
 
-  const steps = buildSteps(
-    row,
-    () => setImgOpen(true),
-    navigate
-  )
+  const expData: ExpedienteData = {
+    clienteId: row.clienteId,
+    vehiculoId: row.vehiculoId,
+    presupuesto: row.presupuesto,
+    cita: row.cita,
+    reparacion: row.reparacion,
+    factura: row.factura,
+    ultimoCobro: row.ultimoCobro
+  }
+
+  const actions: RoadmapActions = {
+    onNavigateCliente: (clienteId) => navigate('/clientes', { state: { expandClienteId: clienteId } }),
+    onCrearPresupuesto: (vehiculoId, clienteId) => navigate('/presupuestos'),
+    onVerPresupuesto: (presupuestoId) => navigate('/presupuestos'),
+    onAceptarPresupuesto: async (presupuestoId) => {
+      const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
+      if (!error) {
+        showToast('PRESUPUESTO ACEPTADO', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al aceptar presupuesto', 'error')
+      }
+    },
+    onCrearCita: (vehiculoId, clienteId, presupuestoId) => {
+      navigate('/asignar-cita', {
+        state: {
+          vehiculoId,
+          clienteId,
+          presupuestoId,
+          expedienteId: row.expedienteId,
+          clienteNombre: row.clienteNombre,
+          matricula: row.matricula,
+        },
+      });
+    },
+    onVerCita: (citaId) => navigate('/citas'),
+    onConfirmarCita: async (citaId) => {
+      const { error } = await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
+      if (!error) {
+        playSuccessChime()
+        showToast('CITA CONFIRMADA', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al confirmar cita', 'error')
+      }
+    },
+    onEnviarTaller: async (vehiculoId, clienteId, citaId) => {
+      const { error: repError } = await supabase.from('reparaciones').insert({
+        vehiculo_id: vehiculoId,
+        cliente_id: clienteId,
+        cita_id: citaId,
+        estado: 'en_proceso'
+      })
+      if (!repError) {
+        if (citaId) {
+          await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
+        }
+        playSuccessChime()
+        showToast('ENVIADO A TALLER', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al enviar al taller', 'error')
+      }
+    },
+    onGestionarReparacion: (reparacionId) => navigate('/reparaciones'),
+    onFinalizarReparacion: async (reparacionId) => {
+      const { error } = await supabase.from('reparaciones').update({ estado: 'finalizado' }).eq('id', reparacionId)
+      if (!error) {
+        showToast('Reparación finalizada', 'success')
+        onRefresh()
+      } else {
+        showToast('Error al finalizar reparación', 'error')
+      }
+    },
+    onGenerarFactura: (vehiculoId, clienteId, reparacionId) => {
+      navigate('/facturas', {
+        state: {
+          vehiculoId,
+          clienteId,
+          reparacionId,
+          presupuestoId: row.presupuesto?.id,
+          expedienteId: row.expedienteId,
+          clienteNombre: row.clienteNombre,
+          matricula: row.matricula,
+        },
+      })
+    },
+    onVerFactura: (numero) => navigate('/facturas')
+  }
+
+  const steps = buildRoadmap(expData, actions)
 
   const startLongPress = () => {
     longPressTriggered.current = false
@@ -407,22 +357,7 @@ function TarjetaExpediente({
             {fmtFecha(row.fecha)}
           </span>
 
-          <span
-            className="
-              font-mono
-              text-[18px]
-              text-white
-              bg-slate-800
-              px-2
-              py-0.5
-              rounded
-              border
-              border-slate-700
-              shrink-0
-            "
-          >
-            {row.matricula}
-          </span>
+          <MatriculaBadge matricula={row.matricula} />
 
         </div>
 
@@ -615,8 +550,15 @@ export function ExpedientesPage() {
 
   const [rows, setRows] = useState<ExpRow[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [openId, setOpenId] = useState<string | null>(null)
+  const location = useLocation()
+  const [search, setSearch] = useState(location.state?.search ?? '')
+  const [openId, setOpenId] = useState<string | null>(location.state?.expandVehiculoId ?? null)
+
+  useEffect(() => {
+    if (location.state?.expandVehiculoId) {
+      setOpenId(location.state.expandVehiculoId)
+    }
+  }, [location.state?.expandVehiculoId])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -673,13 +615,13 @@ export function ExpedientesPage() {
     ] = await Promise.all([
       supabase
         .from('citas')
-        .select('vehiculo_id, estado')
+        .select('id, vehiculo_id, presupuesto_id, estado, created_at')
         .in('vehiculo_id', vIds)
         .order('created_at', { ascending: false }),
 
       supabase
         .from('reparaciones')
-        .select('id, vehiculo_id, estado')
+        .select('id, vehiculo_id, cita_id, estado, created_at')
         .in('vehiculo_id', vIds)
         .order('created_at', {
           ascending: false,
@@ -687,7 +629,7 @@ export function ExpedientesPage() {
 
       supabase
         .from('facturas')
-        .select('id, vehiculo_id, estado_cobro, fecha, enviado_email_at, enviado_whatsapp_at')
+        .select('id, numero, vehiculo_id, reparacion_id, estado_cobro, fecha, enviado_email_at, enviado_whatsapp_at, created_at')
         .in('vehiculo_id', vIds)
         .order('created_at', { ascending: false }),
     ])
@@ -706,46 +648,16 @@ export function ExpedientesPage() {
       }
     }
 
-    const citaByV: Record<string, any> = {}
-
-    for (const c of citasD || []) {
-      if (!citaByV[c.vehiculo_id]) {
-        citaByV[c.vehiculo_id] = c
-      }
-    }
-
-    const repByV: Record<string, any> = {}
-
-    for (const r of repsD || []) {
-      if (!repByV[r.vehiculo_id]) {
-        repByV[r.vehiculo_id] = r
-      }
-    }
-
-    const facByV: Record<string, any> = {}
-
-    for (const f of facD || []) {
-      if (
-        f.vehiculo_id &&
-        !facByV[f.vehiculo_id]
-      ) {
-        facByV[f.vehiculo_id] = f
-      }
-    }
-
     const seen = new Set<string>()
     const result: ExpRow[] = []
 
     for (const p of pData as any[]) {
       const veh = p.vehiculos
-
       if (!veh) continue
 
       const vid = veh.id as string
-
-      if (seen.has(vid)) continue
-
-      seen.add(vid)
+      if (seen.has(p.id)) continue
+      seen.add(p.id)
 
       const cliente = Array.isArray(veh.clientes)
         ? veh.clientes[0]
@@ -753,9 +665,10 @@ export function ExpedientesPage() {
 
       if (!cliente) continue
 
-      const cita = citaByV[vid]
-      const rep = repByV[vid]
-      const fac = facByV[vid]
+      // Vinculación estricta y única por pipeline de este expediente
+      const cita = (citasD || []).find((c: any) => c.presupuesto_id === p.id) ?? null
+      const rep = cita ? (repsD || []).find((r: any) => r.cita_id === cita.id) ?? null : null
+      const fac = rep ? (facD || []).find((f: any) => f.reparacion_id === rep.id) ?? null : null
 
       // Obtener fecha del último cobro de la factura encontrada
       let ultimoCobroFecha: string | null = null;
@@ -763,16 +676,7 @@ export function ExpedientesPage() {
         ultimoCobroFecha = ultimoCobroByFac[fac.id] ?? null;
       }
 
-      const expId = getExpediente({ numero: p.numero }, cliente, []);
-
-      let facturaEnvioFecha: string | null = null;
-      if (fac?.enviado_email_at && fac?.enviado_whatsapp_at) {
-        facturaEnvioFecha = new Date(fac.enviado_email_at) > new Date(fac.enviado_whatsapp_at) ? fac.enviado_email_at : fac.enviado_whatsapp_at;
-      } else if (fac?.enviado_email_at) {
-        facturaEnvioFecha = fac.enviado_email_at;
-      } else if (fac?.enviado_whatsapp_at) {
-        facturaEnvioFecha = fac.enviado_whatsapp_at;
-      }
+      const expId = getExpediente(p, cliente, [], pData as any[]);
 
       const row: ExpRow = {
         vehiculoId: vid,
@@ -785,18 +689,16 @@ export function ExpedientesPage() {
         fecha: p.created_at,
         borderColor: '',
         fase: '',
-        presupuestoEstado: p.estado,
-        tieneCita: !!cita,
-        citaEstado: cita?.estado ?? null,
-        tieneReparacion: !!rep,
-        estadoReparacion: rep?.estado ?? null,
-        tieneFactura: !!fac,
-        facturaEnviada: !!(fac?.enviado_email_at || fac?.enviado_whatsapp_at),
-        facturaEnvioFecha,
-        estadoCobro: (fac?.estado_cobro as 'pendiente' | 'parcial' | 'pagada') ?? null,
-        facturaFecha: fac?.fecha ?? null,
-        ultimoCobroFecha,
-        reparacionId: rep?.id ?? null,
+        presupuesto: p ? { id: p.id, estado: p.estado } : null,
+        cita: cita ? { id: cita.id, estado: cita.estado } : null,
+        reparacion: rep ? { id: rep.id, estado: rep.estado } : null,
+        factura: fac ? {
+          numero: fac.numero,
+          estado_cobro: fac.estado_cobro,
+          enviado_email_at: fac.enviado_email_at,
+          enviado_whatsapp_at: fac.enviado_whatsapp_at
+        } : null,
+        ultimoCobro: ultimoCobroFecha ? { created_at: ultimoCobroFecha } : null
       }
 
       const f = fase(row)
@@ -816,7 +718,6 @@ export function ExpedientesPage() {
   }, [load])
 
   // Recargar datos cada vez que React Router navega a esta página
-  const location = useLocation()
   useEffect(() => {
     load()
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1009,6 +910,7 @@ export function ExpedientesPage() {
                 )
               }
               onDelete={handleDelete}
+              onRefresh={load}
             />
 
           ))}

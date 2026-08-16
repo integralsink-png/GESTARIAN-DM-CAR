@@ -59,13 +59,23 @@ export function ConfiguracionPage() {
   // ----------------------------------------------------
   // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
   // ----------------------------------------------------
-const [textColors, setTextColors] = useState<TextColorSettings>({
-  text_title: '#ffffff',
-  text_primary: '#ffffff',
-  text_input: '#ffffff',
-  text_secondary: '#808080',
-  text_card: '#ffffff',
-})
+  // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
+  // ----------------------------------------------------
+  const [textColors, setTextColors] = useState<TextColorSettings>({
+    text_title: '#ffffff',
+    text_primary: '#ffffff',
+    text_input: '#ffffff',
+    text_secondary: '#808080',
+    text_card: '#ffffff',
+  })
+
+  // ----------------------------------------------------
+  // RESET DE DATOS OPERATIVOS
+  // ----------------------------------------------------
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetInput, setResetInput] = useState('')
+  const [isResetting, setIsResetting] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
 
   const sharedTextFieldProps = {
     fullWidth: true,
@@ -78,6 +88,40 @@ const [textColors, setTextColors] = useState<TextColorSettings>({
     loadConfig()
     loadServicesAndColors()
   }, [])
+
+  async function handleResetData() {
+    if (resetInput !== 'RESET') return
+    setIsResetting(true)
+    setResetError(null)
+    try {
+      // Borrado en orden respetando claves foráneas
+      const { error: errImg } = await supabase.from('expediente_imagenes').delete().neq('id', 'dummy')
+      if (errImg) throw new Error('Error al borrar imágenes de expedientes: ' + errImg.message)
+
+      const { error: errCobros } = await supabase.from('cobros').delete().neq('id', 'dummy')
+      if (errCobros) throw new Error('Error al borrar cobros: ' + errCobros.message)
+
+      const { error: errFac } = await supabase.from('facturas').delete().neq('id', 'dummy')
+      if (errFac) throw new Error('Error al borrar facturas: ' + errFac.message)
+
+      const { error: errRep } = await supabase.from('reparaciones').delete().neq('id', 'dummy')
+      if (errRep) throw new Error('Error al borrar reparaciones: ' + errRep.message)
+
+      const { error: errCitas } = await supabase.from('citas').delete().neq('id', 'dummy')
+      if (errCitas) throw new Error('Error al borrar citas: ' + errCitas.message)
+
+      const { error: errPres } = await supabase.from('presupuestos').delete().neq('id', 'dummy')
+      if (errPres) throw new Error('Error al borrar presupuestos: ' + errPres.message)
+
+      setShowResetModal(false)
+      setResetInput('')
+      // Recargar para limpiar todo el estado local
+      window.location.reload()
+    } catch (error: any) {
+      setResetError(error.message || 'Error desconocido durante el borrado')
+      setIsResetting(false)
+    }
+  }
 
   async function loadConfig() {
     const { data } = await supabase.from('configuracion').select('*').eq('id', 1).maybeSingle()
@@ -857,6 +901,87 @@ const [textColors, setTextColors] = useState<TextColorSettings>({
           <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
         </button>
       </Card>
+
+      {/* ── ZONA DE PELIGRO ─────────────────────────────────── */}
+      <Card className="p-6 mt-8 border-rose-500/30 bg-rose-950/10">
+        <div className="flex items-center gap-3 mb-4">
+          <XCircle className="w-5 h-5 text-rose-500" />
+          <h2 className="text-lg font-semibold text-rose-500">Zona de Peligro (Pruebas)</h2>
+        </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-bold text-white text-sm">Vaciar Datos Operativos</p>
+            <p className="text-xs text-rose-400 mt-1 max-w-xl">
+              Elimina todos los expedientes, presupuestos, citas, reparaciones, facturas y balances. 
+              <strong> Los clientes y vehículos se conservarán intactos.</strong>
+            </p>
+          </div>
+          <button
+            onClick={() => setShowResetModal(true)}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg transition-colors whitespace-nowrap"
+          >
+            RESET DATOS DE PRUEBA
+          </button>
+        </div>
+      </Card>
+
+      {/* ── MODAL DE RESET ─────────────────────────────────── */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-rose-500/30 p-6 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="flex items-center gap-3 mb-4 text-rose-500">
+              <XCircle className="w-6 h-6" />
+              <h2 className="text-xl font-bold">Confirmar Reset de Datos</h2>
+            </div>
+            
+            <p className="text-sm text-slate-300 mb-6 leading-relaxed">
+              Esta operación eliminará <strong>todos</strong> los expedientes, presupuestos, citas, reparaciones, facturas y datos de balances. 
+              <br /><br />
+              <span className="text-emerald-400 font-semibold">Los clientes y vehículos se conservarán.</span>
+            </p>
+
+            <div className="mb-6 p-4 bg-rose-950/30 border border-rose-500/20 rounded-xl">
+              <label className="block text-xs font-bold text-rose-400 mb-2 uppercase tracking-wide">
+                Escribe RESET para confirmar
+              </label>
+              <input 
+                type="text" 
+                value={resetInput}
+                onChange={(e) => setResetInput(e.target.value)}
+                placeholder="RESET"
+                className="w-full bg-slate-950 border border-slate-700 rounded-lg px-4 py-2 text-white font-mono text-center uppercase focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all"
+              />
+            </div>
+
+            {resetError && (
+              <div className="mb-6 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                <p className="text-xs text-rose-400 font-semibold">{resetError}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => {
+                  setShowResetModal(false)
+                  setResetInput('')
+                  setResetError(null)
+                }}
+                disabled={isResetting}
+                className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                CANCELAR
+              </button>
+              <button 
+                onClick={handleResetData}
+                disabled={resetInput !== 'RESET' || isResetting}
+                className="flex-1 px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-lg transition-colors disabled:opacity-30 disabled:hover:bg-rose-600 flex justify-center items-center"
+              >
+                {isResetting ? 'ELIMINANDO...' : 'ELIMINAR DATOS'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

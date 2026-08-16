@@ -5,12 +5,13 @@ import { supabase } from '../lib/supabase'
 import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Vehiculo } from '../lib/types'
 import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
-import { Card, Badge, Modal, PageHeader, EmptyState, MetisRowButton } from '../components/UI'
+import { Card, Badge, Modal, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
+import { playSuccessChime } from '../lib/sound'
 import { FacturasRecibidasPage } from './Pages'
 
 
@@ -40,7 +41,7 @@ export function FacturasPage() {
   const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(null)
   const [escaneandoOCR, setEscaneandoOCR] = useState(false)
-  const [showSentToast, setShowSentToast] = useState<string | null>(null)
+
   const [activeTooltip, setActiveTooltip] = useState<'pagada' | 'parcial' | 'impagada' | 'enviada' | 'emitida' | null>(null)
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [globalSearchText, setGlobalSearchText] = useState('')
@@ -51,26 +52,7 @@ export function FacturasPage() {
   const [showCobroPanel, setShowCobroPanel] = useState(false);
   const [nuevoAbono, setNuevoAbono] = useState('');
 
-  const playSuccessSound = () => {
-    try {
-      const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.15, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 0.3);
-    } catch (e) {
-      console.error(e);
-    }
-  };
+
 
   useEffect(() => {
     loadFacturas()
@@ -266,11 +248,19 @@ export function FacturasPage() {
     // Formato: F26 + número de 4 dígitos → F260001, F260002...
     const numero = `${prefix}${String(count).padStart(4, '0')}`
 
-    // Buscar el presupuesto asociado a la reparación para copiar los conceptos
+    // Buscar el presupuesto asociado para copiar los conceptos
     let conceptos: Concepto[] = []
     let total = 0
     let obs = ''
-    if (navState.reparacionId) {
+
+    if ((navState as any)?.presupuestoId) {
+      const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('id', (navState as any).presupuestoId).maybeSingle() as { data: Presupuesto | null }
+      if (presup) {
+        conceptos = (presup as any).conceptos ?? []
+        total = (presup as any).total ?? 0
+        obs = (presup as any).observaciones ?? ''
+      }
+    } else if (navState.reparacionId) {
       // Buscar la cita asociada a esta reparación
       const { data: rep } = await supabase.from('reparaciones').select('cita_id').eq('id', navState.reparacionId).maybeSingle()
       if (rep?.cita_id) {
@@ -286,7 +276,17 @@ export function FacturasPage() {
       }
     }
 
-    const { data } = await supabase.from('facturas').insert({
+    if (conceptos.length === 0 && navState.vehiculoId) {
+      const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('vehiculo_id', navState.vehiculoId).order('created_at', { ascending: false }).limit(1).maybeSingle() as { data: Presupuesto | null }
+      if (presup) {
+        conceptos = (presup as any).conceptos ?? []
+        total = (presup as any).total ?? 0
+        obs = (presup as any).observaciones ?? ''
+      }
+    }
+
+    const draftFactura: Factura = {
+      id: 'draft',
       numero,
       reparacion_id: navState.reparacionId ?? null,
       cliente_id: navState.clienteId,
@@ -295,10 +295,57 @@ export function FacturasPage() {
       total,
       total_abonado: 0,
       estado_cobro: 'pendiente',
-    }).select().single()
+      fecha: new Date().toISOString().split('T')[0],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    }
+
     navigate('/facturas', { replace: true })
-    loadFacturas()
-    if (data) selectFactura(data as Factura)
+    setSelectedFactura(draftFactura)
+  }
+
+  async function confirmarFactura() {
+    if (!selectedFactura || selectedFactura.id !== 'draft') return
+    
+    // Al confirmar, recalculamos el número para evitar colisiones si se crearon otras
+    const yearSuffix = String(new Date().getFullYear()).slice(-2)
+    const prefix = `F${yearSuffix}`
+    const { data: todas } = await supabase.from('facturas').select('numero').like('numero', `${prefix}%`)
+    let maxNum = 0
+    for (const f of (todas || [])) {
+      if (f.numero && f.numero.startsWith(prefix)) {
+        const numPart = parseInt(f.numero.substring(prefix.length), 10)
+        if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart
+      }
+    }
+    const finalNumero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
+
+    const { data, error } = await supabase.from('facturas').insert({
+      numero: finalNumero,
+      reparacion_id: selectedFactura.reparacion_id,
+      cliente_id: selectedFactura.cliente_id,
+      vehiculo_id: selectedFactura.vehiculo_id,
+      conceptos: selectedFactura.conceptos,
+      total: selectedFactura.total,
+      total_abonado: 0,
+      estado_cobro: 'pendiente',
+      fecha: selectedFactura.fecha
+    }).select().single()
+
+    if (error) {
+      alert('Error al confirmar factura: ' + error.message)
+      return
+    }
+
+    await loadFacturas()
+    setSelectedFactura(data)
+    playSuccessChime()
+    showToast("FACTURA GENERADA", 'success')
+
+    // Aviso recordatorio para enviar factura
+    setTimeout(() => {
+      showToast("Ya puedes enviar la factura por Email o WhatsApp al cliente pulsando los iconos que encontrarás más abajo", 'warning')
+    }, 2800)
   }
 
   useEffect(() => {
@@ -444,9 +491,7 @@ export function FacturasPage() {
     await supabase.from('facturas').update({ enviado_email_at: nowIso }).eq('id', selectedFactura.id)
     loadFacturas()
     setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
-    playSuccessSound()
-    setShowSentToast("ENVIADO!!")
-    setTimeout(() => setShowSentToast(null), 3500)
+    showToast("ENVIADO!!", 'success')
   }
 
   function clienteNombre(id: string) {
@@ -662,6 +707,37 @@ export function FacturasPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Panel izquierdo: control de cobro + acciones */}
           <div className="space-y-4" id="control-cobro">
+            {selectedFactura.id === 'draft' ? (
+              <div className="bg-amber-900/20 border-2 border-amber-500/50 rounded-xl p-6 text-center animate-pulse">
+                <h3 className="text-xl font-bold text-amber-400 mb-2 uppercase tracking-widest">Borrador de Factura</h3>
+                <p className="text-sm text-amber-200/70 mb-6">Esta factura aún no se ha guardado en el sistema.</p>
+                <div className="flex flex-col gap-4 max-w-sm mx-auto">
+                  <button
+                    onClick={confirmarFactura}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-lg tracking-widest uppercase shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-6 h-6" />
+                    CONFIRMAR
+                  </button>
+                  <button
+                    onClick={() => {
+                      const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
+                      if (firstInput) firstInput.focus()
+                    }}
+                    className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-bold tracking-widest uppercase border border-cyan-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Edit3 className="w-5 h-5" />
+                    EDITAR
+                  </button>
+                  <button
+                    onClick={() => setSelectedFactura(null)}
+                    className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold tracking-widest uppercase border border-slate-800 transition-all active:scale-95"
+                  >
+                    VOLVER
+                  </button>
+                </div>
+              </div>
+            ) : (
             <Card className="p-5">
               <h3 className="text-sm font-semibold text-white mb-4">Control de Cobro</h3>
               
@@ -831,6 +907,7 @@ export function FacturasPage() {
                 </div>
               )}
             </Card>
+            )}
           </div>
 
           {/* Panel derecho: vista A4 de factura */}
@@ -1016,9 +1093,7 @@ export function FacturasPage() {
                                   }
                                   loadFacturas()
                                   setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
-                                  playSuccessSound()
-                                  setShowSentToast("ENVIADO!!")
-                                  setTimeout(() => setShowSentToast(null), 3500)
+                                  showToast("ENVIADO!!", 'success')
                                 }
                               } catch (e: any) {
                                 console.error('[WhatsApp Factura Error]', e)
@@ -1152,14 +1227,7 @@ export function FacturasPage() {
 
                     {/* Line 3: Matricula left aligned and brand & model centered in remaining space */}
                     <div className="flex items-center w-full text-slate-300 font-semibold">
-                      <span className="inline-flex items-center bg-white border border-slate-400 rounded overflow-hidden h-[30px] shadow-sm shrink-0">
-                        <span className="w-2.5 h-full bg-blue-600 flex items-center justify-center pr-[1px]">
-                          <span className="text-[7.5px] text-white font-bold leading-none scale-75">E</span>
-                        </span>
-                        <span className="font-black text-[16px] tracking-wider px-2 font-mono leading-none" style={{ color: 'black' }}>
-                          {vehiculo?.matricula?.toUpperCase() || '—'}
-                        </span>
-                      </span>
+                      <MatriculaBadge matricula={vehiculo?.matricula} />
                       {vehiculo ? (
                         <span className="flex-1 text-center truncate px-2" style={{ fontSize: '21px' }}>{vehiculo.marca} {vehiculo.modelo}</span>
                       ) : (
@@ -1262,15 +1330,7 @@ export function FacturasPage() {
         }}
         title={expedienteViewerTitle}
       />
-      {showSentToast && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none p-4">
-          <div className="bg-emerald-600 text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.7)] border-4 border-white animate-bounce flex items-center gap-4">
-            <span className="text-3xl sm:text-4xl">✓</span>
-            <span>{showSentToast}</span>
-          </div>
-        </div>,
-        document.body
-      )}
+
     </div>
   )
 }

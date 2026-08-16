@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase'
 import type { Reparacion, Cliente, Vehiculo, Concepto, Presupuesto } from '../lib/types'
 import { Wrench, FileText, Camera, Mail, Save, X, Car, ImageIcon, Check, Trash2, ArrowLeft } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
-import { PageHeader, Card, Button, Badge, EmptyState, Modal } from '../components/UI'
+import { PageHeader, Card, Button, Badge, EmptyState, Modal, MatriculaBadge } from '../components/UI'
 import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
+import { ExpedienteFolderIcon } from '../components/CustomIcons'
 
 type Fase = 'antes' | 'durante' | 'despues'
 
@@ -374,16 +375,24 @@ export function ReparacionesPage() {
                 const cita = citas.find(c => c.id === rep.cita_id);
                 const p = cita ? presupuestos.find(p => p.id === cita.presupuesto_id) : null;
                 return (
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-cyan-400 font-mono text-[15px] bg-cyan-900/30 px-1 rounded border border-cyan-500/20 mr-2">
-                      {p ? getExpediente(p, clientes.find(c => c.id === rep.cliente_id), clientes) : 'S/N'}
-                    </span>
-                    <span className="text-xs text-slate-400 uppercase font-medium flex-1">
+                  <div className="flex items-center justify-between mt-1 gap-2">
+                    <div 
+                      className="flex items-center gap-1 shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/expedientes', { state: { search: v.matricula || '' } });
+                      }}
+                      title="Abrir Expediente"
+                    >
+                      <ExpedienteFolderIcon className="w-5 h-5 shrink-0" />
+                      <span className="text-cyan-400 font-mono text-[15px] bg-cyan-900/30 px-1 rounded border border-cyan-500/20">
+                        {p ? getExpediente(p, clientes.find(c => c.id === rep.cliente_id), clientes) : 'S/N'}
+                      </span>
+                    </div>
+                    <span className="text-xs text-slate-400 uppercase font-medium flex-1 truncate">
                       {v.marca} {v.modelo}
                     </span>
-                    <span className="text-xs font-bold text-emerald-400 text-right">
-                      {v.matricula}
-                    </span>
+                    <MatriculaBadge matricula={v.matricula} />
                   </div>
                 );
               })()}

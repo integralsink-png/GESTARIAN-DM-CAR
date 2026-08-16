@@ -40,6 +40,7 @@ export type EstadoCobro = 'pendiente' | 'parcial' | 'pagada'
 export interface Presupuesto {
   id: string
   numero: string
+  expediente_id?: string | null
   cliente_id: string
   vehiculo_id: string | null
   estado: EstadoPresupuesto
@@ -89,6 +90,8 @@ export interface Factura {
   fecha: string
   fotos?: string[]
   observaciones?: string
+  enviado_email_at?: string | null
+  enviado_whatsapp_at?: string | null
   created_at: string
 }
 
@@ -183,25 +186,7 @@ export interface ThemeSettings {
   updated_at?: string
 }
 
-export type EstadoExpediente =
-  | 'cliente'
-  | 'vehiculo'
-  | 'expediente'
-  | 'ocr'
-  | 'presupuesto'
-  | 'aceptacion'
-  | 'cita'
-  | 'reparacion'
-  | 'factura_borrador'
-  | 'factura_registrada'
-  | 'cobros'
-  | 'balances'
 
-export interface RoadFlowStep {
-  key: EstadoExpediente
-  label: string
-  status: 'done' | 'current' | 'pending' | 'blocked'
-}
 
 export interface SmartRowField {
   label: string

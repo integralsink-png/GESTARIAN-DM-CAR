@@ -3,8 +3,9 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 export { ActionMenu } from './ActionMenu'
 export { TimelineVisual } from './TimelineVisual'
+export { MatriculaBadge } from './MatriculaBadge'
 
-export function PageHeader({ title, children }: { title: string; subtitle?: string; children?: ReactNode }) {
+export function PageHeader({ title, children, doubleTitleSize, titleClassName }: { title: string; subtitle?: string; children?: ReactNode; doubleTitleSize?: boolean; titleClassName?: string }) {
   const navigate = useNavigate()
   return (
     <div className="relative flex items-center justify-between mb-6 w-full px-2 min-h-[60px]">
@@ -18,8 +19,8 @@ export function PageHeader({ title, children }: { title: string; subtitle?: stri
         <img src="/images/logos/logo.jpg" alt="Logo Corporativo" className="w-full h-full object-cover" />
       </button>
 
-      {/* Título centrado absoluto (escalado x0.8) */}
-      <h1 className="absolute left-1/2 -translate-x-1/2 text-lg font-bold uppercase tracking-wider text-[var(--color-texto)] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] pointer-events-none whitespace-nowrap">
+      {/* Título centrado absoluto (escalado x0.8 o x2 o custom) */}
+      <h1 className={`absolute left-1/2 -translate-x-1/2 font-bold uppercase tracking-wider text-[var(--color-texto)] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] pointer-events-none whitespace-nowrap ${titleClassName || (doubleTitleSize ? 'text-3xl md:text-4xl' : 'text-lg')}`}>
         {title}
       </h1>
 

@@ -12,6 +12,7 @@ import { useClima } from '../hooks/useClima'
 import { IntroAnimation } from '../components/IntroAnimation'
 import { PanelControlHeader } from '../components/PanelControlHeader'
 import { MetisAlertsSection } from '../components/MetisAlertsSection'
+import { MatriculaBadge } from '../components/UI'
 
 interface KPIs {
   ingresosTrimestre: number; ingresosMes: number; citasHoy: number;
@@ -272,8 +273,8 @@ export function InicioPage() {
                               : <Clock className="w-4 h-4 text-blue-400" />}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-white truncate">{cita.cliente?.nombre ?? 'Cliente desconocido'}</p>
-                          <p className="text-xs text-white/40 truncate">{cita.vehiculo?.matricula ?? '—'}</p>
+                          <p className="text-sm font-medium text-white truncate mb-1">{cita.cliente?.nombre ?? 'Cliente desconocido'}</p>
+                          <MatriculaBadge matricula={cita.vehiculo?.matricula} />
                         </div>
                         <div className="text-right flex-shrink-0">
                           <p className="text-sm font-mono text-white/70">{cita.hora?.slice(0, 5) ?? '—'}</p>
@@ -316,7 +317,9 @@ export function InicioPage() {
                           <CarFront className="w-4 h-4 text-amber-400" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-white">{rep.vehiculo?.matricula ?? '—'}</p>
+                          <div className="mb-1">
+                            <MatriculaBadge matricula={rep.vehiculo?.matricula} />
+                          </div>
                           <p className="text-xs text-white/40 truncate">{[rep.vehiculo?.marca, rep.vehiculo?.modelo].filter(Boolean).join(' ') || 'Sin datos'}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
