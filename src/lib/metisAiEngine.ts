@@ -88,9 +88,22 @@ function extractConceptosFromParagraph(text: string): Concepto[] {
   return conceptos
 }
 
+import { getMetisKnowledgePrompt } from '../ai/metisKnowledge'
+import { getWorkshopCase } from '../ai/metisWorkshopCase'
+
 // Obtener snapshot completo de datos del taller piloto para consulta cruzada de METIS
-async function getFullWorkshopSnapshot(): Promise<string> {
+async function getFullWorkshopSnapshot(userText?: string): Promise<string> {
   try {
+    // Si la pregunta incluye una matrícula o nombre, enriquecer con el caso específico
+    let specificCaseInfo = ''
+    if (userText) {
+      const mat = extractMatricula(userText)
+      const caseData = await getWorkshopCase(mat || userText)
+      if (caseData) {
+        specificCaseInfo = `\n--- DETALLE PROFUNDO DEL CASO CONSULTADO ---\n${caseData.resumenTexto}\n`
+      }
+    }
+
     const [
       { data: clientes },
       { data: vehiculos },
@@ -110,8 +123,11 @@ async function getFullWorkshopSnapshot(): Promise<string> {
     ])
 
     return `
+${getMetisKnowledgePrompt()}
+
 --- BASE DE DATOS DEL TALLER PILOTO (DM CAR / GESTARIAN) ---
 TALLER: ${config?.nombre_empresa || 'DM CAR'} (CIF: ${config?.cif || '—'}, Dir: ${config?.direccion || '—'})
+${specificCaseInfo}
 CLIENTES REGISTRADOS (${clientes?.length || 0}):
 ${(clientes || []).map(c => `- Cliente #${c.numero} [ID: ${c.id}]: "${c.nombre}", Tel: ${c.telefono || '—'}, DNI: ${c.dni || '—'}, Dir/Loc: ${c.direccion || ''} ${c.localidad || ''}`).join('\n')}
 
@@ -174,7 +190,7 @@ export async function processMetisMessage(
 
 // ── GEMINI INFERENCE ENGINE ──
 async function processWithGemini(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
-  const dbSnapshot = await getFullWorkshopSnapshot()
+  const dbSnapshot = await getFullWorkshopSnapshot(userText)
 
   const systemInstruction = `Eres METIS, el cerebro de inteligencia artificial y asistente experto de GESTARIAN para el taller piloto DM CAR.
 Tienes acceso directo y en tiempo real a toda la base de datos operativa del taller (clientes, vehículos, presupuestos, facturas, cobros, citas e histórico de reparaciones).

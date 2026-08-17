@@ -1,5 +1,2 @@
-import { supabase } from '../lib/supabase'
-
-export const getWorkshopCase = async () => {
-    // Placeholder
-}
+export { getWorkshopCase } from '../ai/metisWorkshopCase'
+export type { WorkshopCaseResult } from '../ai/metisWorkshopCase'
