@@ -234,12 +234,34 @@ const LETTER_MAP: Record<string, string> = {
 }
 
 const DIGIT_WORDS: Record<string, string> = {
-  cero: '0', uno: '1', una: '1', dos: '2', tres: '3', cuatro: '4',
-  cinco: '5', seis: '6', siete: '7', ocho: '8', nueve: '9',
+  cero: '0', uno: '1', una: '1', dos: '2', doh: '2', tres: '3', treh: '3', cuatro: '4', cuatroh: '4',
+  cinco: '5', seis: '6', seih: '6', siete: '7', sieteh: '7', ocho: '8', ochoh: '8', nueve: '9', nueveh: '9',
+  diez: '10', dieh: '10', veinte: '20', treinta: '30', cuarenta: '40', cincuenta: '50',
+  sesenta: '60', setenta: '70', ochenta: '80', noventa: '90', cien: '100', ciento: '100',
+}
+
+function normalizeAndalusianText(s: string): string {
+  return s
+    .replace(/\b(er|el)\b/gi, 'el')
+    .replace(/\b(pa|par|pa'|pár)\b/gi, 'para')
+    .replace(/\b(to|to'|toa|toas|toah)\b/gi, 'todo')
+    .replace(/\b(pisha|illo|quillo|quilla|gachó|compare|compadre)\b/gi, '')
+    .replace(/\b(aseite|aceit|aseitillo)\b/gi, 'aceite')
+    .replace(/\b(filtroh|filtros|firtroh)\b/gi, 'filtros')
+    .replace(/\b(frenoh|frenos)\b/gi, 'frenos')
+    .replace(/\b(paragorpe|paragolpeh|parachoques|parachoque)\b/gi, 'paragolpes')
+    .replace(/\b(pintao|pintaillo)\b/gi, 'pintar')
+    .replace(/\b(arreglao|arreglá|reparao)\b/gi, 'reparar')
+    .replace(/\b(cambiao|cambiá)\b/gi, 'cambiar')
+    .replace(/\b(haser|hacé)\b/gi, 'hacer')
+    .replace(/\b(ar)\s+/gi, 'al ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function wordsToDigits(s: string): string {
-  return s
+  const norm = normalizeAndalusianText(s)
+  return norm
     .toLowerCase()
     .split(/\s+/)
     .map((w) => {
