@@ -13,7 +13,6 @@ import type {
   Reparacion,
   Factura,
 } from '../lib/types'
-import type { TimelineStep } from '../components/TimelineVisual'
 import { useToast } from '../lib/ToastContext'
 import { useGoBack } from '../lib/useGoBack'
 import { playSuccessChime } from '../lib/sound'
@@ -24,7 +23,7 @@ export function ExpedientePage() {
   const navigate = useNavigate()
   const location = useLocation()
   const goBack = useGoBack('/clientes')
-  const { showToast, showActionToast } = useToast()
+  const { showToast } = useToast()
 
   const [vehiculo, setVehiculo] = useState<Vehiculo | null>(null)
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -147,7 +146,7 @@ export function ExpedientePage() {
         if (cancelled) return
         setReparacion(rData)
 
-        // 6. FACTURA VINCULADA A LA REPARACIÓN
+        // 6. FACTURA VINCULADA ESTRICTAMENTE A LA REPARACIÓN DE ESTE EXPEDIENTE
         let fData: Factura | null = null
         if (rData?.id) {
           const { data, error: fError } = await supabase
@@ -162,6 +161,13 @@ export function ExpedientePage() {
         }
 
         if (cancelled) return
+        if (fData) {
+          fData = {
+            ...fData,
+            enviado_email_at: fData.enviado_email_at || localStorage.getItem(`factura_${fData.id}_email_at`),
+            enviado_whatsapp_at: fData.enviado_whatsapp_at || localStorage.getItem(`factura_${fData.id}_wa_at`)
+          }
+        }
         setFactura(fData)
 
         // ------------------------------------------------------------
@@ -239,7 +245,7 @@ export function ExpedientePage() {
 
   const roadmapActions: RoadmapActions = {
     onNavigateCliente: (clienteId) => navigate(`/cliente-admin/${clienteId}`),
-    onCrearPresupuesto: (vehiculoId, clienteId) => navigate('/presupuestos'),
+    onCrearPresupuesto: (_vehiculoId, _clienteId) => navigate('/presupuestos'),
     onVerPresupuesto: (presupuestoId) => navigate('/presupuestos', { state: { presupuestoId, openForm: false } }),
     onAceptarPresupuesto: async (presupuestoId) => {
       const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
@@ -283,16 +289,26 @@ export function ExpedientePage() {
     onFinalizarReparacion: async (reparacionId) => {
       const { error } = await supabase.from('reparaciones').update({ estado: 'finalizado' }).eq('id', reparacionId)
       if (!error) {
-        showToast('Reparación finalizada', 'success')
+        playSuccessChime()
+        showToast('REPARACIÓN FINALIZADA', 'success')
         onRefresh()
       } else {
         showToast('Error al finalizar reparación', 'error')
       }
     },
     onGenerarFactura: (vehiculoId, clienteId, reparacionId) => {
-      navigate('/facturas', { state: { vehiculoId, clienteId, reparacionId } })
+      navigate('/facturas', {
+        state: {
+          vehiculoId,
+          clienteId,
+          reparacionId,
+          presupuestoId: presupuesto?.id,
+          clienteNombre: cliente?.nombre,
+          matricula: vehiculo?.matricula,
+        },
+      })
     },
-    onVerFactura: (numero) => navigate('/facturas', { state: { facturaNumero: numero } })
+    onVerFactura: (numero, mode) => navigate('/facturas', { state: { facturaNumero: numero, mode } })
   }
 
   const steps = buildRoadmap(expData, roadmapActions)

@@ -20,7 +20,6 @@ import { useGoBack } from '../lib/useGoBack'
 import { useToast } from '../lib/ToastContext'
 import { playSuccessChime } from '../lib/sound'
 import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
-import type { TimelineStep, TimelineColor } from '../components/TimelineVisual'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -42,6 +41,7 @@ interface ExpRow {
   factura: { 
     numero: string, 
     estado_cobro: string, 
+    fecha?: string,
     enviado_email_at?: string | null, 
     enviado_whatsapp_at?: string | null 
   } | null
@@ -107,10 +107,22 @@ function TarjetaExpediente({
   onRefresh: () => void
 }) {
   const navigate = useNavigate()
-  const { showToast, showActionToast } = useToast()
+  const { showToast } = useToast()
 
   const [imgOpen, setImgOpen] = useState(false)
   const [deleteVisible, setDeleteVisible] = useState(false)
+  const cardRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (isOpen && cardRef.current) {
+      setTimeout(() => {
+        cardRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        })
+      }, 80)
+    }
+  }, [isOpen])
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressTriggered = useRef(false)
@@ -129,8 +141,8 @@ function TarjetaExpediente({
 
   const actions: RoadmapActions = {
     onNavigateCliente: (clienteId) => navigate('/clientes', { state: { expandClienteId: clienteId } }),
-    onCrearPresupuesto: (vehiculoId, clienteId) => navigate('/presupuestos'),
-    onVerPresupuesto: (presupuestoId) => navigate('/presupuestos'),
+    onCrearPresupuesto: (_vehiculoId, _clienteId) => navigate('/presupuestos'),
+    onVerPresupuesto: (_presupuestoId) => navigate('/presupuestos'),
     onAceptarPresupuesto: async (presupuestoId) => {
       const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
       if (!error) {
@@ -152,7 +164,7 @@ function TarjetaExpediente({
         },
       });
     },
-    onVerCita: (citaId) => navigate('/citas'),
+    onVerCita: (_citaId) => navigate('/citas'),
     onConfirmarCita: async (citaId) => {
       const { error } = await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
       if (!error) {
@@ -181,11 +193,12 @@ function TarjetaExpediente({
         showToast('Error al enviar al taller', 'error')
       }
     },
-    onGestionarReparacion: (reparacionId) => navigate('/reparaciones'),
+    onGestionarReparacion: (_reparacionId) => navigate('/reparaciones'),
     onFinalizarReparacion: async (reparacionId) => {
       const { error } = await supabase.from('reparaciones').update({ estado: 'finalizado' }).eq('id', reparacionId)
       if (!error) {
-        showToast('Reparación finalizada', 'success')
+        playSuccessChime()
+        showToast('REPARACIÓN FINALIZADA', 'success')
         onRefresh()
       } else {
         showToast('Error al finalizar reparación', 'error')
@@ -204,7 +217,7 @@ function TarjetaExpediente({
         },
       })
     },
-    onVerFactura: (numero) => navigate('/facturas')
+    onVerFactura: (numero, mode) => navigate('/facturas', { state: { facturaNumero: numero, mode } })
   }
 
   const steps = buildRoadmap(expData, actions)
@@ -258,6 +271,7 @@ function TarjetaExpediente({
   return (
     <>
       <div
+        ref={cardRef}
         className={`
           relative
           gestarian-panel
@@ -270,6 +284,7 @@ function TarjetaExpediente({
           duration-200
           hover:shadow-lg
           select-none
+          scroll-mt-4
         `}
         onClick={handleCardClick}
         onPointerDown={startLongPress}
@@ -422,7 +437,7 @@ function TarjetaExpediente({
               >
 
                 {/* Roadmap */}
-                <div className="overflow-x-auto">
+                <div data-roadmap className="gestarian-roadmap-open overflow-x-auto" data-roadmap-open="true">
                   <TimelineVisual steps={steps} />
                 </div>
 
@@ -600,14 +615,6 @@ export function ExpedientesPage() {
       return
     }
 
-    const vIds = [
-      ...new Set(
-        pData
-          .map((p: any) => p.vehiculo_id)
-          .filter(Boolean)
-      ),
-    ] as string[]
-
     const [
       { data: citasD },
       { data: repsD },
@@ -615,22 +622,17 @@ export function ExpedientesPage() {
     ] = await Promise.all([
       supabase
         .from('citas')
-        .select('id, vehiculo_id, presupuesto_id, estado, created_at')
-        .in('vehiculo_id', vIds)
+        .select('id, vehiculo_id, presupuesto_id, cliente_id, estado, created_at')
         .order('created_at', { ascending: false }),
 
       supabase
         .from('reparaciones')
-        .select('id, vehiculo_id, cita_id, estado, created_at')
-        .in('vehiculo_id', vIds)
-        .order('created_at', {
-          ascending: false,
-        }),
+        .select('id, vehiculo_id, cita_id, cliente_id, estado, created_at')
+        .order('created_at', { ascending: false }),
 
       supabase
         .from('facturas')
-        .select('id, numero, vehiculo_id, reparacion_id, estado_cobro, fecha, enviado_email_at, enviado_whatsapp_at, created_at')
-        .in('vehiculo_id', vIds)
+        .select('id, numero, vehiculo_id, reparacion_id, cliente_id, total, total_abonado, estado_cobro, fecha, created_at')
         .order('created_at', { ascending: false }),
     ])
 
@@ -665,10 +667,10 @@ export function ExpedientesPage() {
 
       if (!cliente) continue
 
-      // Vinculación estricta y única por pipeline de este expediente
+      // Vinculación estricta al pipeline único del presupuesto de este expediente
       const cita = (citasD || []).find((c: any) => c.presupuesto_id === p.id) ?? null
-      const rep = cita ? (repsD || []).find((r: any) => r.cita_id === cita.id) ?? null : null
-      const fac = rep ? (facD || []).find((f: any) => f.reparacion_id === rep.id) ?? null : null
+      const rep = cita ? ((repsD || []).find((r: any) => r.cita_id === cita.id) ?? null) : null
+      const fac = rep ? ((facD || []).find((f: any) => f.reparacion_id === rep.id) ?? null) : null
 
       // Obtener fecha del último cobro de la factura encontrada
       let ultimoCobroFecha: string | null = null;
@@ -676,7 +678,14 @@ export function ExpedientesPage() {
         ultimoCobroFecha = ultimoCobroByFac[fac.id] ?? null;
       }
 
-      const expId = getExpediente(p, cliente, [], pData as any[]);
+      const expId = getExpediente(p, cliente, [])
+
+      const emailSentAt = fac?.id 
+        ? (fac.enviado_email_at || localStorage.getItem(`factura_${fac.id}_email_at`)) 
+        : null
+      const whatsappSentAt = fac?.id 
+        ? (fac.enviado_whatsapp_at || localStorage.getItem(`factura_${fac.id}_wa_at`)) 
+        : null
 
       const row: ExpRow = {
         vehiculoId: vid,
@@ -695,8 +704,9 @@ export function ExpedientesPage() {
         factura: fac ? {
           numero: fac.numero,
           estado_cobro: fac.estado_cobro,
-          enviado_email_at: fac.enviado_email_at,
-          enviado_whatsapp_at: fac.enviado_whatsapp_at
+          fecha: fac.fecha,
+          enviado_email_at: emailSentAt,
+          enviado_whatsapp_at: whatsappSentAt
         } : null,
         ultimoCobro: ultimoCobroFecha ? { created_at: ultimoCobroFecha } : null
       }

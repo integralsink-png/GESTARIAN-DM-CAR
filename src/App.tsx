@@ -167,19 +167,84 @@ function Layout() {
     return () => window.removeEventListener('gestarian-swipe-page', handleSwipeEvent)
   }, [location.pathname])
 
-  // ── Global touch swipe detection for ALL pages (mobile & tablet portrait) ──
+  // Rutas principales autorizadas para swipe lateral
+  const MAIN_SWIPE_ROUTES = [
+    '/',
+    '/expedientes',
+    '/clientes',
+    '/presupuestos',
+    '/citas',
+    '/reparaciones',
+    '/facturas',
+    '/proveedores',
+    '/incidencias',
+    '/configuracion'
+  ]
+
+  // ── Global touch swipe detection: EXCLUSIVO para navegar entre páginas principales ──
+  // Bloqueado completamente si:
+  // 1. La ruta actual no es una de las páginas principales.
+  // 2. Se está interactuando con un formulario / input / textarea / select.
+  // 3. Hay un modal abierto (nuevo cliente, etc.).
+  // 4. Se está viendo un documento (hoja A4 de presupuesto, factura, visor A4, etc.).
+  // 5. Se está viendo o interactuando con el Roadmap / Timeline / visor de imágenes.
   useEffect(() => {
     let touchStartX = 0
     let touchStartY = 0
     let dirLocked: 'h' | 'v' | null = null
+    let isTouchBlocked = false
+
+    const isSwipeAllowed = (target: HTMLElement | null): boolean => {
+      // 1. Verificar si la ruta actual es una página principal permitida
+      if (!MAIN_SWIPE_ROUTES.includes(location.pathname)) return false
+
+      // 2. Si hay cualquier input o formulario enfocado actualmente
+      const activeEl = document.activeElement
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'SELECT')) {
+        return false
+      }
+
+      // 3. Si el toque se originó en un elemento de formulario o interactivo
+      if (target) {
+        if (target.closest('input, textarea, select, form, button, [contenteditable="true"]')) return false
+        // Bloquear en modales o diálogos emergentes
+        if (target.closest('[role="dialog"], .fixed, .modal-content, [data-modal]')) return false
+        // Bloquear en documentos A4 (presupuesto A4, factura A4)
+        if (target.closest('#factura-a4, #presupuesto-a4, .gestarian-paper, .print-sheet')) return false
+        // Bloquear en el Roadmap / Línea temporal de expedientes
+        if (target.closest('[data-roadmap], .timeline-container, svg, [draggable="true"]')) return false
+      }
+
+      // 4. Si hay documentos A4 activos en el DOM (viendo factura o presupuesto)
+      if (document.getElementById('factura-a4') || document.getElementById('presupuesto-a4')) {
+        return false
+      }
+
+      // 5. Si hay tarjetas de expediente desplegadas mostrando el roadmap
+      const openRoadmaps = document.querySelectorAll('.gestarian-roadmap-open, [data-roadmap-open="true"]')
+      if (openRoadmaps.length > 0) {
+        return false
+      }
+
+      return true
+    }
 
     const onTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null
+      if (!isSwipeAllowed(target)) {
+        isTouchBlocked = true
+        return
+      }
+
+      isTouchBlocked = false
       touchStartX = e.touches[0].clientX
       touchStartY = e.touches[0].clientY
       dirLocked = null
     }
 
     const onTouchMove = (e: TouchEvent) => {
+      if (isTouchBlocked) return
+
       if (!dirLocked) {
         const dx = Math.abs(e.touches[0].clientX - touchStartX)
         const dy = Math.abs(e.touches[0].clientY - touchStartY)
@@ -189,14 +254,14 @@ function Layout() {
           dirLocked = 'v'
         }
       }
-      // Prevent vertical scroll when swiping horizontally
+      // Evitar scroll vertical si se está ejecutando un swipe horizontal válido
       if (dirLocked === 'h' && e.cancelable) {
         e.preventDefault()
       }
     }
 
     const onTouchEnd = (e: TouchEvent) => {
-      if (dirLocked !== 'h') return
+      if (isTouchBlocked || dirLocked !== 'h') return
       const diffX = e.changedTouches[0].clientX - touchStartX
       const threshold = window.innerWidth * 0.20
       if (Math.abs(diffX) > threshold) {
@@ -213,7 +278,7 @@ function Layout() {
       window.removeEventListener('touchmove', onTouchMove)
       window.removeEventListener('touchend', onTouchEnd)
     }
-  }, [handleSwipe])
+  }, [location.pathname, handleSwipe])
 
   return (
     <MobileModeContext.Provider value={{ mobileMode, toggleMobileMode, exitMobileMode }}>

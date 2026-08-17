@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
@@ -144,19 +145,22 @@ export function AsignarCitaPage() {
 
   return (
     <div className="fixed inset-0 z-50 bg-bg-950 text-white flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none touch-none">
-      {/* Toast animado verde con texto blanco y bordes blancos (Centrado en pantalla) */}
+      {/* Toast animado verde con texto blanco y bordes blancos (Centrado en pantalla vía Portal) */}
       <AnimatePresence>
-        {showSuccessToast && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.5, y: 30 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: -20 }}
-            transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-emerald-600 border-4 border-white text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.8)] flex items-center gap-4 tracking-wider uppercase animate-bounce"
-          >
-            <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-white shrink-0" />
-            <span>CITA ASIGNADA</span>
-          </motion.div>
+        {showSuccessToast && createPortal(
+          <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-none p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.8, y: -20 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="bg-emerald-600 border-4 border-white text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.8)] flex items-center gap-4 tracking-wider uppercase animate-bounce text-center select-none"
+            >
+              <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-white shrink-0" />
+              <span>CITA ASIGNADA</span>
+            </motion.div>
+          </div>,
+          document.body
         )}
       </AnimatePresence>
 
@@ -220,40 +224,48 @@ export function AsignarCitaPage() {
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={handleDragEnd}
-          className="bg-bg-900/90 border border-bg-750 rounded-2xl p-3 sm:p-4 shadow-xl cursor-grab active:cursor-grabbing"
+          className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-6 shadow-xl cursor-grab active:cursor-grabbing mb-3"
         >
           {/* Cabecera del Mes */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-3">
             <button
               onClick={handlePrevMonth}
-              className="p-1 text-slate-400 hover:text-white transition-colors"
+              className="p-2 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              title="Mes anterior"
             >
-              <ChevronLeft className="w-5 h-5" />
+              <ChevronLeft className="w-12 h-12 text-cyan-400" />
             </button>
-            <span className="font-extrabold text-base sm:text-lg text-white tracking-widest uppercase">
+            <span className="font-black text-2xl sm:text-3xl text-white tracking-widest uppercase">
               {MESES[currentMonth]} {currentYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1 text-slate-400 hover:text-white transition-colors"
+              className="p-2 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              title="Mes siguiente"
             >
-              <ChevronRight className="w-5 h-5" />
+              <ChevronRight className="w-12 h-12 text-cyan-400" />
             </button>
           </div>
 
           {/* Días de la semana */}
-          <div className="grid grid-cols-7 gap-1 text-center font-bold text-xs text-slate-500 mb-1">
-            {DIAS_SEMANA.map((d, i) => (
-              <div key={i} className="py-1">
-                {d}
-              </div>
-            ))}
+          <div className="grid grid-cols-7 gap-1 text-center font-black text-lg sm:text-xl mb-1">
+            {DIAS_SEMANA.map((d, i) => {
+              let colorClass = 'text-slate-400';
+              if (d === 'S') colorClass = 'text-blue-400 font-black';
+              if (d === 'D') colorClass = 'text-rose-500 font-black';
+
+              return (
+                <div key={i} className={`py-1 ${colorClass}`}>
+                  {d}
+                </div>
+              );
+            })}
           </div>
 
           {/* Grid de días */}
-          <div className="grid grid-cols-7 gap-1.5 text-center">
+          <div className="grid grid-cols-7 gap-1 text-center">
             {Array.from({ length: firstDayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-8 sm:h-9" />
+              <div key={`empty-${i}`} className="h-9 sm:h-10" />
             ))}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -268,12 +280,12 @@ export function AsignarCitaPage() {
                 <button
                   key={dayNum}
                   onClick={() => setSelectedDay(dayNum)}
-                  className={`h-8 sm:h-9 rounded-xl font-bold text-sm sm:text-base flex items-center justify-center transition-all active:scale-90 ${
+                  className={`h-9 sm:h-10 rounded-xl font-black text-xl sm:text-2xl flex items-center justify-center transition-all active:scale-90 ${
                     isSelected
-                      ? 'bg-cyan-500 text-bg-950 font-black shadow-[0_0_15px_rgba(6,182,212,0.6)] scale-105 ring-2 ring-white'
+                      ? 'bg-cyan-500 text-bg-950 font-black shadow-[0_0_15px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
                       : isToday
-                      ? 'border border-cyan-500/50 text-cyan-400 hover:bg-bg-800'
-                      : 'hover:bg-bg-800 text-slate-200'
+                      ? 'text-cyan-300 font-black drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]'
+                      : 'hover:bg-bg-700/60 text-slate-100'
                   }`}
                 >
                   {dayNum}
@@ -284,9 +296,9 @@ export function AsignarCitaPage() {
         </motion.div>
 
         {/* 2. Selector de Hora Tipo Rodillo (Grande, Minutero en Cuartos de Hora) */}
-        <div className="bg-bg-900/90 border border-bg-750 rounded-2xl p-3 sm:p-4 shadow-xl">
-          <div className="flex items-center justify-center gap-2 mb-2 text-cyan-400 font-bold text-xs uppercase tracking-widest">
-            <Clock className="w-4 h-4" />
+        <div className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-6 shadow-xl">
+          <div className="flex items-center justify-center gap-3 mb-3 text-cyan-400 font-black text-lg sm:text-xl uppercase tracking-widest">
+            <Clock className="w-8 h-8" />
             <span>HORA DE LLEGADA</span>
           </div>
 
@@ -301,7 +313,7 @@ export function AsignarCitaPage() {
                 onClick={() => setSelectedHoraIndex((prev) => Math.max(0, prev - 1))}
                 className="absolute top-0 z-10 p-1 text-slate-400 hover:text-white"
               >
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-5 h-5" />
               </button>
 
               {/* Elementos anteriores y activos */}
@@ -309,20 +321,20 @@ export function AsignarCitaPage() {
                 {/* Hora anterior */}
                 <span
                   onClick={() => setSelectedHoraIndex((prev) => Math.max(0, prev - 1))}
-                  className="text-slate-600 font-bold text-lg opacity-40 select-none cursor-pointer"
+                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
                 >
                   {HORAS[selectedHoraIndex - 1] || '—'}
                 </span>
 
                 {/* Hora seleccionada (GRANDE) */}
-                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/15 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                   {HORAS[selectedHoraIndex]}
                 </span>
 
                 {/* Hora siguiente */}
                 <span
                   onClick={() => setSelectedHoraIndex((prev) => Math.min(HORAS.length - 1, prev + 1))}
-                  className="text-slate-600 font-bold text-lg opacity-40 select-none cursor-pointer"
+                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
                 >
                   {HORAS[selectedHoraIndex + 1] || '—'}
                 </span>
@@ -333,7 +345,7 @@ export function AsignarCitaPage() {
                 onClick={() => setSelectedHoraIndex((prev) => Math.min(HORAS.length - 1, prev + 1))}
                 className="absolute bottom-0 z-10 p-1 text-slate-400 hover:text-white"
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-5 h-5" />
               </button>
             </div>
 
@@ -350,27 +362,27 @@ export function AsignarCitaPage() {
                 onClick={() => setSelectedMinutoIndex((prev) => Math.max(0, prev - 1))}
                 className="absolute top-0 z-10 p-1 text-slate-400 hover:text-white"
               >
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-5 h-5" />
               </button>
 
               <div className="flex flex-col items-center justify-center space-y-1">
                 {/* Minuto anterior */}
                 <span
                   onClick={() => setSelectedMinutoIndex((prev) => Math.max(0, prev - 1))}
-                  className="text-slate-600 font-bold text-lg opacity-40 select-none cursor-pointer"
+                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
                 >
                   {MINUTOS[selectedMinutoIndex - 1] || '—'}
                 </span>
 
                 {/* Minuto seleccionado (GRANDE) */}
-                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
+                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/15 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
                   {MINUTOS[selectedMinutoIndex]}
                 </span>
 
                 {/* Minuto siguiente */}
                 <span
                   onClick={() => setSelectedMinutoIndex((prev) => Math.min(MINUTOS.length - 1, prev + 1))}
-                  className="text-slate-600 font-bold text-lg opacity-40 select-none cursor-pointer"
+                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
                 >
                   {MINUTOS[selectedMinutoIndex + 1] || '—'}
                 </span>
@@ -381,7 +393,7 @@ export function AsignarCitaPage() {
                 onClick={() => setSelectedMinutoIndex((prev) => Math.min(MINUTOS.length - 1, prev + 1))}
                 className="absolute bottom-0 z-10 p-1 text-slate-400 hover:text-white"
               >
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-5 h-5" />
               </button>
             </div>
           </div>

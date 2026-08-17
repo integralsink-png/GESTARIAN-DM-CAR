@@ -89,6 +89,10 @@ export function Input({
   addonRight,
   className = '',
   inputClassName = '',
+  labelClassName = '',
+  inputMode,
+  enterKeyHint,
+  autoComplete,
 }: {
   label: string
   value: string
@@ -98,16 +102,23 @@ export function Input({
   addonRight?: ReactNode
   className?: string
   inputClassName?: string
+  labelClassName?: string
+  inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url'
+  enterKeyHint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send'
+  autoComplete?: string
 }) {
   return (
     <div className={className}>
-      {label && <label className="block text-sm sm:text-lg text-white/50 mb-2">{label}</label>}
+      {label && <label className={`block text-sm sm:text-lg text-white/50 mb-2 ${labelClassName}`}>{label}</label>}
       <div className="relative">
         <input
           type={type}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          inputMode={inputMode}
+          enterKeyHint={enterKeyHint}
+          autoComplete={autoComplete}
           className={`w-full gestarian-field rounded-custom px-5 py-4 text-lg focus:outline-none transition-colors ${addonRight ? 'pr-16' : ''} ${inputClassName || ''}`}
         />
         {addonRight && (

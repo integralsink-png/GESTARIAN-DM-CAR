@@ -160,10 +160,14 @@ export function BalancesPage() {
   const tasaFiscal = tipoEmpresa === 'autonomo' ? TASA_AUTONOMO : TASA_SL
   const totalImporteFiscal = totalBeneficio * tasaFiscal
 
-  const estadoColor = (e: string): 'yellow' | 'green' | 'red' => {
-    if (e === 'pagada') return 'green'
-    if (e === 'parcial') return 'yellow'
-    return 'red'
+  const getEstadoVisual = (f: Factura): { text: string, color: 'yellow' | 'green' | 'red' | 'slate' | 'amber' } => {
+    if (f.estado_cobro === 'pagada') return { text: 'ABONADA', color: 'green' }
+    if (f.estado_cobro === 'parcial') return { text: 'COBRO PARCIAL', color: 'yellow' }
+    
+    const isEnviada = !!(f.enviado_email_at || f.enviado_whatsapp_at)
+    if (isEnviada) return { text: 'IMPAGADA', color: 'red' }
+    
+    return { text: 'PENDIENTE', color: 'amber' }
   }
 
   async function enviarGestoria() {
@@ -501,7 +505,7 @@ export function BalancesPage() {
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-medium text-sm">{f.numero}</span>
-                          <Badge text={f.estado_cobro} color={estadoColor(f.estado_cobro)} />
+                          <Badge text={getEstadoVisual(f).text} color={getEstadoVisual(f).color} />
                         </div>
                         <p className="text-xs opacity-50 mt-1">{f.total.toFixed(2)} € · {new Date(f.fecha).toLocaleDateString('es-ES')}</p>
                       </div>

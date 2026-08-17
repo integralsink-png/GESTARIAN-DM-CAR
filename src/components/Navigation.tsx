@@ -177,6 +177,9 @@ export function MobileFooter() {
     navigate(path)
   }
 
+  const isA4Document = ['/facturas', '/presupuestos', '/presupuesto-hibrido', '/asignar-cita'].includes(location.pathname)
+  if (isA4Document) return null
+
   return (
     <>
       {location.pathname !== '/' && (
@@ -507,8 +510,9 @@ export function DesktopFooter() {
   const { footerVisible, setFooterHover } = useUIState()
   const { mobileMode } = useMobileMode()
   const isInicio = location.pathname === '/'
+  const isA4Document = ['/facturas', '/presupuestos', '/presupuesto-hibrido', '/asignar-cita'].includes(location.pathname)
 
-  if (mobileMode) return null
+  if (mobileMode || isA4Document) return null
 
   return (
     <div

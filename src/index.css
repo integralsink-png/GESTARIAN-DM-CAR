@@ -18,8 +18,62 @@
   }
 }
 
+@keyframes contour-pulse-amber {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 1);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.75), inset 0 0 0 1px rgba(245, 158, 11, 0.5);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 4px rgba(245, 158, 11, 0.25), inset 0 0 0 1px rgba(245, 158, 11, 0.15);
+  }
+}
+
 .animated-contour-border {
   animation: contour-pulse 1.8s ease-in-out infinite !important;
+}
+
+.animated-contour-border-amber {
+  animation: contour-pulse-amber 1.8s ease-in-out infinite !important;
+}
+
+/* ── Animación en cascada secuencial para las flechas del Roadmap (Fade In 0.2s con 50% solapamiento a 0.1s) ── */
+@keyframes arrow-cascade-flow {
+  0% {
+    opacity: 0.5;
+    color: #94a3b8;
+  }
+  20% {
+    opacity: 1;
+    color: #38bdf8;
+  }
+  40% {
+    opacity: 0.5;
+    color: #94a3b8;
+  }
+  40.01%, 100% {
+    opacity: 0.5;
+    color: #94a3b8;
+  }
+}
+
+.roadmap-arrow-cascade {
+  animation-name: arrow-cascade-flow;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity, color, filter;
+}
+
+/* ── Eliminar flechitas de aumento/disminución en campos numéricos (Chrome, Safari, Edge, Opera, Firefox) ── */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none !important;
+  margin: 0 !important;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield !important;
+  appearance: textfield !important;
 }
 
 :root {
@@ -685,4 +739,19 @@ select:focus {
   .animate-rainbow-breathe {
     animation: rainbow-breathe 2s infinite ease-in-out;
   }
+}
+
+@keyframes contour-pulse {
+  0%, 100% {
+    border-color: rgba(234, 179, 8, 0.3); /* yellow-500 approx */
+    box-shadow: 0 0 0px rgba(234, 179, 8, 0);
+  }
+  50% {
+    border-color: rgba(234, 179, 8, 1);
+    box-shadow: 0 0 12px rgba(234, 179, 8, 0.8);
+  }
+}
+
+.animated-contour-border {
+  animation: contour-pulse 1.5s infinite ease-in-out !important;
 }

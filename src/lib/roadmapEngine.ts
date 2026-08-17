@@ -1,5 +1,4 @@
-import type { TimelineStep, TimelineColor } from '../components/TimelineVisual'
-import type { Presupuesto, Cita, Reparacion, Factura, Cobro } from './types'
+import type { TimelineStep } from '../components/TimelineVisual'
 
 export interface ExpedienteData {
   clienteId: string
@@ -10,6 +9,8 @@ export interface ExpedienteData {
   factura?: { 
     numero: string, 
     estado_cobro: string, 
+    fecha?: string,
+    created_at?: string,
     enviado_email_at?: string | null, 
     enviado_whatsapp_at?: string | null 
   } | null
@@ -27,8 +28,8 @@ export interface RoadmapActions {
   onEnviarTaller: (vehiculoId: string, clienteId: string, citaId: string) => void
   onGestionarReparacion: (reparacionId: string) => void
   onFinalizarReparacion: (reparacionId: string) => void
-  onGenerarFactura: (vehiculoId: string, clienteId: string, reparacionId: string) => void
-  onVerFactura: (numero: string) => void
+  onGenerarFactura: (vehiculoId: string, clienteId: string, reparacionId?: string) => void
+  onVerFactura: (numero: string, mode?: 'view' | 'scrollToSend') => void
 }
 
 export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): TimelineStep[] {
@@ -44,10 +45,11 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
 
   // ── 2. PRESUPUESTO ──
   const pres = data.presupuesto
+
   if (!pres) {
     steps.push({
       id: 'presupuesto',
-      title: 'Crear Presupuesto',
+      title: 'Presupuesto Pendiente',
       color: 'amber',
       action: { onClick: () => actions.onCrearPresupuesto(data.vehiculoId, data.clienteId) }
     })
@@ -56,6 +58,7 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
       id: 'presupuesto',
       title: 'Presupuesto Pendiente',
       color: 'amber',
+      animatedBorder: true,
       action: { onClick: () => actions.onAceptarPresupuesto(pres.id) }
     })
   } else if (pres.estado === 'aceptado') {
@@ -66,7 +69,12 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
       action: { onClick: () => actions.onVerPresupuesto(pres.id) }
     })
   } else {
-    steps.push({ id: 'presupuesto', title: 'Presupuesto', color: 'slate' })
+    steps.push({
+      id: 'presupuesto',
+      title: 'Presupuesto Rechazado',
+      color: 'red',
+      action: { onClick: () => actions.onVerPresupuesto(pres.id) }
+    })
   }
 
   // ── 3. CITA ──
@@ -80,6 +88,7 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
       id: 'cita',
       title: 'Generar Cita',
       color: 'amber',
+      animatedBorder: true,
       action: { onClick: () => actions.onCrearCita(data.vehiculoId, data.clienteId, pres.id) }
     })
   } else if (cita.estado === 'confirmada' || cita.estado === 'completada' || data.reparacion) {
@@ -125,9 +134,10 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
   } else if (rep.estado === 'en_proceso') {
     steps.push({
       id: 'reparacion',
-      title: 'En Reparación',
-      color: 'blue',
-      action: { onClick: () => actions.onGestionarReparacion(rep.id) }
+      title: 'Finalizar Reparación',
+      color: 'amber',
+      animatedBorder: true,
+      action: { onClick: () => actions.onFinalizarReparacion(rep.id) }
     })
   } else if (rep.estado === 'finalizado') {
     steps.push({
@@ -144,32 +154,24 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
   const fac = data.factura
   const repFinalizada = rep?.estado === 'finalizado'
 
-  if (rep?.estado === 'en_proceso') {
+  if (fac) {
+    const isEnviada = !!(fac.enviado_email_at || fac.enviado_whatsapp_at)
     steps.push({
       id: 'factura',
-      title: 'Finalizar Reparación',
-      color: 'amber',
-      animatedBorder: true,
-      action: { onClick: () => actions.onFinalizarReparacion(rep.id) }
+      title: isEnviada ? 'Factura Enviada' : 'Factura Generada',
+      color: isEnviada ? 'emerald' : 'amber',
+      action: { onClick: () => actions.onVerFactura(fac.numero, 'view') }
     })
-  } else if (!repFinalizada) {
-    steps.push({ id: 'factura', title: 'Generar Factura', color: 'slate' })
-  } else if (!fac) {
+  } else if (repFinalizada) {
     steps.push({
       id: 'factura',
       title: 'Generar Factura',
       color: 'amber',
       animatedBorder: true,
-      action: { onClick: () => actions.onGenerarFactura(data.vehiculoId, data.clienteId, rep.id) }
+      action: { onClick: () => actions.onGenerarFactura(data.vehiculoId, data.clienteId, rep?.id) }
     })
   } else {
-    const isEnviada = !!(fac.enviado_email_at || fac.enviado_whatsapp_at)
-    steps.push({
-      id: 'factura',
-      title: isEnviada ? 'Factura Enviada' : 'Factura Generada',
-      color: 'emerald',
-      action: { onClick: () => actions.onVerFactura(fac.numero) }
-    })
+    steps.push({ id: 'factura', title: 'Factura', color: 'slate' })
   }
 
   // ── 6. COBRO ──
@@ -177,31 +179,25 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
     steps.push({ id: 'cobro', title: 'Cobro', color: 'slate' })
   } else {
     const isEnviada = !!(fac.enviado_email_at || fac.enviado_whatsapp_at)
-    const isParcialAndLate = fac.estado_cobro === 'parcial' && data.ultimoCobro && (Date.now() - new Date(data.ultimoCobro.created_at).getTime() > 180 * 24 * 60 * 60 * 1000)
 
-    if (fac.estado_cobro === 'pagada') {
+    if (!isEnviada) {
+      steps.push({
+        id: 'cobro',
+        title: 'Enviar Factura al Cliente',
+        color: 'yellow',
+        animatedBorder: true,
+        action: { onClick: () => actions.onVerFactura(fac.numero, 'scrollToSend') }
+      })
+    } else if (fac.estado_cobro === 'pagada') {
+      // Abono total -> verde y texto FACTURA ABONADA
       steps.push({
         id: 'cobro',
         title: 'Factura Abonada',
         color: 'emerald',
         action: { onClick: () => actions.onVerFactura(fac.numero) }
       })
-    } else if (!isEnviada) {
-      steps.push({
-        id: 'cobro',
-        title: 'Enviar Factura',
-        color: 'amber',
-        animatedBorder: true,
-        action: { onClick: () => actions.onVerFactura(fac.numero) }
-      })
-    } else if (isParcialAndLate) {
-      steps.push({
-        id: 'cobro',
-        title: 'Deuda Vencida',
-        color: 'red',
-        action: { onClick: () => actions.onVerFactura(fac.numero) }
-      })
     } else if (fac.estado_cobro === 'parcial') {
+      // Abono parcial -> azul y texto COBRO PARCIAL
       steps.push({
         id: 'cobro',
         title: 'Cobro Parcial',
@@ -209,10 +205,11 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
         action: { onClick: () => actions.onVerFactura(fac.numero) }
       })
     } else {
+      // Factura enviada sin abonar -> rojo FACTURA IMPAGADA
       steps.push({
         id: 'cobro',
-        title: 'Factura Enviada',
-        color: 'emerald',
+        title: 'Factura Impagada',
+        color: 'red',
         action: { onClick: () => actions.onVerFactura(fac.numero) }
       })
     }

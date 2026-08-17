@@ -12,15 +12,32 @@ import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../l
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
 import { playSuccessChime } from '../lib/sound'
+import { useToast } from '../lib/ToastContext'
 import { FacturasRecibidasPage } from './Pages'
 
 
 const IVA_RATE = 0.21
 
 export function FacturasPage() {
+  const { showToast } = useToast()
   const location = useLocation()
   const navigate = useNavigate()
-  const navState = location.state as { reparacionId?: string; clienteId?: string; vehiculoId?: string; facturaNumero?: string } | null
+  const navState = location.state as { 
+    reparacionId?: string; 
+    clienteId?: string; 
+    vehiculoId?: string; 
+    facturaNumero?: string;
+    presupuestoId?: string;
+    mode?: string;
+  } | null
+
+  const handleVolver = () => {
+    if (navState) {
+      navigate(-1)
+    } else {
+      setSelectedFactura(null)
+    }
+  }
 
   const [activeTab, setActiveTab] = useState<'emitidas' | 'recibidas'>('emitidas')
   const [facturas, setFacturas] = useState<Factura[]>([])
@@ -124,9 +141,10 @@ export function FacturasPage() {
         const isEnviado = !!(f.enviado_email_at || f.enviado_whatsapp_at)
         const envioFecha = f.enviado_email_at || f.enviado_whatsapp_at
         const ultimoCobro = localStorage.getItem(`factura_${f.id}_ultimo_cobro`) || f.updated_at
+        const fechaEmision = f.fecha || envioFecha || f.created_at
 
-        const isParcialAndLate = f.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro).getTime() > 180 * 24 * 60 * 60 * 1000)
-        const isPendienteSentAndLate = f.estado_cobro === 'pendiente' && isEnviado && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 7 * 24 * 60 * 60 * 1000)
+        const isParcialAndLate = f.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro).getTime() > 30 * 24 * 60 * 60 * 1000)
+        const isPendienteSentAndLate = f.estado_cobro === 'pendiente' && (Date.now() - new Date(fechaEmision).getTime() > 7 * 24 * 60 * 60 * 1000)
         const isImpagada = isParcialAndLate || isPendienteSentAndLate
 
         if (estadoFilter === 'pagada') return f.estado_cobro === 'pagada'
@@ -210,14 +228,67 @@ export function FacturasPage() {
   }
 
   async function crearFacturaDesdeReparacion() {
-    if (!navState?.clienteId || !navState?.reparacionId) return
+    const cId = navState?.clienteId
+    const vId = navState?.vehiculoId
+    const rId = navState?.reparacionId
+    const pId = (navState as any)?.presupuestoId
 
-    // Restricción: comprobar si ya existe una factura para esta reparación
-    const { data: existing } = await supabase.from('facturas').select('*').eq('reparacion_id', navState.reparacionId).maybeSingle()
-    if (existing) {
-      navigate('/facturas', { replace: true })
-      selectFactura(existing as Factura)
-      return
+    if (!cId && !vId && !rId && !pId) return
+
+    let finalClienteId = cId || ''
+    let finalVehiculoId = vId || null
+    let finalReparacionId = rId || null
+
+    // Buscar el presupuesto asociado para copiar los conceptos
+    let conceptos: Concepto[] = []
+    let total = 0
+    let obs = ''
+
+    if (pId) {
+      const { data: presup } = await supabase.from('presupuestos').select('*').eq('id', pId).maybeSingle() as { data: Presupuesto | null }
+      if (presup) {
+        conceptos = (presup as any).conceptos ?? []
+        total = (presup as any).total ?? 0
+        obs = (presup as any).observaciones ?? ''
+        if (!finalClienteId && presup.cliente_id) finalClienteId = presup.cliente_id
+        if (!finalVehiculoId && presup.vehiculo_id) finalVehiculoId = presup.vehiculo_id
+      }
+      
+      // Auto-descubrir la reparación vinculada a este presupuesto si no venía explícitamente
+      if (!finalReparacionId) {
+        const { data: cita } = await supabase.from('citas').select('id').eq('presupuesto_id', pId).maybeSingle()
+        if (cita) {
+          const { data: rep } = await supabase.from('reparaciones').select('id').eq('cita_id', cita.id).maybeSingle()
+          if (rep) finalReparacionId = rep.id
+        }
+      }
+    } else if (rId) {
+      // Buscar la cita asociada a esta reparación
+      const { data: rep } = await supabase.from('reparaciones').select('cita_id, cliente_id, vehiculo_id').eq('id', rId).maybeSingle()
+      if (rep) {
+        if (!finalClienteId && rep.cliente_id) finalClienteId = rep.cliente_id
+        if (!finalVehiculoId && rep.vehiculo_id) finalVehiculoId = rep.vehiculo_id
+        if (rep.cita_id) {
+          const { data: cita } = await supabase.from('citas').select('presupuesto_id').eq('id', rep.cita_id).maybeSingle()
+          if (cita?.presupuesto_id) {
+            const { data: presup } = await supabase.from('presupuestos').select('*').eq('id', cita.presupuesto_id).maybeSingle() as { data: Presupuesto | null }
+            if (presup) {
+              conceptos = (presup as any).conceptos ?? []
+              total = (presup as any).total ?? 0
+              obs = (presup as any).observaciones ?? ''
+            }
+          }
+        }
+      }
+    }
+
+    // Comprobar si ya existe una factura para esta reparación (una vez tenemos el ID final)
+    if (finalReparacionId) {
+      const { data: existing } = await supabase.from('facturas').select('*').eq('reparacion_id', finalReparacionId).maybeSingle()
+      if (existing) {
+        selectFactura(existing as Factura)
+        return
+      }
     }
 
     // Prefijo con año de 2 dígitos: F26, F27, etc.
@@ -248,49 +319,22 @@ export function FacturasPage() {
     // Formato: F26 + número de 4 dígitos → F260001, F260002...
     const numero = `${prefix}${String(count).padStart(4, '0')}`
 
-    // Buscar el presupuesto asociado para copiar los conceptos
-    let conceptos: Concepto[] = []
-    let total = 0
-    let obs = ''
-
-    if ((navState as any)?.presupuestoId) {
-      const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('id', (navState as any).presupuestoId).maybeSingle() as { data: Presupuesto | null }
+    if (conceptos.length === 0 && !pId && !rId && finalVehiculoId) {
+      const { data: presup } = await supabase.from('presupuestos').select('*').eq('vehiculo_id', finalVehiculoId).order('created_at', { ascending: false }).limit(1).maybeSingle() as { data: Presupuesto | null }
       if (presup) {
         conceptos = (presup as any).conceptos ?? []
         total = (presup as any).total ?? 0
         obs = (presup as any).observaciones ?? ''
-      }
-    } else if (navState.reparacionId) {
-      // Buscar la cita asociada a esta reparación
-      const { data: rep } = await supabase.from('reparaciones').select('cita_id').eq('id', navState.reparacionId).maybeSingle()
-      if (rep?.cita_id) {
-        const { data: cita } = await supabase.from('citas').select('presupuesto_id').eq('id', rep.cita_id).maybeSingle()
-        if (cita?.presupuesto_id) {
-          const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('id', cita.presupuesto_id).maybeSingle() as { data: Presupuesto | null }
-          if (presup) {
-            conceptos = (presup as any).conceptos ?? []
-            total = (presup as any).total ?? 0
-            obs = (presup as any).observaciones ?? ''
-          }
-        }
-      }
-    }
-
-    if (conceptos.length === 0 && navState.vehiculoId) {
-      const { data: presup } = await supabase.from('presupuestos').select('conceptos, total, observaciones').eq('vehiculo_id', navState.vehiculoId).order('created_at', { ascending: false }).limit(1).maybeSingle() as { data: Presupuesto | null }
-      if (presup) {
-        conceptos = (presup as any).conceptos ?? []
-        total = (presup as any).total ?? 0
-        obs = (presup as any).observaciones ?? ''
+        if (!finalClienteId && presup.cliente_id) finalClienteId = presup.cliente_id
       }
     }
 
     const draftFactura: Factura = {
       id: 'draft',
       numero,
-      reparacion_id: navState.reparacionId ?? null,
-      cliente_id: navState.clienteId,
-      vehiculo_id: navState.vehiculoId ?? null,
+      reparacion_id: finalReparacionId,
+      cliente_id: finalClienteId,
+      vehiculo_id: finalVehiculoId,
       conceptos,
       total,
       total_abonado: 0,
@@ -300,13 +344,23 @@ export function FacturasPage() {
       updated_at: new Date().toISOString()
     }
 
-    navigate('/facturas', { replace: true })
     setSelectedFactura(draftFactura)
+    if (obs) setObservaciones(obs)
   }
 
   async function confirmarFactura() {
     if (!selectedFactura || selectedFactura.id !== 'draft') return
     
+    // Comprobar estrictamente si ya existe para no duplicar facturas
+    if (selectedFactura.reparacion_id) {
+      const { data: existing } = await supabase.from('facturas').select('*').eq('reparacion_id', selectedFactura.reparacion_id).maybeSingle()
+      if (existing) {
+        setSelectedFactura(existing as Factura)
+        showToast("La factura ya estaba guardada", 'info')
+        return
+      }
+    }
+
     // Al confirmar, recalculamos el número para evitar colisiones si se crearon otras
     const yearSuffix = String(new Date().getFullYear()).slice(-2)
     const prefix = `F${yearSuffix}`
@@ -349,20 +403,32 @@ export function FacturasPage() {
   }
 
   useEffect(() => {
-    if (navState?.reparacionId) {
-      crearFacturaDesdeReparacion()
+    if (navState?.reparacionId || (navState as any)?.presupuestoId || (navState?.clienteId && navState?.vehiculoId)) {
+      if (!navState?.facturaNumero && !selectedFactura) {
+        crearFacturaDesdeReparacion()
+      }
     }
-  }, [navState?.reparacionId])
+  }, [navState])
 
   useEffect(() => {
     if (navState?.facturaNumero && facturas.length > 0) {
       const f = facturas.find(x => x.numero === navState.facturaNumero);
       if (f) {
         selectFactura(f);
-        setTimeout(() => document.getElementById('control-cobro')?.scrollIntoView({ behavior: 'smooth' }), 300);
+        if (navState.mode === 'scrollToSend') {
+          setTimeout(() => {
+            const footerEl = document.getElementById('botonera-envio-factura') || document.getElementById('factura-a4');
+            if (footerEl) {
+              footerEl.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+          }, 300);
+          showToast("Revise la factura antes de enviar", 'info', { duration: 3000, disableBounce: true });
+        } else {
+          setTimeout(() => document.getElementById('control-cobro')?.scrollIntoView({ behavior: 'smooth' }), 300);
+        }
       }
     }
-  }, [navState?.facturaNumero, facturas.length])
+  }, [navState?.facturaNumero, navState?.mode, facturas.length])
 
   async function selectFactura(f: Factura) {
     setSelectedFactura(f)
@@ -382,6 +448,8 @@ export function FacturasPage() {
 
     const nuevoTotalAbonado = selectedFactura.total_abonado + importe
     const nuevoEstado = nuevoTotalAbonado >= selectedFactura.total ? 'pagada' : 'parcial'
+    const nowIso = new Date().toISOString()
+    localStorage.setItem(`factura_${selectedFactura.id}_ultimo_cobro`, nowIso)
 
     await supabase.from('facturas').update({
       total_abonado: nuevoTotalAbonado,
@@ -395,6 +463,13 @@ export function FacturasPage() {
     setSelectedFactura(updated)
     const { data } = await supabase.from('cobros').select('*').eq('factura_id', selectedFactura.id).order('created_at', { ascending: false })
     setCobros(data ?? [])
+
+    playSuccessChime()
+    if (nuevoEstado === 'pagada') {
+      showToast("FACTURA ABONADA", 'success')
+    } else {
+      showToast("COBRO PARCIAL REGISTRADO", 'success')
+    }
   }
 
   async function abonarTodo() {
@@ -403,16 +478,23 @@ export function FacturasPage() {
     await supabase.from('cobros').insert({ factura_id: selectedFactura.id, importe })
     const nuevoTotalAbonado = selectedFactura.total
     const nuevoEstado = 'pagada' as Factura['estado_cobro']
+    const nowIso = new Date().toISOString()
+    localStorage.setItem(`factura_${selectedFactura.id}_ultimo_cobro`, nowIso)
+
     await supabase.from('facturas').update({
       total_abonado: nuevoTotalAbonado,
       estado_cobro: nuevoEstado,
     }).eq('id', selectedFactura.id)
+
     setShowCobroPanel(false)
     loadFacturas()
     const updated: Factura = { ...selectedFactura, total_abonado: nuevoTotalAbonado, estado_cobro: nuevoEstado }
     setSelectedFactura(updated)
     const { data } = await supabase.from('cobros').select('*').eq('factura_id', selectedFactura.id).order('created_at', { ascending: false })
     setCobros(data ?? [])
+
+    playSuccessChime()
+    showToast("FACTURA ABONADA", 'success')
   }
 
   function registrarFactura() {
@@ -488,10 +570,9 @@ export function FacturasPage() {
     sendFacturaByEmail({ ...selectedFactura, observaciones }, cliente, vehiculo, config)
     const nowIso = new Date().toISOString()
     localStorage.setItem(`factura_${selectedFactura.id}_email_at`, nowIso)
-    await supabase.from('facturas').update({ enviado_email_at: nowIso }).eq('id', selectedFactura.id)
-    loadFacturas()
     setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
-    showToast("ENVIADO!!", 'success')
+    playSuccessChime()
+    showToast("FACTURA ENVIADA", 'success')
   }
 
   function clienteNombre(id: string) {
@@ -502,10 +583,14 @@ export function FacturasPage() {
     return clientes.find((c) => c.id === id)
   }
 
-  const estadoColor = (e: string): 'yellow' | 'green' | 'red' => {
-    if (e === 'pagada') return 'green'
-    if (e === 'parcial') return 'yellow'
-    return 'red'
+  const getEstadoVisual = (f: Factura): { text: string, color: 'yellow' | 'green' | 'red' | 'slate' | 'amber' } => {
+    if (f.estado_cobro === 'pagada') return { text: 'ABONADA', color: 'green' }
+    if (f.estado_cobro === 'parcial') return { text: 'COBRO PARCIAL', color: 'yellow' }
+    
+    const isEnviada = !!(f.enviado_email_at || f.enviado_whatsapp_at)
+    if (isEnviada) return { text: 'IMPAGADA', color: 'red' }
+    
+    return { text: 'PENDIENTE', color: 'amber' }
   }
 
   const saldoPendiente = selectedFactura ? selectedFactura.total - selectedFactura.total_abonado : 0
@@ -730,7 +815,7 @@ export function FacturasPage() {
                     EDITAR
                   </button>
                   <button
-                    onClick={() => setSelectedFactura(null)}
+                    onClick={handleVolver}
                     className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold tracking-widest uppercase border border-slate-800 transition-all active:scale-95"
                   >
                     VOLVER
@@ -818,7 +903,7 @@ export function FacturasPage() {
               </div>
 
               {/* Estado badge */}
-              <div className="mb-4"><Badge text={selectedFactura.estado_cobro} color={estadoColor(selectedFactura.estado_cobro)} /></div>
+              <div className="mb-4"><Badge text={getEstadoVisual(selectedFactura).text} color={getEstadoVisual(selectedFactura).color} /></div>
 
               {/* ── Zona de abono ── */}
               {saldoPendiente > 0 && (
@@ -1001,7 +1086,7 @@ export function FacturasPage() {
             </div>
 
             {/* ── BOTONERA UNIFICADA DE ACCIONES A4 FACTURAS ── */}
-            <div className="border-t-2 border-gray-800 pt-6 space-y-6">
+            <div id="botonera-envio-factura" className="border-t-2 border-gray-800 pt-6 space-y-6">
               {(() => {
                 const cliente = clienteData(selectedFactura.cliente_id)
                 const veh = selectedFactura.vehiculo_id ? vehiculos.find(v => v.id === selectedFactura.vehiculo_id) : null
@@ -1087,13 +1172,9 @@ export function FacturasPage() {
                                 if (res.success) {
                                   const nowIso = new Date().toISOString()
                                   localStorage.setItem(`factura_${selectedFactura.id}_wa_at`, nowIso)
-                                  const { error: dbError } = await supabase.from('facturas').update({ enviado_whatsapp_at: nowIso }).eq('id', selectedFactura.id)
-                                  if (dbError) {
-                                    alert('Error guardando en la base de datos: ' + dbError.message + '\n(Se guardará localmente en el dispositivo actual)')
-                                  }
-                                  loadFacturas()
                                   setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
-                                  showToast("ENVIADO!!", 'success')
+                                  playSuccessChime()
+                                  showToast("FACTURA ENVIADA", 'success')
                                 }
                               } catch (e: any) {
                                 console.error('[WhatsApp Factura Error]', e)
@@ -1157,7 +1238,7 @@ export function FacturasPage() {
                         </button>
 
                         <button
-                          onClick={() => setSelectedFactura(null)}
+                          onClick={handleVolver}
                           className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
                         >
                           VOLVER
@@ -1188,18 +1269,19 @@ export function FacturasPage() {
               } else {
                 // Check for Impago
                 const ultimoCobro = localStorage.getItem(`factura_${f.id}_ultimo_cobro`) || f.updated_at;
-                const isParcialAndLate = f.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro).getTime() > 180 * 24 * 60 * 60 * 1000);
+                const isParcialAndLate = f.estado_cobro === 'parcial' && ultimoCobro && (Date.now() - new Date(ultimoCobro).getTime() > 30 * 24 * 60 * 60 * 1000);
                 
                 const isEnviado = !!(f.enviado_email_at || f.enviado_whatsapp_at);
                 const envioFecha = f.enviado_email_at || f.enviado_whatsapp_at;
-                const isPendienteSentAndLate = f.estado_cobro === 'pendiente' && isEnviado && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 7 * 24 * 60 * 60 * 1000);
+                const fechaEmision = f.fecha || envioFecha || f.created_at;
+                const isPendienteSentAndLate = f.estado_cobro === 'pendiente' && (Date.now() - new Date(fechaEmision).getTime() > 7 * 24 * 60 * 60 * 1000);
 
                 if (isParcialAndLate || isPendienteSentAndLate) {
                   borderClass = 'border-red-500 hover:border-red-400 bg-red-950/5';
                 } else if (f.estado_cobro === 'parcial') {
                   borderClass = 'border-blue-500 hover:border-blue-400 bg-blue-950/5';
                 } else if (!isEnviado) {
-                  borderClass = 'border-yellow-400 hover:border-yellow-300 bg-yellow-950/5 animate-pulse';
+                  borderClass = 'border-yellow-400 hover:border-yellow-300 bg-yellow-950/5 animated-contour-border';
                 } else {
                   borderClass = 'border-amber-500 hover:border-amber-400 bg-amber-950/5';
                 }
@@ -1295,7 +1377,7 @@ export function FacturasPage() {
                   facturas.map((f) => (
                     <div key={f.id} className="flex items-center justify-between p-3 bg-bg-700 rounded-lg">
                       <div>
-                        <div className="flex items-center gap-2"><span className="font-medium text-white text-sm">{f.numero}</span><Badge text={f.estado_cobro} color={estadoColor(f.estado_cobro)} /></div>
+                        <div className="flex items-center gap-2"><span className="font-medium text-white text-sm">{f.numero}</span><Badge text={getEstadoVisual(f).text} color={getEstadoVisual(f).color} /></div>
                         <p className="text-xs text-slate-500 mt-1">{clienteNombre(f.cliente_id)} · {f.total.toFixed(2)} € · {new Date(f.fecha).toLocaleDateString('es-ES')}</p>
                       </div>
                       <button 

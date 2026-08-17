@@ -47,11 +47,8 @@ export function ClientesPage() {
   const [presupuestosCliente, setPresupuestosCliente] = useState<Record<string, Presupuesto[]>>({})
   const [facturasCliente, setFacturasCliente] = useState<Record<string, Factura[]>>({})
 
-  // Vista individual de Presupuesto o Factura
+  // Vista individual de Presupuesto
   const [viewPresupuesto, setViewPresupuesto] = useState<{ presup: Presupuesto; cliente: Cliente; vehiculo: Vehiculo | null } | null>(null)
-  const [viewFactura, setViewFactura] = useState<{ factura: Factura; cliente: Cliente; vehiculo: Vehiculo | null } | null>(null)
-  const [cobrosFactura, setCobrosFactura] = useState<any[]>([])
-  const [nuevoAbono, setNuevoAbono] = useState('')
   const [config, setConfig] = useState<Configuracion | null>(null)
 
   // Estado selección de presupuestos y vehículos
@@ -167,61 +164,7 @@ export function ClientesPage() {
     }
   }
 
-  // Cargar cobros de factura
-  async function openFacturaDetail(factura: Factura, cliente: Cliente, vehiculo: Vehiculo | null) {
-    const { data } = await supabase.from('cobros').select('*').eq('factura_id', factura.id).order('created_at', { ascending: false })
-    setCobrosFactura(data ?? [])
-    setViewFactura({ factura, cliente, vehiculo })
-  }
 
-  // Registrar abono en factura vista
-  async function handleRegistrarAbono() {
-    if (!viewFactura || !nuevoAbono) return
-    const importe = parseFloat(nuevoAbono)
-    const saldoPend = viewFactura.factura.total - viewFactura.factura.total_abonado
-    if (isNaN(importe) || importe <= 0 || importe > saldoPend) return
-
-    await supabase.from('cobros').insert({ factura_id: viewFactura.factura.id, importe })
-    const nuevoTotalAbonado = viewFactura.factura.total_abonado + importe
-    const nuevoEstado = nuevoTotalAbonado >= viewFactura.factura.total ? 'pagada' : 'parcial'
-
-    await supabase.from('facturas').update({
-      total_abonado: nuevoTotalAbonado,
-      estado_cobro: nuevoEstado,
-    }).eq('id', viewFactura.factura.id)
-
-    setNuevoAbono('')
-    const { data } = await supabase.from('cobros').select('*').eq('factura_id', viewFactura.factura.id).order('created_at', { ascending: false })
-    setCobrosFactura(data ?? [])
-    setViewFactura({
-      ...viewFactura,
-      factura: { ...viewFactura.factura, total_abonado: nuevoTotalAbonado, estado_cobro: nuevoEstado as any }
-    })
-    loadFacturasCliente(viewFactura.cliente.id)
-  }
-
-  async function handleAbonarTodo() {
-    if (!viewFactura) return
-    const saldoPend = viewFactura.factura.total - viewFactura.factura.total_abonado
-    if (saldoPend <= 0) return
-
-    await supabase.from('cobros').insert({ factura_id: viewFactura.factura.id, importe: saldoPend })
-    const nuevoTotalAbonado = viewFactura.factura.total
-    const nuevoEstado = 'pagada'
-
-    await supabase.from('facturas').update({
-      total_abonado: nuevoTotalAbonado,
-      estado_cobro: nuevoEstado,
-    }).eq('id', viewFactura.factura.id)
-
-    const { data } = await supabase.from('cobros').select('*').eq('factura_id', viewFactura.factura.id).order('created_at', { ascending: false })
-    setCobrosFactura(data ?? [])
-    setViewFactura({
-      ...viewFactura,
-      factura: { ...viewFactura.factura, total_abonado: nuevoTotalAbonado, estado_cobro: nuevoEstado as any }
-    })
-    loadFacturasCliente(viewFactura.cliente.id)
-  }
 
   const filteredClientes = clientes.filter((c) => {
     const s = search.toLowerCase()
@@ -292,91 +235,7 @@ export function ClientesPage() {
     )
   }
 
-  // ── Vista individual de FACTURA ──
-  if (viewFactura) {
-    const { factura, cliente, vehiculo } = viewFactura
-    const saldoPend = factura.total - factura.total_abonado
 
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" onClick={() => setViewFactura(null)}>
-          <span className="flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> VOLVER</span>
-        </Button>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Panel control de cobros */}
-          <Card className="p-5">
-            <h3 className="text-sm font-semibold text-white mb-4">Control de Cobro</h3>
-
-            <div className="rounded-xl border border-bg-600 overflow-hidden mb-4">
-              <div className="flex items-center justify-between px-4 py-3 bg-bg-700/60 border-b border-bg-600">
-                <span className="text-xs font-semibold uppercase text-slate-400">Total factura</span>
-                <span className="text-lg font-bold text-white">{factura.total.toFixed(2)} €</span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 bg-emerald-950/20 border-b border-bg-600">
-                <span className="text-xs font-semibold uppercase text-emerald-400">Ya abonado</span>
-                <span className="text-base font-bold text-emerald-400">+ {factura.total_abonado.toFixed(2)} €</span>
-              </div>
-              <div className="flex items-center justify-between px-4 py-3 bg-amber-950/20 border-b border-bg-600">
-                <span className="text-xs font-semibold uppercase text-amber-400">Pendiente actual</span>
-                <span className={`text-base font-bold ${saldoPend <= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>{saldoPend.toFixed(2)} €</span>
-              </div>
-            </div>
-
-            {saldoPend > 0 && (
-              <div className="space-y-3 mb-4">
-                <div className="p-3 bg-bg-700 rounded-xl border border-bg-600 flex gap-2">
-                  <input
-                    type="number"
-                    value={nuevoAbono}
-                    onChange={(e) => setNuevoAbono(e.target.value)}
-                    placeholder="Importe parcial €"
-                    className="flex-1 bg-bg-800 border border-bg-600 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
-                  />
-                  <Button size="sm" onClick={handleRegistrarAbono}>Abono parcial</Button>
-                </div>
-                <Button size="sm" className="w-full" onClick={handleAbonarTodo}>Abonar todo ({saldoPend.toFixed(2)} €)</Button>
-              </div>
-            )}
-
-            {/* Acciones */}
-            <div className="flex flex-col gap-2 pt-4 border-t border-bg-600">
-              <Button variant="secondary" onClick={() => sendFacturaByEmail(factura, cliente, vehiculo, config)}>
-                <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> Enviar por email</span>
-              </Button>
-              <Button variant="secondary" onClick={() => {
-                const msg = `Hola ${cliente.nombre}, factura ${factura.numero} por total ${factura.total.toFixed(2)}€. Pendiente: ${saldoPend.toFixed(2)}€. Saludos, DM CAR.`
-                const phone = cliente.telefono?.replace(/\s/g, '') || ''
-                if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
-              }}>
-                <span className="flex items-center gap-2"><MessageCircle className="w-4 h-4 text-green-400" /> Enviar por WhatsApp</span>
-              </Button>
-              <Button variant="secondary" onClick={() => downloadFacturaPDF(factura, cliente, vehiculo, config)}>
-                <span className="flex items-center gap-2"><Printer className="w-4 h-4" /> Imprimir / PDF</span>
-              </Button>
-            </div>
-          </Card>
-
-          {/* Resumen Factura */}
-          <Card className="p-6">
-            <h3 className="text-lg font-bold text-white mb-4">Factura {factura.numero}</h3>
-            <p className="text-xs text-slate-400 mb-4">Fecha: {new Date(factura.fecha).toLocaleDateString('es-ES')}</p>
-            <div className="space-y-2 mb-6">
-              {(factura.conceptos ?? []).map((c, i) => (
-                <div key={i} className="flex justify-between text-sm bg-bg-800 p-2.5 rounded">
-                  <span className="text-white">{c.descripcion}</span>
-                  <span className="text-slate-300">{(c.cantidad * c.precio).toFixed(2)} €</span>
-                </div>
-              ))}
-            </div>
-            <div className="text-right font-bold text-xl text-white pt-3 border-t border-bg-600">
-              Total: {factura.total.toFixed(2)} €
-            </div>
-          </Card>
-        </div>
-      </div>
-    )
-  }
 
   // Estados de formularios y ventanas emergentes (Pop-up)
   const [showNuevoVehiculoModal, setShowNuevoVehiculoModal] = useState<string | null>(null)
@@ -944,11 +803,10 @@ export function ClientesPage() {
                               <p className="text-xs text-slate-500 mt-1">Genera una factura usando el botón superior</p>
                             </div>
                           ) : clientFacts.map((f) => {
-                            const veh = clientVehs.find(v => v.id === f.vehiculo_id)
                             return (
                               <div
                                 key={f.id}
-                                onClick={() => openFacturaDetail(f, cliente, veh ?? null)}
+                                onClick={() => navigate('/facturas', { state: { facturaNumero: f.numero } })}
                                 className="flex items-center justify-between bg-bg-900 p-3.5 rounded-xl border border-bg-700 text-xs hover:border-emerald-500/50 cursor-pointer transition-colors"
                               >
                                 <div>
@@ -977,56 +835,151 @@ export function ClientesPage() {
       {/* MODAL FORMULARIO NUEVO CLIENTE */}
       {showNuevoClienteModal && (
         <div className="fixed inset-0 bg-black/80 z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoClienteModal(false)}>
-          <Card className="w-full max-w-md p-5 sm:p-6 mt-4 sm:mt-12 mb-8 max-h-[92vh] overflow-y-auto scrollbar-thin">
-            <div onClick={(e) => e.stopPropagation()} className="space-y-4 pb-44 sm:pb-6">
-              <div className="flex items-center justify-between border-b border-bg-700 pb-3 sticky top-0 bg-bg-800 z-10 pt-1">
-                <h2 className="text-3xl font-extrabold text-sky-400">Nuevo Cliente</h2>
-                <button onClick={() => setShowNuevoClienteModal(false)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+          <Card className="w-full max-w-lg p-6 sm:p-8 mt-4 sm:mt-12 mb-8 max-h-[92vh] overflow-y-auto scrollbar-thin">
+            <div onClick={(e) => e.stopPropagation()} className="space-y-5 pb-44 sm:pb-6">
+              <div className="flex items-center justify-between border-b border-bg-700 pb-4 sticky top-0 bg-bg-800 z-10 pt-1">
+                <h2 className="text-3xl sm:text-4xl font-black text-sky-400 tracking-wide">Nuevo Cliente</h2>
+                <button onClick={() => setShowNuevoClienteModal(false)} className="text-slate-400 hover:text-white p-1"><X className="w-7 h-7" /></button>
               </div>
 
-              <div className="space-y-3">
-                <Input label="Nombre completo *" value={nuevoClienteForm.nombre} onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, nombre: v })} placeholder="Ej: Juan Pérez" />
-                <Input label="DNI / NIF" value={nuevoClienteForm.dni} onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, dni: v })} placeholder="12345678A" />
-                <Input label="Teléfono" value={nuevoClienteForm.telefono} onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, telefono: v })} placeholder="600000000" />
-                <Input label="Email" value={nuevoClienteForm.email} onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, email: v })} placeholder="cliente@email.com" />
-                <Input label="Dirección" value={nuevoClienteForm.direccion} onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, direccion: v })} placeholder="Calle..." />
+              <div className="space-y-5">
+                <Input
+                  label="Nombre completo *"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                  value={nuevoClienteForm.nombre}
+                  onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, nombre: v })}
+                  placeholder="Ej: Juan Pérez"
+                  enterKeyHint="next"
+                />
+                <Input
+                  label="DNI / NIF"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 uppercase font-bold"
+                  value={nuevoClienteForm.dni}
+                  onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, dni: v })}
+                  placeholder="12345678A"
+                  inputMode="numeric"
+                  enterKeyHint="next"
+                />
+                <Input
+                  label="Teléfono"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                  value={nuevoClienteForm.telefono}
+                  onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, telefono: v })}
+                  placeholder="600000000"
+                  type="tel"
+                  inputMode="numeric"
+                  enterKeyHint="next"
+                />
+                <Input
+                  label="Email"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                  value={nuevoClienteForm.email}
+                  onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, email: v })}
+                  placeholder="cliente@email.com"
+                  type="email"
+                  inputMode="email"
+                  enterKeyHint="next"
+                />
+                <Input
+                  label="Dirección"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                  value={nuevoClienteForm.direccion}
+                  onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, direccion: v })}
+                  placeholder="Calle..."
+                  enterKeyHint="next"
+                />
                 
                 {/* Código Postal y Localidad autocompletada por API */}
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <Input
                     label="Código Postal (CP)"
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
                     value={nuevoClienteForm.cp}
                     onChange={(v) => handleCPChange(v)}
                     placeholder="29001"
+                    inputMode="numeric"
+                    enterKeyHint="next"
                   />
                   <Input
                     label={buscandoCP ? "Localidad (buscando...)" : "Localidad"}
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
                     value={nuevoClienteForm.localidad}
                     onChange={(v) => setNuevoClienteForm({ ...nuevoClienteForm, localidad: v })}
                     placeholder="Málaga"
+                    enterKeyHint="next"
                   />
                 </div>
               </div>
 
               {/* Opcional: datos primer vehículo con campos requeridos */}
-              <div className="pt-3 border-t border-bg-700 space-y-2">
-                <p className="text-xs font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5"><Car className="w-4 h-4" /> Datos del vehículo (Opcional)</p>
-                <Input label="Matrícula" value={nuevoVehFormModal.matricula} onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, matricula: v })} placeholder="1234ABC" />
-                <div className="grid grid-cols-2 gap-2">
-                  <Input label="Marca" value={nuevoVehFormModal.marca} onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, marca: v })} placeholder="Volkswagen" />
-                  <Input label="Modelo" value={nuevoVehFormModal.modelo} onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, modelo: v })} placeholder="Golf" />
+              <div className="pt-4 border-t border-bg-700 space-y-4">
+                <p className="text-base sm:text-lg font-extrabold text-amber-400 uppercase tracking-widest flex items-center gap-2">
+                  <Car className="w-6 h-6" /> Datos del vehículo (Opcional)
+                </p>
+                <Input
+                  label="Matrícula"
+                  labelClassName="text-lg sm:text-2xl font-bold text-white/90"
+                  inputClassName="text-2xl sm:text-3xl py-4 px-5 uppercase font-mono font-black"
+                  value={nuevoVehFormModal.matricula}
+                  onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, matricula: v })}
+                  placeholder="1234ABC"
+                  inputMode="numeric"
+                  enterKeyHint="next"
+                />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Marca"
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                    value={nuevoVehFormModal.marca}
+                    onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, marca: v })}
+                    placeholder="Volkswagen"
+                    enterKeyHint="next"
+                  />
+                  <Input
+                    label="Modelo"
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                    value={nuevoVehFormModal.modelo}
+                    onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, modelo: v })}
+                    placeholder="Golf"
+                    enterKeyHint="next"
+                  />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <Input label="Código Color" value={nuevoVehFormModal.codigo_color} onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, codigo_color: v })} placeholder="Ej: LY9B" />
-                  <Input label="VIN / Bastidor" value={nuevoVehFormModal.vin} onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, vin: v })} placeholder="Opcional" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Input
+                    label="Código Color"
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                    value={nuevoVehFormModal.codigo_color}
+                    onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, codigo_color: v })}
+                    placeholder="Ej: LY9B"
+                    enterKeyHint="next"
+                  />
+                  <Input
+                    label="VIN / Bastidor"
+                    labelClassName="text-base sm:text-xl font-bold text-white/90"
+                    inputClassName="text-2xl sm:text-3xl py-4 px-5 font-bold"
+                    value={nuevoVehFormModal.vin}
+                    onChange={(v) => setNuevoVehFormModal({ ...nuevoVehFormModal, vin: v })}
+                    placeholder="Opcional"
+                    enterKeyHint="done"
+                  />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-3">
-                <Button onClick={handleGuardarNuevoCliente} className="flex-1">
+              <div className="flex gap-3 pt-4">
+                <Button onClick={handleGuardarNuevoCliente} size="md" className="flex-1 text-lg sm:text-xl font-bold py-4">
                   {nuevoVehFormModal.matricula.trim() || clienteGuardadoId ? 'Generar Presupuesto' : 'Guardar Cliente'}
                 </Button>
-                <Button variant="secondary" onClick={() => {
+                <Button variant="secondary" size="md" className="text-lg font-bold px-6 py-4" onClick={() => {
                   setShowNuevoClienteModal(false)
                   setClienteGuardadoId(null)
                 }}>Cancelar</Button>

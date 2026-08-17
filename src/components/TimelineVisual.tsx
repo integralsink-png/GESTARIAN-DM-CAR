@@ -22,6 +22,11 @@ interface TimelineVisualProps {
 export function TimelineVisual({ steps }: TimelineVisualProps) {
   const [confirmStepId, setConfirmStepId] = React.useState<string | null>(null);
 
+  const totalArrows = Math.max(1, steps.length - 1);
+  const fadeDuration = 0.8; // duración del fade in: 0.8 segundos
+  const stepDelay = fadeDuration * 0.4; // solapamiento del 60% (la siguiente flecha arranca al 40% del ciclo = 0.32s)
+  const totalCycleDuration = totalArrows * stepDelay;
+
   return (
     <div className="w-full flex flex-col items-center gap-2 py-4">
       {steps.map((step, index) => {
@@ -29,22 +34,24 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
         const isPresupuestoPendiente = step.id === 'presupuesto' && step.title === 'Presupuesto Pendiente';
         const isConfirming = confirmStepId === step.id;
         
-        let bgClass = 'bg-slate-700/50 border-slate-600 text-slate-300';
+        let bgClass = 'bg-slate-700/20 border-slate-600 text-slate-300';
         if (step.color === 'emerald') {
-          bgClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
+          bgClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400 hover:bg-emerald-500/25 shadow-[0_0_15px_rgba(16,185,129,0.15)]';
         } else if (step.color === 'amber') {
-          bgClass = 'bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.15)]';
+          bgClass = 'bg-amber-500/20 border-amber-500/50 text-amber-400 hover:bg-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.15)]';
         } else if (step.color === 'blue') {
-          bgClass = 'bg-blue-500/20 border-blue-500/50 text-blue-400 hover:bg-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]';
+          bgClass = 'bg-blue-500/20 border-blue-500/50 text-blue-400 hover:bg-blue-500/25 shadow-[0_0_15px_rgba(59,130,246,0.15)]';
         } else if (step.color === 'yellow') {
-          bgClass = 'bg-yellow-500/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.15)]';
+          bgClass = 'bg-yellow-500/20 border-yellow-400/50 text-yellow-300 hover:bg-yellow-500/25 shadow-[0_0_15px_rgba(234,179,8,0.15)]';
         } else if (step.color === 'red') {
-          bgClass = 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/30 shadow-[0_0_15px_rgba(239,68,68,0.15)]';
+          bgClass = 'bg-red-500/20 border-red-500/50 text-red-400 hover:bg-red-500/25 shadow-[0_0_15px_rgba(239,68,68,0.15)]';
         } else if (step.color === 'slate') {
-          bgClass = 'bg-slate-500/10 border-slate-600/30 text-slate-500';
+          bgClass = 'bg-slate-500/20 border-slate-600/30 text-slate-500';
         }
 
-        const borderAnimClass = step.animatedBorder ? 'animated-contour-border' : '';
+        const borderAnimClass = step.animatedBorder 
+          ? (step.color === 'amber' || step.color === 'yellow' ? 'animated-contour-border-amber' : 'animated-contour-border') 
+          : '';
 
         // Renderizado especial cuando está en fase de confirmación
         if (isPresupuestoPendiente && isConfirming) {
@@ -73,8 +80,14 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
               </div>
 
               {!isLast && (
-                <div className="flex items-center justify-center py-1 text-slate-500">
-                  <ArrowDown className="w-6 h-6 animate-pulse" />
+                <div className="flex items-center justify-center py-1.5 overflow-visible">
+                  <ArrowDown 
+                    className="w-7 h-7 stroke-[2.8] roadmap-arrow-cascade" 
+                    style={{
+                      animationDuration: `${totalCycleDuration}s`,
+                      animationDelay: `${index * stepDelay}s`,
+                    }}
+                  />
                 </div>
               )}
             </React.Fragment>
@@ -107,8 +120,14 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
             </Container>
             
             {!isLast && (
-              <div className="flex items-center justify-center py-1 text-slate-500">
-                <ArrowDown className="w-6 h-6 animate-pulse" />
+              <div className="flex items-center justify-center py-1.5 overflow-visible">
+                <ArrowDown 
+                  className="w-7 h-7 stroke-[2.8] roadmap-arrow-cascade" 
+                  style={{
+                    animationDuration: `${totalCycleDuration}s`,
+                    animationDelay: `${index * stepDelay}s`,
+                  }}
+                />
               </div>
             )}
           </React.Fragment>

@@ -710,7 +710,7 @@ export function PresupuestoHibridoPage() {
               {/* Nombre completo + DNI */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     Nombre completo <span className="text-rose-400">*</span>
                   </label>
                   <input
@@ -718,12 +718,13 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.nombre}
                     onChange={(e) => setClientForm({ ...clientForm, nombre: e.target.value })}
                     placeholder="Ej: Juan Pérez González"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                    enterKeyHint="next"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     DNI / CIF / NIF
                   </label>
                   <input
@@ -731,7 +732,9 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.dni}
                     onChange={(e) => setClientForm({ ...clientForm, dni: e.target.value })}
                     placeholder="Ej: 12345678X"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner uppercase font-semibold"
+                    inputMode="numeric"
+                    enterKeyHint="next"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner uppercase font-bold"
                   />
                 </div>
               </div>
@@ -739,7 +742,7 @@ export function PresupuestoHibridoPage() {
               {/* Teléfono + Email */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     Teléfono Móvil
                   </label>
                   <input
@@ -747,12 +750,14 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.telefono}
                     onChange={(e) => setClientForm({ ...clientForm, telefono: e.target.value })}
                     placeholder="Ej: 612345678"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                    inputMode="numeric"
+                    enterKeyHint="next"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     Correo Electrónico
                   </label>
                   <input
@@ -760,7 +765,9 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.email}
                     onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
                     placeholder="Ej: cliente@email.com"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                    inputMode="email"
+                    enterKeyHint="next"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-bold"
                   />
                 </div>
               </div>
@@ -768,7 +775,7 @@ export function PresupuestoHibridoPage() {
               {/* Calle / Dirección + Código Postal (CP) */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 <div className="sm:col-span-2">
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     Calle / Dirección
                   </label>
                   <input
@@ -776,12 +783,13 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.calle}
                     onChange={(e) => setClientForm({ ...clientForm, calle: e.target.value })}
                     placeholder="Ej: Av. Principal 45"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                    enterKeyHint="next"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-bold"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-lg sm:text-xl font-black text-white mb-2 uppercase tracking-wider">
+                  <label className="block text-lg sm:text-2xl font-black text-white mb-2 uppercase tracking-wider">
                     Código Postal (CP)
                   </label>
                   <input
@@ -790,7 +798,9 @@ export function PresupuestoHibridoPage() {
                     value={clientForm.cp}
                     onChange={(e) => setClientForm({ ...clientForm, cp: e.target.value.replace(/\D/g, '').slice(0, 5) })}
                     placeholder="Ej: 28001"
-                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-lg sm:text-xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-semibold"
+                    inputMode="numeric"
+                    enterKeyHint="done"
+                    className="w-full bg-slate-950 border-2 border-slate-700 rounded-2xl px-5 py-4 text-white text-2xl sm:text-3xl focus:border-cyan-400 focus:outline-none placeholder-slate-500 shadow-inner font-bold"
                   />
                 </div>
               </div>
