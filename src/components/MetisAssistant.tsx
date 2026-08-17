@@ -148,6 +148,8 @@ export function MetisAssistant() {
     }
   }
 
+  const [conversationalMode, setConversationalMode] = useState(false)
+
   // Process completed voice transcript when user stops speaking or transcript freezes
   const handleSendMessage = useCallback(async (textToSend?: string, isVoice = false) => {
     const text = (textToSend || input).trim()
@@ -170,14 +172,22 @@ export function MetisAssistant() {
       
       setHasUnread(prev => open ? false : true)
 
-      // Speak response aloud if triggered by voice
-      if (isVoice || voiceInputActive) {
-        speak(response.text)
+      // Reproducir voz y si está en modo conversacional continuo, reabrir el micro automáticamente al terminar de hablar
+      if (isVoice || voiceInputActive || conversationalMode) {
+        speak(response.text, () => {
+          if (conversationalMode || voiceInputActive) {
+            // Reabrir escucha continua manos libres como ChatGPT Voice o Gemini Live
+            setTimeout(() => {
+              reset()
+              start()
+            }, 300)
+          }
+        })
       }
     } catch {
       setTyping(false)
     }
-  }, [input, activeContext, playSound, voiceInputActive, speak, open])
+  }, [input, activeContext, playSound, voiceInputActive, conversationalMode, speak, open, reset, start])
 
   const toggleMic = useCallback(() => {
     if (!supported) return
@@ -185,6 +195,7 @@ export function MetisAssistant() {
     if (listening) {
       stop()
       setVoiceInputActive(false)
+      setConversationalMode(false)
       if (transcript.trim()) {
         handleSendMessage(transcript, true)
       }
@@ -192,18 +203,19 @@ export function MetisAssistant() {
       reset()
       stopSpeech()
       setVoiceInputActive(true)
+      setConversationalMode(true) // Activar modo manos libres continuo
       start()
     }
   }, [supported, listening, playSound, stop, reset, stopSpeech, start, transcript, handleSendMessage])
 
-  // Auto-finish listening when transcript stops changing after a pause (for Desktop)
+  // Auto-finish listening when transcript stops changing after a pause
   useEffect(() => {
-    if (listening && transcript.trim().length > 5) {
+    if (listening && transcript.trim().length > 3) {
       const timer = setTimeout(() => {
         stop()
         setVoiceInputActive(false)
         handleSendMessage(transcript, true)
-      }, 2500)
+      }, 2000)
       return () => clearTimeout(timer)
     }
   }, [listening, transcript, stop, handleSendMessage])
