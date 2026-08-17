@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Sparkles, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Triangle, Power } from 'lucide-react'
+import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../lib/theme'
 import { useVoice } from '../lib/useVoice'
@@ -170,7 +170,7 @@ export function MetisAssistant() {
         { id: metisMsgId, role: 'metis', text: response.text, actionResult: response.actionResult }
       ])
       
-      setHasUnread(prev => open ? false : true)
+      setHasUnread(!open)
 
       // Reproducir voz y si está en modo conversacional continuo, reabrir el micro automáticamente al terminar de hablar
       if (isVoice || voiceInputActive || conversationalMode) {

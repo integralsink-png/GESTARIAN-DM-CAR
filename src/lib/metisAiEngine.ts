@@ -159,7 +159,11 @@ PRESUPUESTOS RECIENTES (${presupuestos?.length || 0}):
 ${(presupuestos || []).map(p => `- Presupuesto ${p.numero} [ClienteID: ${p.cliente_id}, VehID: ${p.vehiculo_id}]: Fecha: ${p.fecha || p.created_at}, Total: ${p.total}€, Estado: ${p.estado}. Conceptos: ${JSON.stringify(p.conceptos || [])}`).join('\n')}
 
 FACTURAS EMITIDAS Y COBROS (${facturas?.length || 0}):
-${(facturas || []).map(f => `- Factura ${f.numero} [ClienteID: ${f.cliente_id}, VehID: ${f.vehiculo_id}]: Fecha: ${f.fecha || f.created_at}, Total: ${f.total}€, Cobro: ${f.estado_cobro}. Conceptos: ${JSON.stringify(f.conceptos || [])}`).join('\n')}
+${(facturas || []).map(f => {
+  const facCobros = (cobros || []).filter(c => c.factura_id === f.id)
+  const totalCobrado = facCobros.reduce((acc, c) => acc + (Number(c.importe) || 0), 0)
+  return `- Factura ${f.numero} [ClienteID: ${f.cliente_id}, VehID: ${f.vehiculo_id}]: Fecha: ${f.fecha || f.created_at}, Total: ${f.total}€ (Cobrado: ${totalCobrado}€ - Estado: ${f.estado_cobro}). Conceptos: ${JSON.stringify(f.conceptos || [])}`
+}).join('\n')}
 ------------------------------------------------------------
 `
   } catch (e) {
