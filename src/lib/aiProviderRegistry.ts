@@ -18,6 +18,8 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: 'Google Gemini (AI Pro)',
     urlApiKey: 'https://aistudio.google.com/app/apikey',
     models: [
+      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash (Ultra Rápido)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Recomendado)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
