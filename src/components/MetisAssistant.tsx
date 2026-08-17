@@ -329,7 +329,22 @@ export function MetisAssistant() {
                           onClick={() => {
                             playSound('click')
                             setOpen(false)
-                            navigate(m.actionResult!.navigationPath!)
+                            const item = m.actionResult?.item
+                            if (item?.id) {
+                              navigate(m.actionResult!.navigationPath!, {
+                                state: {
+                                  presupuestoId: item.id,
+                                  clienteId: item.cliente_id,
+                                  vehiculoId: item.vehiculo_id,
+                                  openForm: true
+                                }
+                              })
+                              setTimeout(() => {
+                                window.dispatchEvent(new CustomEvent('gestarian-open-document', { detail: { id: item.id, tipo: 'presupuesto' } }))
+                              }, 150)
+                            } else {
+                              navigate(m.actionResult!.navigationPath!)
+                            }
                           }}
                           className="px-3 py-1.5 rounded-lg bg-cyan-500/80 hover:bg-cyan-400 text-white font-medium text-xs flex items-center gap-1.5 transition-all"
                         >

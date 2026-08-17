@@ -84,7 +84,7 @@ export function useVoice() {
     return r
   }, [])
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
     finalRef.current = ''
     setTranscript('')
     setInterim('')
@@ -94,6 +94,17 @@ export function useVoice() {
         recRef.current.stop()
       }
     } catch {}
+
+    // Solicitar permiso de micrófono explícito si el navegador lo requiere
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        // Liberar pistas del stream para que SpeechRecognition tome el control
+        stream.getTracks().forEach((track) => track.stop())
+      } catch (micErr) {
+        console.warn('Permiso de micrófono no concedido o cancelado:', micErr)
+      }
+    }
 
     const r = initRecognition()
     if (!r) return

@@ -246,7 +246,96 @@ PERSONALIDAD Y VOZ:
   try {
     const parsed = JSON.parse(cleanJsonText)
     const text = parsed.text || parsed.respuesta || rawText
-    return { text, actionResult: parsed.actionResult }
+    let actionResult = parsed.actionResult
+
+    // Si Gemini generó una acción de creación de presupuesto o similar, ejecutarla en Base de Datos
+    if (parsed.action && typeof parsed.action === 'object') {
+      const act = parsed.action
+      if (act.type === 'create_presupuesto' || act.type === 'presupuesto_creado') {
+        // 1. Buscar o vincular cliente
+        let targetClienteId: string | null = null
+        let targetVehiculoId: string | null = null
+
+        // Buscar por nombre si viene en la orden
+        if (act.cliente_nombre || userText) {
+          const searchName = act.cliente_nombre || userText.match(/(?:para|a|de)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+?)(?:\s+por|\s+pa|\s+con|\s+el|\s+un|\s*\d|$)/i)?.[1]?.trim()
+          if (searchName) {
+            const { data: matchedClis } = await supabase.from('clientes').select('id, nombre').ilike('nombre', `%${searchName}%`).limit(1)
+            if (matchedClis && matchedClis.length > 0) {
+              targetClienteId = matchedClis[0].id
+            }
+          }
+        }
+
+        // Si no se encontró por nombre, buscar vehículo
+        if (act.matricula || userText) {
+          const mat = act.matricula || extractMatricula(userText)
+          if (mat) {
+            const { data: matchedVehs } = await supabase.from('vehiculos').select('id, cliente_id').ilike('matricula', `%${mat}%`).limit(1)
+            if (matchedVehs && matchedVehs.length > 0) {
+              targetVehiculoId = matchedVehs[0].id
+              if (!targetClienteId) targetClienteId = matchedVehs[0].cliente_id
+            }
+          }
+        }
+
+        // Si aún no hay cliente, usar el primero disponible o crear
+        if (!targetClienteId) {
+          const { data: firstCli } = await supabase.from('clientes').select('id').limit(1).maybeSingle()
+          targetClienteId = firstCli?.id || null
+        }
+
+        if (targetClienteId && !targetVehiculoId) {
+          const { data: vehList } = await supabase.from('vehiculos').select('id').eq('cliente_id', targetClienteId).limit(1)
+          if (vehList && vehList.length > 0) targetVehiculoId = vehList[0].id
+        }
+
+        // 2. Extraer conceptos e importes
+        let conceptosList = act.conceptos || []
+        if (!conceptosList.length) {
+          // Extraer precio del texto si no vino estructurado
+          const priceMatch = userText.match(/(\d+(?:[.,]\d+)?)\s*(?:€|euro|euros)/i)
+          const precio = priceMatch ? parseFloat(priceMatch[1].replace(',', '.')) : 0
+          const descMatch = userText.match(/(?:pa|para|de)\s+([a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+?)(?:,\s*el|\s+el|\s*\d|$)/i)
+          const descripcion = descMatch ? descMatch[1].trim() : 'Trabajo de chapa y pintura'
+          conceptosList = [{ descripcion, cantidad: 1, precio }]
+        }
+
+        const subtotal = conceptosList.reduce((acc: number, c: any) => acc + ((Number(c.cantidad) || 1) * (Number(c.precio) || 0)), 0)
+        const total = Math.round(subtotal * 1.21 * 100) / 100
+        const nextNum = `PAA${Math.floor(1000 + Math.random() * 9000)}`
+
+        const { data: newPres, error: presErr } = await supabase.from('presupuestos').insert({
+          numero: nextNum,
+          cliente_id: targetClienteId,
+          vehiculo_id: targetVehiculoId,
+          estado: 'pendiente',
+          conceptos: conceptosList.map((c: any) => ({ descripcion: c.descripcion, cantidad: c.cantidad || 1, precio: c.precio || 0 })),
+          total,
+          base_imponible: subtotal,
+          observaciones: act.observaciones || 'Presupuesto generado automáticamente por METIS'
+        }).select().single()
+
+        if (!presErr && newPres) {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new CustomEvent('gestarian-db-updated', { detail: { type: 'presupuestos' } }))
+            setTimeout(() => {
+              window.dispatchEvent(new CustomEvent('gestarian-open-document', { detail: { id: newPres.id, tipo: 'presupuesto' } }))
+            }, 300)
+          }
+
+          actionResult = {
+            type: 'presupuesto_creado',
+            title: `Presupuesto ${nextNum} Creado`,
+            details: `Importe Total: ${total.toFixed(2)} € (IVA incl.)`,
+            item: newPres,
+            navigationPath: '/presupuestos'
+          }
+        }
+      }
+    }
+
+    return { text, actionResult }
   } catch (e) {
     return { text: rawText || 'Instrucción procesada con éxito.' }
   }

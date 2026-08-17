@@ -231,6 +231,28 @@ export function PresupuestosPage() {
     if (clienteIdFromNav) setSelectedClienteId(clienteIdFromNav);
     if (vehiculoIdFromNav) setSelectedVehiculoId(vehiculoIdFromNav);
     if (openFormFromNav && !presupuestoIdFromNav) setShowForm(true);
+
+    if (presupuestoIdFromNav) {
+      supabase
+        .from("presupuestos")
+        .select("*")
+        .eq("id", presupuestoIdFromNav)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setEditingId(data.id);
+            setSelectedClienteId(data.cliente_id);
+            setSelectedVehiculoId(data.vehiculo_id ?? "");
+            setConceptos(
+              data.conceptos?.length
+                ? data.conceptos
+                : [{ descripcion: "", cantidad: 1, precio: 0 }],
+            );
+            setObservaciones(data.observaciones ?? "");
+            setShowForm(true);
+          }
+        });
+    }
   }, [clienteIdFromNav, vehiculoIdFromNav, openFormFromNav, presupuestoIdFromNav]);
 
   useEffect(() => {
