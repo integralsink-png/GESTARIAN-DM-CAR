@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -6,11 +6,12 @@ import type { Cliente, Vehiculo, Presupuesto, Factura, Configuracion } from '../
 import { PageHeader, Card, Button, Badge, EmptyState, Input, MatriculaBadge } from '../components/UI'
 import {
   Search, Phone, MessageCircle, Edit3, Car, Check,
-  X, Plus, Trash2, Printer, Mail, ArrowLeft, Image as ImageIcon, Users, Save, Folder
+  X, Plus, Trash2, Printer, Mail, ArrowLeft, Image as ImageIcon, Users, Save
 } from 'lucide-react'
-import { sendFacturaByEmail, downloadFacturaPDF, sendPresupuestoByEmail, downloadPresupuestoPDF } from '../lib/pdfGenerator'
+import { sendPresupuestoByEmail, downloadPresupuestoPDF } from '../lib/pdfGenerator'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
-import { FacturaIcon, NuevoPresupuestoA4Icon, ExpedienteFolderIcon } from '../components/CustomIcons'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
+import { FacturaIcon, NuevoPresupuestoA4Icon, ExpedienteFolderIcon, HistorialPresupuestoA4Icon, WhatsAppWithPhoneIcon, NuevoVehiculoPlusIcon } from '../components/CustomIcons'
 import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
 
 export function ClientesPage() {
@@ -23,6 +24,21 @@ export function ClientesPage() {
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [loading, setLoading] = useState(true)
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(location.state?.expandClienteId ?? null)
+  const [showNuevoExpedienteInfo, setShowNuevoExpedienteInfo] = useState<boolean>(!!location.state?.fromNuevoExpediente)
+  const infoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (location.state?.fromNuevoExpediente) {
+      setShowNuevoExpedienteInfo(true)
+      if (infoTimerRef.current) clearTimeout(infoTimerRef.current)
+      infoTimerRef.current = setTimeout(() => {
+        setShowNuevoExpedienteInfo(false)
+      }, 6000)
+    }
+    return () => {
+      if (infoTimerRef.current) clearTimeout(infoTimerRef.current)
+    }
+  }, [location.state?.fromNuevoExpediente])
 
   useEffect(() => {
     if (location.state?.expandClienteId) {
@@ -51,9 +67,9 @@ export function ClientesPage() {
   const [viewPresupuesto, setViewPresupuesto] = useState<{ presup: Presupuesto; cliente: Cliente; vehiculo: Vehiculo | null } | null>(null)
   const [config, setConfig] = useState<Configuracion | null>(null)
 
-  // Estado selección de presupuestos y vehículos
-  const [selectedVehDetailId, setSelectedVehDetailId] = useState<string | null>(null)
+  // Estado selección de vehículos y fotos
   const [viewingVehFotos, setViewingVehFotos] = useState<{ vehId: string; matricula: string } | null>(null)
+  const [confirmDeleteVehId, setConfirmDeleteVehId] = useState<string | null>(null)
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
   const [clienteGuardadoId, setClienteGuardadoId] = useState<string | null>(null)
 
@@ -270,7 +286,7 @@ export function ClientesPage() {
   }
 
   // Guardar nuevo cliente desde el formulario modal dedicado
-  async function handleGuardarNuevoCliente() {
+  async function handleGuardarNuevoCliente(generarPresupuesto: boolean = false) {
     if (!nuevoClienteForm.nombre.trim()) return
     
     // Objeto payload base de cliente
@@ -304,6 +320,8 @@ export function ClientesPage() {
     if (data || !error) {
       const clienteId = data?.id || (await supabase.from('clientes').select('id').eq('nombre', nuevoClienteForm.nombre).order('created_at', { ascending: false }).limit(1).single()).data?.id
 
+      let nuevoVehiculoId: string | null = null
+
       if (clienteId && nuevoVehFormModal.matricula.trim()) {
         const vehPayload: any = {
           cliente_id: clienteId,
@@ -314,11 +332,12 @@ export function ClientesPage() {
         }
         if (nuevoVehFormModal.codigo_color) vehPayload.codigo_color = nuevoVehFormModal.codigo_color
         
-        const vehRes = await supabase.from('vehiculos').insert(vehPayload)
+        let vehRes = await supabase.from('vehiculos').insert(vehPayload).select().maybeSingle()
         if (vehRes.error && vehRes.error.message.includes('column')) {
           delete vehPayload.codigo_color
-          await supabase.from('vehiculos').insert(vehPayload)
+          vehRes = await supabase.from('vehiculos').insert(vehPayload).select().maybeSingle()
         }
+        nuevoVehiculoId = vehRes.data?.id || null
       }
 
       setClienteGuardadoId(clienteId || null)
@@ -326,10 +345,13 @@ export function ClientesPage() {
       setClientePopup(true)
       setTimeout(() => setClientePopup(false), 3000)
 
-      // Si se rellenó vehículo o si el usuario quiere generar presupuesto directo, cerramos modal e iremos a presupuestos
-      if (clienteId && nuevoVehFormModal.matricula.trim()) {
-        // Redirigir a presupuestos
-        navigate('/presupuestos', { state: { clienteId, openForm: true } })
+      // Si se solicita generar presupuesto o se rellenó matrícula
+      if (clienteId && (generarPresupuesto || nuevoVehFormModal.matricula.trim())) {
+        navigate('/presupuestos', { state: { clienteId, vehiculoId: nuevoVehiculoId, openForm: true } })
+        setShowNuevoClienteModal(false)
+        setNuevoClienteForm({ nombre: '', dni: '', telefono: '', email: '', direccion: '', cp: '', localidad: '' })
+        setNuevoVehFormModal({ matricula: '', marca: '', modelo: '', codigo_color: '', vin: '' })
+      } else {
         setShowNuevoClienteModal(false)
         setNuevoClienteForm({ nombre: '', dni: '', telefono: '', email: '', direccion: '', cp: '', localidad: '' })
         setNuevoVehFormModal({ matricula: '', marca: '', modelo: '', codigo_color: '', vin: '' })
@@ -399,6 +421,31 @@ export function ClientesPage() {
   // ── Vista principal de CLIENTES ──
   return (
     <div className="space-y-4">
+      {/* Pop-up informativo al llegar desde NUEVO EXPEDIENTE (Globo estático no animado, centrado en pantalla, 80% de ancho, 5s de duración, fade-off) */}
+      <AnimatePresence>
+        {showNuevoExpedienteInfo && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-slate-900/95 backdrop-blur-md border-2 border-cyan-400 text-white p-6 sm:p-8 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.5)] flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left select-none w-[80%] max-w-2xl"
+          >
+            <p className="flex-1 text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-relaxed tracking-wide">
+              Crea un nuevo cliente, busca usando la lupa o selecciónalo del listado.
+            </p>
+            <button
+              onClick={() => setShowNuevoExpedienteInfo(false)}
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/50 flex items-center justify-center shrink-0 transition-all active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+              title="Cerrar"
+              aria-label="Cerrar aviso"
+            >
+              <X className="w-8 h-8 stroke-[2.5]" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Pop-up de confirmación Cliente Guardado (z-[100] para estar por encima de modales z-50) */}
       {clientePopup && (
         <div className="fixed top-6 right-6 z-[100] bg-emerald-500 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-2 font-bold animate-bounce border-2 border-white">
@@ -484,7 +531,7 @@ export function ClientesPage() {
       ) : filteredClientes.length === 0 ? (
         <EmptyState icon={<Users className="w-10 h-10 text-cyan-400" />} title="No se encontraron clientes" subtitle="Utiliza el buscador o añade un cliente" />
       ) : (
-        <motion.div layout className="space-y-2.5 mx-[-1rem] sm:mx-[-1.5rem] lg:mx-[-2rem]">
+        <motion.div layout className="space-y-4 mx-[-1rem] sm:mx-[-1.5rem] lg:mx-[-2rem]">
           {filteredClientes.map((cliente) => {
             const isExpanded = expandedClienteId === cliente.id
             const subpanel = activeSubpanel[cliente.id]
@@ -504,17 +551,17 @@ export function ClientesPage() {
                     : 'border-bg-700 bg-bg-800/80 hover:border-bg-600'
                 }`}
               >
-                {/* Fila principal del cliente — Ajustada exactamente al contenido */}
+                {/* Fila principal del cliente — Justificación izquierda */}
                 <div
                   onClick={() => toggleCliente(cliente)}
-                  className="flex flex-col items-center justify-center py-3 px-1.5 cursor-pointer hover:bg-bg-700/50 transition-colors text-center w-full"
+                  className="flex flex-col items-start justify-center py-3 px-1.5 cursor-pointer hover:bg-bg-700/50 transition-colors w-full"
                 >
-                  {/* Número y Nombre en una única línea centrada, ocupando el 98% del ancho de la tarjeta */}
+                  {/* Número y Nombre en una línea justificada a la izquierda, tamaño x0.8 (text-2xl) */}
                   <div className="w-[98%] mx-auto flex items-center px-1 overflow-hidden">
-                    <span className="text-cyan-400 font-medium text-3xl shrink-0 mr-3">
+                    <span className="text-cyan-400 font-medium text-2xl shrink-0 mr-3">
                       {cliente.numero ?? '?'}
                     </span>
-                    <span className="font-semibold text-white text-3xl truncate text-center flex-1 pr-1">
+                    <span className="font-semibold text-white text-2xl truncate text-left flex-1 pr-1">
                       {cliente.nombre}
                     </span>
                   </div>
@@ -540,7 +587,7 @@ export function ClientesPage() {
                           variants={getDropdownStaggerVariants(8, 1.5)}
                           className="grid grid-cols-4 sm:grid-cols-8 gap-4 w-[98%] mx-auto justify-items-center py-4 border-b border-bg-800 pb-5"
                         >
-                          {/* Nuevo Presupuesto */}
+                          {/* 1. Nuevo Presupuesto */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -554,7 +601,7 @@ export function ClientesPage() {
                             </button>
                           </motion.div>
 
-                          {/* Expedientes */}
+                          {/* 2. Expedientes */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -568,7 +615,7 @@ export function ClientesPage() {
                             </button>
                           </motion.div>
 
-                          {/* Editar */}
+                          {/* 3. Editar */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -584,7 +631,7 @@ export function ClientesPage() {
                             </button>
                           </motion.div>
 
-                          {/* Teléfono */}
+                          {/* 4. Teléfono */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -604,7 +651,26 @@ export function ClientesPage() {
                             )}
                           </motion.div>
 
-                          {/* WhatsApp */}
+                          {/* 5. Historial de Presupuestos (Justo debajo de Nuevo Presupuesto, sin +) */}
+                          <motion.div
+                            variants={dropdownItemVariants}
+                            className="flex flex-col items-center justify-center w-full"
+                          >
+                            <button
+                              onClick={() => toggleSubpanel(cliente.id, 'presupuestos')}
+                              className={`relative transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
+                                subpanel === 'presupuestos' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-cyan-400 hover:text-cyan-300'
+                              }`}
+                              title="Historial de Presupuestos"
+                            >
+                              <HistorialPresupuestoA4Icon className="w-[60px] h-[60px]" />
+                              <span className="absolute -top-1.5 -right-2 min-w-[20px] h-5 px-1.5 rounded-full bg-cyan-600 text-white text-[11px] font-bold flex items-center justify-center shadow">
+                                {(presupuestosCliente[cliente.id] ?? []).length}
+                              </span>
+                            </button>
+                          </motion.div>
+
+                          {/* 6. WhatsApp con teléfono dibujado dentro (A la derecha de Historial Presupuestos) */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -617,36 +683,16 @@ export function ClientesPage() {
                                 className="text-green-400 hover:text-green-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
                                 title="WhatsApp"
                               >
-                                <MessageCircle className="w-[60px] h-[60px]" strokeWidth={1} />
+                                <WhatsAppWithPhoneIcon className="w-[60px] h-[60px]" />
                               </a>
                             ) : (
                               <div className="text-slate-650 opacity-40 cursor-not-allowed">
-                                <MessageCircle className="w-[60px] h-[60px]" strokeWidth={1} />
+                                <WhatsAppWithPhoneIcon className="w-[60px] h-[60px]" />
                               </div>
                             )}
                           </motion.div>
 
-                          {/* Email */}
-                          <motion.div
-                            variants={dropdownItemVariants}
-                            className="flex flex-col items-center justify-center w-full"
-                          >
-                            {cliente.email ? (
-                              <a
-                                href={`mailto:${cliente.email}`}
-                                className="text-purple-400 hover:text-purple-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
-                                title="Email"
-                              >
-                                <Mail className="w-[60px] h-[60px]" strokeWidth={1} />
-                              </a>
-                            ) : (
-                              <div className="text-slate-650 opacity-40 cursor-not-allowed">
-                                <Mail className="w-[60px] h-[60px]" strokeWidth={1} />
-                              </div>
-                            )}
-                          </motion.div>
-
-                          {/* Vehículos */}
+                          {/* 7. Vehículos */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -665,7 +711,7 @@ export function ClientesPage() {
                             </button>
                           </motion.div>
 
-                          {/* Facturas */}
+                          {/* 8. Facturas */}
                           <motion.div
                             variants={dropdownItemVariants}
                             className="flex flex-col items-center justify-center w-full"
@@ -702,75 +748,106 @@ export function ClientesPage() {
                       </div>
                     )}
 
-                    {/* SUBPANEL VEHÍCULOS */}
+                    {/* SUBPANEL VEHÍCULOS (FLOTANTE SIN TARJETA, EXTENDIDO Y CON TIPOGRAFÍA GRANDE) */}
                     {subpanel === 'vehiculos' && (
-                      <div className="p-4 bg-bg-800 rounded-xl border border-bg-700 space-y-3">
-                        <h4 className="text-xs font-bold text-amber-400 uppercase tracking-widest mb-2">Vehículos del cliente</h4>
-                        <div className="space-y-2">
-                          {clientVehs.length === 0 ? (
-                            <p className="text-xs text-slate-500 italic">Sin vehículos registrados.</p>
-                          ) : clientVehs.map((v) => {
-                            const isSelectedVeh = selectedVehDetailId === v.id
-                            return (
-                              <div key={v.id} className="bg-bg-900 rounded-xl border border-bg-700 overflow-hidden transition-all">
-                                {/* Línea principal del vehículo */}
-                                <div
-                                  onClick={() => setSelectedVehDetailId(isSelectedVeh ? null : v.id)}
-                                  className="flex items-center justify-between p-3 cursor-pointer hover:bg-bg-800/80 transition-colors"
-                                >
-                                  <div>
-                                    <div className="flex items-center gap-2">
-                                      <MatriculaBadge matricula={v.matricula} />
+                      <div className="py-2 px-1 space-y-4 w-full">
+                        {clientVehs.length === 0 ? (
+                          <div className="flex items-center justify-between py-3 px-2">
+                            <p className="text-sm text-slate-400 italic">Sin vehículos registrados para este cliente.</p>
+                            <button
+                              onClick={() => setShowNuevoVehiculoModal(cliente.id)}
+                              className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30 flex items-center gap-1.5 text-xs font-bold transition-all active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.3)] uppercase"
+                              title="Añadir vehículo"
+                            >
+                              <Plus className="w-4 h-4" />
+                              <Car className="w-5 h-5" />
+                              <span>Añadir vehículo</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="space-y-4 w-full">
+                            {clientVehs.map((v) => {
+                              const isConfirmingDelete = confirmDeleteVehId === v.id
+
+                              return (
+                                <div key={v.id} className="relative py-3 border-b border-white/10 last:border-0">
+                                  {/* Línea 1: Matrícula a la izquierda (x1.3) y a la derecha iconos de acciones */}
+                                  <div className="flex items-center justify-between gap-3 mb-1.5">
+                                    {/* Matrícula (x1.3) */}
+                                    <div className="scale-110 sm:scale-125 origin-left shrink-0 py-0.5">
+                                      <MatriculaBadge matricula={v.matricula} size="md" />
                                     </div>
-                                    <p className="text-xs text-slate-400 mt-0.5">
+
+                                    {/* Iconos de acciones flotantes a la derecha (sin recuadros, tamaño x3) */}
+                                    <div className="flex items-center gap-4 sm:gap-5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                                      {/* Icono Añadir vehículo (coche con + adentro, flotante sin recuadro, tamaño x3) */}
+                                      <button
+                                        onClick={() => setShowNuevoVehiculoModal(cliente.id)}
+                                        className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]"
+                                        title="Añadir vehículo"
+                                      >
+                                        <NuevoVehiculoPlusIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+                                      </button>
+
+                                      {/* Icono Imágenes del vehículo (flotante sin recuadro, tamaño x3) */}
+                                      <button
+                                        onClick={() => setViewingVehFotos({ vehId: v.id, matricula: v.matricula })}
+                                        className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(167,139,250,0.6)]"
+                                        title={`Imágenes del vehículo (${v.fotos?.length ?? 0})`}
+                                      >
+                                        <ImageIcon className="w-11 h-11 sm:w-13 sm:h-13 stroke-[1.2]" />
+                                      </button>
+
+                                      {/* Icono Papelera roja (flotante sin recuadro, tamaño x3) */}
+                                      <button
+                                        onClick={() => setConfirmDeleteVehId(v.id)}
+                                        className="text-red-500 hover:text-red-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(239,68,68,0.6)]"
+                                        title="Eliminar vehículo"
+                                      >
+                                        <Trash2 className="w-11 h-11 sm:w-13 sm:h-13 stroke-[1.2]" />
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Línea 2: Marca y modelo justo debajo (x1.6 de tipografía) */}
+                                  <div className="flex items-center justify-between pt-1">
+                                    <p className="text-[21px] sm:text-[23px] font-bold text-slate-200 tracking-wide">
                                       {v.marca || 'Sin marca'} {v.modelo ? `· ${v.modelo}` : ''}
                                     </p>
                                   </div>
 
-                                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                    <button
-                                      onClick={() => setViewingVehFotos({ vehId: v.id, matricula: v.matricula })}
-                                      className="p-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 hover:bg-cyan-500/30 flex items-center gap-1 text-xs font-medium transition-colors"
-                                      title="Imágenes del vehículo"
-                                    >
-                                      <ImageIcon className="w-4 h-4" />
-                                      <span>Imágenes ({v.fotos?.length ?? 0})</span>
-                                    </button>
-
-                                    <button onClick={() => handleDeleteVehiculo(v.id, cliente.id)} className="p-2 text-red-400 hover:text-red-300">
-                                      <Trash2 className="w-4 h-4" />
-                                    </button>
-                                  </div>
+                                  {/* Globo estático no animado de confirmación para eliminar */}
+                                  {isConfirmingDelete && (
+                                    <div className="mt-3 p-3.5 rounded-2xl bg-slate-900 border-2 border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.35)] flex flex-col sm:flex-row items-center justify-between gap-3">
+                                      <span className="text-sm sm:text-base font-bold text-white text-center sm:text-left">
+                                        ¿Eliminar vehículo <strong className="text-red-400">{v.matricula}</strong>?
+                                      </span>
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        <button
+                                          onClick={() => setConfirmDeleteVehId(null)}
+                                          className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs sm:text-sm font-bold border border-slate-700 transition-colors"
+                                        >
+                                          Cancelar
+                                        </button>
+                                        <button
+                                          onClick={async () => {
+                                            setConfirmDeleteVehId(null)
+                                            await supabase.from('vehiculos').delete().eq('id', v.id)
+                                            const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', cliente.id)
+                                            setVehiculos(prev => ({ ...prev, [cliente.id]: vehs ?? [] }))
+                                          }}
+                                          className="px-4 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs sm:text-sm font-bold shadow transition-colors"
+                                        >
+                                          Eliminar
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-
-                                {/* Desplegable con los datos detallados del vehículo */}
-                                {isSelectedVeh && (
-                                  <div className="p-3 bg-bg-950/70 border-t border-bg-800 text-xs space-y-2">
-                                    <div className="grid grid-cols-2 gap-2 text-slate-300 mb-3">
-                                      <div><span className="text-slate-500 font-medium">Matrícula:</span> <strong className="text-white">{v.matricula}</strong></div>
-                                      <div><span className="text-slate-500 font-medium">Marca:</span> {v.marca || '—'}</div>
-                                      <div><span className="text-slate-500 font-medium">Modelo:</span> {v.modelo || '—'}</div>
-                                      <div><span className="text-slate-500 font-medium">Código Color:</span> {v.codigo_color || '—'}</div>
-                                      <div className="col-span-2"><span className="text-slate-500 font-medium">VIN / Bastidor:</span> {v.vin || '—'}</div>
-                                    </div>
-                                    <div className="flex justify-end">
-                                      <Button variant="primary" onClick={() => navigate(`/expediente/${v.id}`)} className="bg-emerald-600 hover:bg-emerald-500 border-emerald-500/50">
-                                        <span className="flex items-center gap-1.5"><Car className="w-4 h-4" /> ABRIR EXPEDIENTE</span>
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        {/* Formulario / Botón para añadir vehículo */}
-                        <div className="pt-3 border-t border-bg-700">
-                          <Button size="sm" onClick={() => setShowNuevoVehiculoModal(cliente.id)}>
-                            <span className="flex items-center gap-1.5"><Plus className="w-3.5 h-3.5" /> <Car className="w-4 h-4" /> Añadir vehículo</span>
-                          </Button>
-                        </div>
+                              )
+                            })}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -975,24 +1052,37 @@ export function ClientesPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-4">
-                <Button onClick={handleGuardarNuevoCliente} size="md" className="flex-1 text-lg sm:text-xl font-bold py-4">
-                  {nuevoVehFormModal.matricula.trim() || clienteGuardadoId ? 'Generar Presupuesto' : 'Guardar Cliente'}
-                </Button>
-                <Button variant="secondary" size="md" className="text-lg font-bold px-6 py-4" onClick={() => {
-                  setShowNuevoClienteModal(false)
-                  setClienteGuardadoId(null)
-                }}>Cancelar</Button>
+              {/* Botón ancho completo: Guardar Cliente y generar presupuesto */}
+              <div className="pt-4 space-y-3">
+                <button
+                  onClick={() => handleGuardarNuevoCliente(true)}
+                  className="w-full py-4 px-5 rounded-2xl bg-cyan-500/20 text-cyan-400 hover:bg-cyan-500/30 border border-cyan-500/60 transition-transform active:scale-95 font-extrabold text-base sm:text-lg uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                >
+                  <Plus className="w-5 h-5" /> Guardar Cliente y generar presupuesto
+                </button>
+
+                {/* Botones inferiores: Guardar Cliente y Cancelar */}
+                <div className="flex gap-3">
+                  <Button onClick={() => handleGuardarNuevoCliente(false)} size="md" className="flex-1 text-lg sm:text-xl font-bold py-4">
+                    Guardar Cliente
+                  </Button>
+                  <Button variant="secondary" size="md" className="text-lg font-bold px-6 py-4" onClick={() => {
+                    setShowNuevoClienteModal(false)
+                    setClienteGuardadoId(null)
+                  }}>
+                    Cancelar
+                  </Button>
+                </div>
               </div>
             </div>
           </Card>
         </div>
       )}
 
-      {/* MODAL FORMULARIO NUEVO VEHÍCULO */}
+      {/* MODAL FORMULARIO NUEVO VEHÍCULO (POSICIONADO ARRIBA PEGADO AL HEADER) */}
       {showNuevoVehiculoModal && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoVehiculoModal(null)}>
-          <Card className="w-full max-w-md p-5 sm:p-6 my-auto max-h-[90vh] overflow-y-auto scrollbar-thin border-2 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-start justify-center p-3 sm:p-4 pt-3 sm:pt-6 overflow-y-auto" onClick={() => setShowNuevoVehiculoModal(null)}>
+          <Card className="w-full max-w-md p-5 sm:p-6 mt-1 mb-auto max-h-[90vh] overflow-y-auto scrollbar-thin border-2 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
             <div onClick={(e) => e.stopPropagation()} className="space-y-4 pb-2">
               <div className="flex items-center justify-between border-b border-bg-700 pb-3 sticky top-0 bg-bg-800 z-10 pt-1">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">

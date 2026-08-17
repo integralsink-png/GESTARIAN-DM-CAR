@@ -176,7 +176,7 @@ export function AsignarCitaPage() {
   const [horaDisplay, minutoDisplay] = currentTime.split(':');
 
   return (
-    <div className="flex flex-col justify-between min-h-[calc(100vh-80px)] p-4 max-w-2xl mx-auto select-none">
+    <div className="fixed inset-0 z-50 bg-bg-950 text-white flex flex-col justify-between p-3 sm:p-4 overflow-hidden select-none touch-none w-screen h-screen">
       {/* Toast Centrado con Glow */}
       <AnimatePresence>
         {showSuccessToast && createPortal(
@@ -196,8 +196,8 @@ export function AsignarCitaPage() {
         )}
       </AnimatePresence>
 
-      {/* Header Superior */}
-      <div className="flex items-center justify-between border-b border-bg-800 pb-2 mb-2">
+      {/* Header Superior (98% ancho) */}
+      <div className="w-[98%] mx-auto flex items-center justify-between border-b border-bg-800 pb-2 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -211,7 +211,7 @@ export function AsignarCitaPage() {
               ASIGNAR CITA
             </h1>
             {(state.clienteNombre || state.matricula) && (
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-0.5">
                 {state.clienteNombre && (
                   <span className="text-xs text-slate-300 font-semibold truncate">
                     {state.clienteNombre}
@@ -249,20 +249,20 @@ export function AsignarCitaPage() {
         </div>
       </div>
 
-      {/* Contenedor Central: Calendario + Selector de Hora Vintage Tuning */}
-      <div className="flex-1 flex flex-col justify-around py-1 max-w-xl mx-auto w-full overflow-hidden gap-3">
-        {/* 1. Calendario del Mes */}
+      {/* Contenedor Central: 98% ancho de pantalla */}
+      <div className="flex-1 flex flex-col justify-around py-1 w-[98%] mx-auto overflow-hidden gap-2">
+        {/* 1. Tarjeta del Mes (98% ancho de pantalla) */}
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={handleDragEnd}
-          className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-5 shadow-xl cursor-grab active:cursor-grabbing"
+          className="w-full bg-bg-800/95 border border-bg-700/80 rounded-2xl p-3 sm:p-4 shadow-xl cursor-grab active:cursor-grabbing"
         >
           {/* Cabecera del Mes */}
           <div className="flex items-center justify-between mb-2">
             <button
               onClick={handlePrevMonth}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              className="p-1 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes anterior"
             >
               <ChevronLeft className="w-10 h-10 text-cyan-400" />
@@ -272,19 +272,19 @@ export function AsignarCitaPage() {
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              className="p-1 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes siguiente"
             >
               <ChevronRight className="w-10 h-10 text-cyan-400" />
             </button>
           </div>
 
-          {/* Días de la semana (Letras x1.5) */}
-          <div className="grid grid-cols-7 gap-1 text-center font-black text-[24px] sm:text-[27px] mb-1 leading-none">
+          {/* Días de la semana (98% del ancho de la tarjeta) */}
+          <div className="w-[98%] mx-auto grid grid-cols-7 gap-1 text-center font-bold text-[24px] sm:text-[27px] mb-1 leading-none">
             {DIAS_SEMANA.map((d, i) => {
               let colorClass = 'text-slate-400';
-              if (d === 'S') colorClass = 'text-blue-400 font-black';
-              if (d === 'D') colorClass = 'text-rose-500 font-black';
+              if (d === 'S') colorClass = 'text-blue-400 font-bold';
+              if (d === 'D') colorClass = 'text-rose-500 font-bold';
 
               return (
                 <div key={i} className={`py-1 ${colorClass}`}>
@@ -294,8 +294,8 @@ export function AsignarCitaPage() {
             })}
           </div>
 
-          {/* Grid de días (Números x1.5 en el mismo espacio) */}
-          <div className="grid grid-cols-7 gap-1 text-center">
+          {/* Grid de días (98% del ancho de la tarjeta, peso tipográfico reducido a font-semibold/font-medium) */}
+          <div className="w-[98%] mx-auto grid grid-cols-7 gap-1 text-center">
             {Array.from({ length: firstDayIndex }).map((_, i) => (
               <div key={`empty-${i}`} className="h-10 sm:h-11" />
             ))}
@@ -312,12 +312,12 @@ export function AsignarCitaPage() {
                 <button
                   key={dayNum}
                   onClick={() => setSelectedDay(dayNum)}
-                  className={`h-10 sm:h-11 rounded-xl font-black text-[27px] sm:text-[30px] flex items-center justify-center transition-all active:scale-90 leading-none ${
+                  className={`h-10 sm:h-11 rounded-xl text-[26px] sm:text-[29px] flex items-center justify-center transition-all active:scale-90 leading-none ${
                     isSelected
-                      ? 'bg-cyan-500 text-bg-950 font-black shadow-[0_0_15px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
+                      ? 'bg-cyan-500 text-bg-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
                       : isToday
-                      ? 'text-cyan-300 font-black drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]'
-                      : 'hover:bg-bg-700/60 text-slate-100'
+                      ? 'text-cyan-300 font-bold drop-shadow-[0_0_10px_rgba(6,182,212,0.9)]'
+                      : 'font-medium hover:bg-bg-700/60 text-slate-200'
                   }`}
                 >
                   {dayNum}
@@ -327,16 +327,16 @@ export function AsignarCitaPage() {
           </div>
         </motion.div>
 
-        {/* 2. Selector de Hora con Rueda Vintage Tuning (Intervalos de 15 min, Default 12:00) */}
-        <div className="bg-bg-800/95 border border-bg-700/80 rounded-2xl px-5 py-4 shadow-xl flex items-center justify-between gap-3 sm:gap-6">
-          {/* A la izquierda: Etiqueta "Hora:" */}
+        {/* 2. Selector de Hora Flotante (Fuera de tarjeta, 98% ancho de pantalla) */}
+        <div className="w-[98%] mx-auto py-2 flex items-center justify-between gap-3 sm:gap-6">
+          {/* A la izquierda: Etiqueta "Hora:" flotante */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="font-black text-2xl sm:text-3xl text-cyan-400 tracking-wider uppercase">
+            <span className="font-black text-3xl sm:text-4xl text-cyan-400 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
               Hora:
             </span>
           </div>
 
-          {/* Al centro: Display compacto de la hora seleccionada */}
+          {/* Al centro: Display flotante de la hora seleccionada */}
           <div className="flex items-center justify-center gap-1.5 py-1 px-4 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
             <span className="text-4xl sm:text-5xl font-black text-white tracking-tight tabular-nums">
               {horaDisplay}
@@ -347,7 +347,7 @@ export function AsignarCitaPage() {
             </span>
           </div>
 
-          {/* A la derecha: Rueda Vintage Tuning interactiva con scroll */}
+          {/* A la derecha: Rueda Vintage Tuning flotante interactiva */}
           <div
             ref={wheelRef}
             onWheel={handleWheelTuning}
@@ -358,8 +358,7 @@ export function AsignarCitaPage() {
             title="Gira la rueda o haz scroll para ajustar la hora"
           >
             {/* Rueda Vintage Tuning Estilizada */}
-            <div className="relative w-16 sm:w-20 h-20 sm:h-24 rounded-2xl bg-gradient-to-b from-slate-700 via-slate-900 to-slate-700 border-2 border-amber-400/80 shadow-[0_0_15px_rgba(251,191,36,0.35)] flex flex-col justify-between py-1.5 px-2 overflow-hidden active:scale-95 transition-transform">
-              {/* Reflejos metálicos vintage y muescas del sintonizador */}
+            <div className="relative w-16 sm:w-20 h-16 sm:h-20 rounded-2xl bg-gradient-to-b from-slate-700 via-slate-900 to-slate-700 border-2 border-amber-400/80 shadow-[0_0_15px_rgba(251,191,36,0.35)] flex flex-col justify-between py-1 px-2 overflow-hidden active:scale-95 transition-transform">
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/30 pointer-events-none" />
               <div className="flex flex-col justify-between h-full w-full py-0.5 z-10">
                 <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
@@ -371,11 +370,10 @@ export function AsignarCitaPage() {
                 <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
               </div>
 
-              {/* Marcador central de sintonización */}
               <div className="absolute inset-y-0 right-1 w-1 bg-red-500/90 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
             </div>
 
-            {/* Micro flechas de ayuda para la rueda */}
+            {/* Micro flechas de ayuda */}
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => {
@@ -402,12 +400,12 @@ export function AsignarCitaPage() {
         </div>
       </div>
 
-      {/* Footer: Botones ASIGNAR CITA y CANCELAR repartiéndose el espacio equilibradamente */}
-      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-bg-800 max-w-xl mx-auto w-full mt-2">
+      {/* Footer: Botones con altura x0.7, misma anchura (50%), texto blanco y grande */}
+      <div className="w-[98%] mx-auto grid grid-cols-2 gap-3 pt-2 border-t border-bg-800 shrink-0">
         <button
           onClick={() => navigate(-1)}
           disabled={guardando}
-          className="py-4 px-6 rounded-2xl font-bold text-base sm:text-lg border-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all active:scale-95 uppercase tracking-wider text-center flex items-center justify-center"
+          className="py-2.5 px-4 rounded-2xl font-black text-lg sm:text-xl border-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-white transition-all active:scale-95 uppercase tracking-wider text-center flex items-center justify-center"
         >
           CANCELAR
         </button>
@@ -415,9 +413,8 @@ export function AsignarCitaPage() {
         <button
           onClick={handleAsignarCita}
           disabled={guardando}
-          className="py-4 px-6 rounded-2xl font-black text-base sm:text-lg bg-emerald-500 hover:bg-emerald-400 text-bg-950 border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider text-center"
+          className="py-2.5 px-4 rounded-2xl font-black text-lg sm:text-xl bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center uppercase tracking-wider text-center"
         >
-          <CalendarIcon className="w-5 h-5 shrink-0" />
           <span>{guardando ? 'ASIGNANDO...' : 'ASIGNAR CITA'}</span>
         </button>
       </div>

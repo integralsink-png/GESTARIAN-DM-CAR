@@ -5,7 +5,7 @@ export { ActionMenu } from './ActionMenu'
 export { TimelineVisual } from './TimelineVisual'
 export { MatriculaBadge } from './MatriculaBadge'
 
-export function PageHeader({ title, children, doubleTitleSize, titleClassName }: { title: string; subtitle?: string; children?: ReactNode; doubleTitleSize?: boolean; titleClassName?: string }) {
+export function PageHeader({ title, subtitle, children, doubleTitleSize, titleClassName }: { title: string; subtitle?: string; children?: ReactNode; doubleTitleSize?: boolean; titleClassName?: string }) {
   const navigate = useNavigate()
   return (
     <div className="relative flex items-center justify-between mb-6 w-full px-2 min-h-[60px]">
@@ -19,10 +19,17 @@ export function PageHeader({ title, children, doubleTitleSize, titleClassName }:
         <img src="/images/logos/logo.jpg" alt="Logo Corporativo" className="w-full h-full object-cover" />
       </button>
 
-      {/* Título centrado absoluto (escalado x0.8 o x2 o custom) */}
-      <h1 className={`absolute left-1/2 -translate-x-1/2 font-bold uppercase tracking-wider text-[var(--color-texto)] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] pointer-events-none whitespace-nowrap ${titleClassName || (doubleTitleSize ? 'text-3xl md:text-4xl' : 'text-lg')}`}>
-        {title}
-      </h1>
+      {/* Título centrado absoluto (escalado x0.8 o x2 o custom) y subtítulo opcional */}
+      <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center justify-center pointer-events-none text-center">
+        <h1 className={`font-bold uppercase tracking-wider text-[var(--color-texto)] drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] whitespace-nowrap ${titleClassName || (doubleTitleSize ? 'text-3xl md:text-4xl' : 'text-lg')}`}>
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="text-xs sm:text-sm text-cyan-400 font-semibold italic tracking-wide mt-0.5 whitespace-nowrap drop-shadow-[0_0_6px_rgba(6,182,212,0.4)]">
+            {subtitle}
+          </p>
+        )}
+      </div>
 
       {/* Elementos a la derecha (Botones de acción) */}
       <div className="flex items-center gap-3 z-10 ml-auto">

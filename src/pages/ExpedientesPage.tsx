@@ -15,6 +15,7 @@ import {
   Car as CarIcon,
   Image as ImageIcon,
   Trash2,
+  X,
 } from 'lucide-react'
 import { useGoBack } from '../lib/useGoBack'
 import { useToast } from '../lib/ToastContext'
@@ -57,29 +58,19 @@ function fase(
   r: ExpRow
 ): { label: string; borderColor: string } {
   const fac = r.factura
-  const rep = r.reparacion
-  const cobro = r.ultimoCobro
 
-  if (rep?.estado === 'finalizado' && fac?.estado_cobro === 'pagada') {
+  // 1. Línea de contorno VERDE solo cuando la factura ha sido abonada completamente en el panel de control de cobros
+  if (fac?.estado_cobro === 'pagada') {
     return { label: 'Completado', borderColor: 'border-emerald-500' }
   }
 
-  if (fac) {
-    const isEnviada = !!(fac.enviado_email_at || fac.enviado_whatsapp_at)
-    const envioFecha = fac.enviado_email_at || fac.enviado_whatsapp_at
-    const isPendienteSentAndLate = fac.estado_cobro === 'pendiente' && isEnviada && envioFecha && (Date.now() - new Date(envioFecha).getTime() > 180 * 24 * 60 * 60 * 1000)
-    const isParcialAndLate = fac.estado_cobro === 'parcial' && cobro && (Date.now() - new Date(cobro.created_at).getTime() > 180 * 24 * 60 * 60 * 1000)
-    
-    if (isPendienteSentAndLate || isParcialAndLate) return { label: 'Impago', borderColor: 'border-red-500' }
-    if (fac.estado_cobro === 'parcial') return { label: 'Cobro Parcial', borderColor: 'border-blue-500' }
-    if (!isEnviada) return { label: 'Factura Sin Enviar', borderColor: 'border-yellow-400' }
+  // 2. Línea de contorno AZUL cuando el abono en el panel de control de cobros es parcial
+  if (fac?.estado_cobro === 'parcial') {
+    return { label: 'Cobro Parcial', borderColor: 'border-blue-500' }
   }
 
-  if (rep?.estado === 'finalizado' && !fac) {
-    return { label: 'Sin Facturar', borderColor: 'border-amber-500' }
-  }
-
-  return { label: 'En Proceso', borderColor: 'border-slate-500' }
+  // 3. En el resto de casos la línea de contorno de las tarjetas de expedientes es NARANJA (amber-500)
+  return { label: 'En Proceso', borderColor: 'border-amber-500' }
 }
 
 
@@ -278,7 +269,7 @@ function TarjetaExpediente({
           gestarian-panel
           border-[3px]
           ${borderColor}
-          rounded-xl
+          rounded-2xl
           overflow-hidden
           cursor-pointer
           transition-all
@@ -519,6 +510,7 @@ export function ExpedientesPage() {
   const [loading, setLoading] = useState(true)
   const location = useLocation()
   const [search, setSearch] = useState(location.state?.search ?? '')
+  const [showSearchInput, setShowSearchInput] = useState(false)
   const [openId, setOpenId] = useState<string | null>(
     location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId ?? null
   )
@@ -729,8 +721,12 @@ export function ExpedientesPage() {
   return (
     <div className="space-y-4 pb-24 animate-fade-in">
 
-      {/* Cabecera */}
-      <PageHeader title="EXPEDIENTES">
+      {/* Cabecera con título x1.2 y subtítulo */}
+      <PageHeader
+        title="EXPEDIENTES"
+        subtitle="Todo empieza aquí..."
+        titleClassName="text-[22px] md:text-[26px] font-bold"
+      >
 
         <button
           onClick={goBack}
@@ -759,74 +755,51 @@ export function ExpedientesPage() {
 
       </PageHeader>
 
-      {/* Buscador + Nuevo */}
-      <div className="flex gap-2">
+      {/* Buscador flotante a la izquierda + Botón NUEVO EXPEDIENTE centrado en pantalla */}
+      <div className="relative flex items-center justify-center w-full min-h-[48px]">
+        {showSearchInput ? (
+          <div className="relative flex-1 flex items-center gap-2 w-full">
+            <input
+              type="text"
+              autoFocus
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar expediente (ID, cliente, matrícula)…"
+              className="flex-1 bg-bg-800 border border-bg-600 rounded-xl px-4 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
+            />
+            <button
+              onClick={() => {
+                setShowSearchInput(false)
+                setSearch('')
+              }}
+              className="text-slate-400 hover:text-white p-2 shrink-0"
+              title="Cerrar búsqueda"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Lupa flotante a la izquierda sin desplazar el centro del botón */}
+            <button
+              onClick={() => setShowSearchInput(true)}
+              className="absolute left-0 w-11 h-11 flex items-center justify-center text-slate-400 hover:text-white shrink-0 transition-transform active:scale-95 bg-transparent border-0 outline-none p-0 z-10"
+              title="Buscar expediente"
+            >
+              <Search className="w-7 h-7" />
+            </button>
 
-        <div className="relative flex-1">
-
-          <Search
-            className="
-              absolute
-              left-3
-              top-1/2
-              -translate-y-1/2
-              w-4
-              h-4
-              text-slate-500
-              pointer-events-none
-            "
-          />
-
-          <input
-            value={search}
-            onChange={(e) =>
-              setSearch(e.target.value)
-            }
-            placeholder="ID, cliente, matrícula…"
-            className="
-              w-full
-              pl-9
-              pr-3
-              py-2.5
-              bg-bg-800
-              border
-              border-bg-700
-              rounded-xl
-              text-sm
-              text-white
-              placeholder-slate-500
-              focus:border-cyan-500
-              outline-none
-              transition-colors
-            "
-          />
-
-        </div>
-
-        <button
-          onClick={() => navigate('/clientes')}
-          className="
-            flex
-            items-center
-            gap-1.5
-            px-4
-            py-2.5
-            rounded-xl
-            bg-cyan-600
-            hover:bg-cyan-500
-            text-white
-            text-sm
-            font-bold
-            transition-colors
-            whitespace-nowrap
-            active:scale-95
-            shrink-0
-          "
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo
-        </button>
-
+            {/* Botón NUEVO EXPEDIENTE centrado en el ancho de pantalla (ancho x0.85 actual, texto x1.2 actual) */}
+            <button
+              onClick={() => navigate('/clientes', { state: { fromNuevoExpediente: true } })}
+              className="w-[72%] sm:w-[65%] max-w-sm h-11 sm:h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 font-extrabold shadow-[0_0_12px_rgba(8,145,178,0.3)] gap-2 uppercase text-[15px] sm:text-base tracking-wider"
+              title="Añadir nuevo expediente"
+              aria-label="Añadir nuevo expediente"
+            >
+              <Plus className="w-5 h-5" /> NUEVO EXPEDIENTE
+            </button>
+          </>
+        )}
       </div>
 
       {/* Contador */}
@@ -857,7 +830,7 @@ export function ExpedientesPage() {
 
       ) : (
 
-        <div className="space-y-2">
+        <div className="space-y-4">
 
           {filtered.map((row) => {
             const cardUniqueId = row.presupuesto?.id ?? row.expedienteId
