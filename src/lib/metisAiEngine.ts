@@ -111,6 +111,7 @@ async function getFullWorkshopSnapshot(userText?: string): Promise<string> {
       { data: facturas },
       { data: cobros },
       { data: citas },
+      { data: reparaciones },
       { data: config }
     ] = await Promise.all([
       supabase.from('clientes').select('id, numero, nombre, dni, telefono, email, direccion, localidad').limit(50),
@@ -118,16 +119,36 @@ async function getFullWorkshopSnapshot(userText?: string): Promise<string> {
       supabase.from('presupuestos').select('id, numero, cliente_id, vehiculo_id, total, base_imponible, estado, fecha, conceptos, observaciones, created_at').order('created_at', { ascending: false }).limit(40),
       supabase.from('facturas').select('id, numero, cliente_id, vehiculo_id, total, base_imponible, estado_cobro, fecha, conceptos, created_at').order('created_at', { ascending: false }).limit(40),
       supabase.from('cobros').select('id, factura_id, importe, fecha').order('fecha', { ascending: false }).limit(30),
-      supabase.from('citas').select('id, cliente_id, vehiculo_id, fecha, hora, estado, observaciones').limit(30),
+      supabase.from('citas').select('id, cliente_id, vehiculo_id, fecha, hora, estado, observaciones').order('fecha', { ascending: true }).limit(30),
+      supabase.from('reparaciones').select('id, vehiculo_id, cliente_id, estado, fecha_entrada, fecha_estimada_entrega, descripcion, created_at').in('estado', ['pendiente', 'en_curso']).limit(30),
       supabase.from('configuracion').select('nombre_empresa, cif, direccion, telefono, email').eq('id', 1).maybeSingle()
     ])
+
+    // Análisis del ritmo de taller y vehículos retrasados
+    const now = new Date()
+    const reparacionesRetrasadas = (reparaciones || []).map(r => {
+      const entrada = new Date(r.fecha_entrada || r.created_at)
+      const diasEnTaller = Math.floor((now.getTime() - entrada.getTime()) / (1000 * 60 * 60 * 24))
+      return { ...r, diasEnTaller }
+    }).filter(r => r.diasEnTaller >= 4) // alerta si lleva 4 o más días
 
     return `
 ${getMetisKnowledgePrompt()}
 
---- BASE DE DATOS DEL TALLER PILOTO (DM CAR / GESTARIAN) ---
+--- BASE DE DATOS Y ESTADO OPERATIVO DEL TALLER (DM CAR / GESTARIAN) ---
 TALLER: ${config?.nombre_empresa || 'DM CAR'} (CIF: ${config?.cif || '—'}, Dir: ${config?.direccion || '—'})
 ${specificCaseInfo}
+CAPACIDAD Y RITMO ACTUAL:
+- Vehículos actualmente en reparación activa: ${reparaciones?.length || 0}
+- Citas próximas agendadas: ${citas?.length || 0}
+${reparacionesRetrasadas.length > 0 ? `ALERTA DE RETRASO EN TALLER:\n${reparacionesRetrasadas.map(r => `* Reparación #${r.id} (VehID: ${r.vehiculo_id}) lleva ${r.diasEnTaller} DÍAS en taller (${r.descripcion || 'Sin descripción'}).`).join('\n')}` : 'Todos los vehículos en taller están dentro del plazo normal.'}
+
+CITAS AGENDADAS (${citas?.length || 0}):
+${(citas || []).map(ct => `- Cita [ClienteID: ${ct.cliente_id}, VehID: ${ct.vehiculo_id}]: Fecha: ${ct.fecha} ${ct.hora || ''}, Estado: ${ct.estado}, Obs: ${ct.observaciones || '—'}`).join('\n')}
+
+REPARACIONES EN CURSO (${reparaciones?.length || 0}):
+${(reparaciones || []).map(r => `- Reparación #${r.id} [VehID: ${r.vehiculo_id}]: Estado: ${r.estado}, Entrada: ${r.fecha_entrada || r.created_at}, Descr: ${r.descripcion || '—'}`).join('\n')}
+
 CLIENTES REGISTRADOS (${clientes?.length || 0}):
 ${(clientes || []).map(c => `- Cliente #${c.numero} [ID: ${c.id}]: "${c.nombre}", Tel: ${c.telefono || '—'}, DNI: ${c.dni || '—'}, Dir/Loc: ${c.direccion || ''} ${c.localidad || ''}`).join('\n')}
 
@@ -139,9 +160,6 @@ ${(presupuestos || []).map(p => `- Presupuesto ${p.numero} [ClienteID: ${p.clien
 
 FACTURAS EMITIDAS Y COBROS (${facturas?.length || 0}):
 ${(facturas || []).map(f => `- Factura ${f.numero} [ClienteID: ${f.cliente_id}, VehID: ${f.vehiculo_id}]: Fecha: ${f.fecha || f.created_at}, Total: ${f.total}€, Cobro: ${f.estado_cobro}. Conceptos: ${JSON.stringify(f.conceptos || [])}`).join('\n')}
-
-CITAS AGENDADAS (${citas?.length || 0}):
-${(citas || []).map(ct => `- Cita [ClienteID: ${ct.cliente_id}, VehID: ${ct.vehiculo_id}]: Fecha: ${ct.fecha} ${ct.hora || ''}, Estado: ${ct.estado}, Obs: ${ct.observaciones || '—'}`).join('\n')}
 ------------------------------------------------------------
 `
   } catch (e) {
