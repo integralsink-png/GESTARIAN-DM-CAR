@@ -15,11 +15,16 @@ export interface AIProvider {
 export const AI_PROVIDERS: AIProvider[] = [
   {
     id: 'google',
-    name: 'Google Gemini',
+    name: 'Google Gemini (AI Pro)',
     urlApiKey: 'https://aistudio.google.com/app/apikey',
     models: [
+      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Recomendado)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-2.0-flash-exp', name: 'Gemini 2.0 Flash Exp', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-2.0-pro-exp', name: 'Gemini 2.0 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
     ]
   },
   {

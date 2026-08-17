@@ -389,13 +389,18 @@ export function ConfiguracionPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
-                  <input 
-                    type="text" 
+                  <select 
                     value={aiModel} 
                     onChange={(e) => setAiModel(e.target.value)}
-                    placeholder="gemini-1.5-flash"
                     className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
-                  />
+                  >
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  </select>
                 </div>
               </div>
 
@@ -447,14 +452,14 @@ export function ConfiguracionPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">OCR DE FACTURAS Y DOCUMENTOS</h3>
-                  <span className="text-xs text-slate-400 font-medium">Lectura Multimodal y Extracción JSON</span>
+                  <span className="text-xs text-blue-400 font-semibold">{docOcrProvider.toUpperCase()}</span>
                 </div>
               </div>
               <StatusChip status={docOcrStatus} />
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              Lectura automática de facturas, presupuestos y documentos mediante fotografía o archivo para rellenar datos automáticamente.
+              Procesamiento de documentos, permisos de circulación y facturas recibidas de proveedores mediante IA Multimodal con extracción estructurada.
             </p>
 
             <div className="space-y-3">
@@ -473,13 +478,18 @@ export function ConfiguracionPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
-                  <input 
-                    type="text" 
+                  <select 
                     value={docOcrModel} 
                     onChange={(e) => setDocOcrModel(e.target.value)}
-                    placeholder="gemini-1.5-flash"
                     className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
-                  />
+                  >
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                  </select>
                 </div>
               </div>
 

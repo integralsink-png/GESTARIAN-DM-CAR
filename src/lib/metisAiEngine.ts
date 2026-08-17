@@ -193,10 +193,17 @@ PERSONALIDAD Y VOZ:
     "navigationPath": "/presupuestos" | "/citas" | "/clientes" | "/expedientes"
   }
 }
-- Si es una consulta o conversación, devuelve el JSON con "text" respondiendo directamente con la información cruzada de la base de datos.`
+  const aiConfig = localStorage.getItem('gestarian_ai_assistant_config')
+  let selectedModel = 'gemini-2.0-flash'
+  if (aiConfig) {
+    try {
+      const parsed = JSON.parse(aiConfig)
+      if (parsed.model) selectedModel = parsed.model
+    } catch (e) {}
+  }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

@@ -28,7 +28,7 @@ export function getDocumentOcrConfig(): DocumentOcrConfig {
   }
   return {
     provider: 'gemini',
-    model: 'gemini-1.5-flash',
+    model: localStorage.getItem('gestarian_document_ocr_model') || 'gemini-2.0-flash',
     api_key: localStorage.getItem('gestarian_gemini_api_key') || '',
     status: 'disconnected'
   };
