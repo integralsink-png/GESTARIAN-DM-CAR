@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText } from 'lucide-react'
+import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Power } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../lib/theme'
 import { useVoice } from '../lib/useVoice'
