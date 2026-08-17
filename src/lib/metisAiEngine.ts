@@ -191,8 +191,8 @@ PERSONALIDAD Y VOZ:
     "title": "Título de la acción",
     "details": "Detalles relevantes",
     "navigationPath": "/presupuestos" | "/citas" | "/clientes" | "/expedientes"
-  }
-}
+- Si es una consulta o conversación, devuelve el JSON con "text" respondiendo directamente con la información cruzada de la base de datos.`
+
   const aiConfig = localStorage.getItem('gestarian_ai_assistant_config')
   let selectedModel = 'gemini-2.0-flash'
   if (aiConfig) {
