@@ -64,36 +64,123 @@ export async function testDocumentOcrConnection(config: DocumentOcrConfig): Prom
 }
 
 /**
- * Lee una factura o documento mediante el proveedor OCR configurado
- * y devuelve datos estandarizados en JSON estricto.
+ * Convierte imagen / archivo a base64 limpio y mime type
+ */
+async function fileOrUrlToBase64(fileOrUrl: string | File): Promise<{ base64Data: string; mimeType: string }> {
+  if (typeof fileOrUrl === 'string') {
+    if (fileOrUrl.startsWith('data:')) {
+      const parts = fileOrUrl.split(',')
+      const mime = parts[0].match(/:(.*?);/)?.[1] || 'image/jpeg'
+      return { base64Data: parts[1], mimeType: mime }
+    }
+    const res = await fetch(fileOrUrl)
+    const blob = await res.blob()
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const parts = result.split(',')
+        resolve({ base64Data: parts[1], mimeType: blob.type || 'image/jpeg' })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(blob)
+    })
+  } else {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        const result = reader.result as string
+        const parts = result.split(',')
+        resolve({ base64Data: parts[1], mimeType: fileOrUrl.type || 'image/jpeg' })
+      }
+      reader.onerror = reject
+      reader.readAsDataURL(fileOrUrl)
+    })
+  }
+}
+
+/**
+ * Lee una factura o documento mediante Gemini Vision Multimodal Real
+ * y devuelve datos estandarizados en JSON estricto sin inventar nada.
  */
 export async function processDocumentOcr(imageFileOrUrl: string | File): Promise<StructuredInvoiceData> {
   const config = getDocumentOcrConfig();
 
-  // Si no hay API Key de Gemini configurada, usar Tesseract como fallback de lectura directa
+  // Si tenemos API Key de Gemini, usar Gemini 1.5 Flash Multimodal Directo
   if (config.provider === 'gemini' && config.api_key) {
     try {
-      // Simulación de procesamiento multimodal preparado para API Gemini Vision
-      const rawText = typeof imageFileOrUrl === 'string' ? await tesseractExtract(imageFileOrUrl) : 'Factura escaneada';
-      
-      // Parsear datos mediante prompt JSON
-      return {
-        proveedor: 'Suministros Automoción S.L.',
-        cif_nif: 'B-98765432',
-        numero_factura: 'FAC-2026-891',
-        fecha: new Date().toISOString().split('T')[0],
-        base_imponible: 150.00,
-        iva: 31.50,
-        total: 181.50,
-        vencimiento: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
-        texto_bruto: rawText
-      };
+      const { base64Data, mimeType } = await fileOrUrlToBase64(imageFileOrUrl)
+
+      const prompt = `Analiza esta imagen de factura o documento de compra/gasto en España. Extrae los datos reales con máxima precisión en formato JSON estricto.
+No te inventes ningún dato. Si un campo no aparece claramente, déjalo vacío o en 0.
+
+Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
+{
+  "proveedor": "Nombre o razón social del emisor/proveedor",
+  "cif_nif": "CIF o NIF del proveedor (ej: B12345678, 12345678Z)",
+  "numero_factura": "Número o serie de la factura",
+  "fecha": "YYYY-MM-DD",
+  "base_imponible": 0.00,
+  "iva": 0.00,
+  "total": 0.00,
+  "vencimiento": "YYYY-MM-DD o vacío",
+  "conceptos": [
+    { "descripcion": "Nombre del artículo o recambio", "cantidad": 1, "precio": 0.00 }
+  ]
+}`
+
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-flash'}:generateContent?key=${config.api_key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  {
+                    inlineData: {
+                      mimeType: mimeType,
+                      data: base64Data
+                    }
+                  }
+                ]
+              }
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              responseMimeType: "application/json"
+            }
+          })
+        }
+      )
+
+      if (response.ok) {
+        const result = await response.json()
+        const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text
+        if (textContent) {
+          const parsed = JSON.parse(textContent)
+          return {
+            proveedor: parsed.proveedor || undefined,
+            cif_nif: parsed.cif_nif || undefined,
+            numero_factura: parsed.numero_factura || undefined,
+            fecha: parsed.fecha || undefined,
+            base_imponible: typeof parsed.base_imponible === 'number' ? parsed.base_imponible : parseFloat(parsed.base_imponible) || undefined,
+            iva: typeof parsed.iva === 'number' ? parsed.iva : parseFloat(parsed.iva) || undefined,
+            total: typeof parsed.total === 'number' ? parsed.total : parseFloat(parsed.total) || undefined,
+            vencimiento: parsed.vencimiento || undefined,
+            conceptos: Array.isArray(parsed.conceptos) ? parsed.conceptos : [],
+            texto_bruto: textContent
+          }
+        }
+      }
     } catch (e) {
-      console.warn('Fallo en Gemini OCR, usando Tesseract local fallback', e);
+      console.warn('Fallo en Gemini Multimodal OCR, recurriendo a Tesseract local fallback', e);
     }
   }
 
-  // Tesseract Fallback
+  // Tesseract Fallback si no hay API Key o falla la llamada
   if (typeof imageFileOrUrl === 'string') {
     const text = await tesseractExtract(imageFileOrUrl);
     return { texto_bruto: text };

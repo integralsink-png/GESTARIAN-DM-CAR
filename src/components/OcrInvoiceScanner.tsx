@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
-import Tesseract from 'tesseract.js';
 import { Camera, Loader2 } from 'lucide-react';
+import { processDocumentOcr } from '../services/documentOcrService';
 
 interface InvoiceData {
   numero?: string;
@@ -8,6 +8,8 @@ interface InvoiceData {
   base_imponible?: number;
   iva?: number;
   total?: number;
+  proveedor?: string;
+  cif_nif?: string;
 }
 
 interface Props {
@@ -25,43 +27,22 @@ export function OcrInvoiceScanner({ onScan, title = "Autocompletar con foto (OCR
 
     setScanning(true);
     try {
-      const result = await Tesseract.recognize(file, 'spa');
-      const text = result.data.text;
+      const structured = await processDocumentOcr(file);
       
-      const data: InvoiceData = {};
-
-      // Heurística básica de extracción (puede fallar, pero ayuda a autocompletar)
-      
-      // Número de factura: suele ir tras "Factura", "Nº", etc.
-      const numMatch = text.match(/(?:factura|nº|numero)[\s:.-]*([A-Z0-9-]{4,12})/i);
-      if (numMatch) data.numero = numMatch[1];
-
-      // Fecha: DD/MM/YYYY o DD-MM-YYYY
-      const dateMatch = text.match(/(\d{2})[\/\.-](\d{2})[\/\.-](\d{4})/);
-      if (dateMatch) {
-        data.fecha = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
-      }
-
-      // Buscar importes: buscamos números con decimales cerca de palabras clave
-      const totalMatch = text.match(/(?:total|importe a pagar)[\s:.-]*(\d+[.,]\d{2})/i);
-      if (totalMatch) data.total = parseFloat(totalMatch[1].replace(',', '.'));
-
-      const baseMatch = text.match(/(?:base|subtotal)[\s:.-]*(\d+[.,]\d{2})/i);
-      if (baseMatch) data.base_imponible = parseFloat(baseMatch[1].replace(',', '.'));
-
-      if (!data.iva && data.base_imponible && data.total) {
-        // Calcular IVA si tenemos total y base
-        const diff = data.total - data.base_imponible;
-        if (Math.abs(diff - (data.base_imponible * 0.21)) < 0.5) data.iva = 21;
-        else if (Math.abs(diff - (data.base_imponible * 0.10)) < 0.5) data.iva = 10;
-        else if (Math.abs(diff - (data.base_imponible * 0.04)) < 0.5) data.iva = 4;
-      }
+      const data: InvoiceData = {
+        numero: structured.numero_factura,
+        fecha: structured.fecha,
+        base_imponible: structured.base_imponible,
+        iva: structured.iva && structured.base_imponible ? Math.round((structured.iva / structured.base_imponible) * 100) : 21,
+        total: structured.total,
+        proveedor: structured.proveedor,
+        cif_nif: structured.cif_nif
+      };
 
       onScan(data);
-      
     } catch (err) {
-      console.error(err);
-      alert("Error al procesar la imagen (OCR).");
+      console.error('Error en escaneo de factura:', err);
+      alert("Error al procesar la imagen de la factura con OCR.");
     } finally {
       setScanning(false);
       if (fileInput.current) fileInput.current.value = '';

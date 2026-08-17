@@ -88,6 +88,52 @@ function extractConceptosFromParagraph(text: string): Concepto[] {
   return conceptos
 }
 
+// Obtener snapshot completo de datos del taller piloto para consulta cruzada de METIS
+async function getFullWorkshopSnapshot(): Promise<string> {
+  try {
+    const [
+      { data: clientes },
+      { data: vehiculos },
+      { data: presupuestos },
+      { data: facturas },
+      { data: cobros },
+      { data: citas },
+      { data: config }
+    ] = await Promise.all([
+      supabase.from('clientes').select('id, numero, nombre, dni, telefono, email, direccion, localidad').limit(50),
+      supabase.from('vehiculos').select('id, cliente_id, matricula, marca, modelo, codigo_color, vin').limit(50),
+      supabase.from('presupuestos').select('id, numero, cliente_id, vehiculo_id, total, base_imponible, estado, fecha, conceptos, observaciones, created_at').order('created_at', { ascending: false }).limit(40),
+      supabase.from('facturas').select('id, numero, cliente_id, vehiculo_id, total, base_imponible, estado_cobro, fecha, conceptos, created_at').order('created_at', { ascending: false }).limit(40),
+      supabase.from('cobros').select('id, factura_id, importe, fecha').order('fecha', { ascending: false }).limit(30),
+      supabase.from('citas').select('id, cliente_id, vehiculo_id, fecha, hora, estado, observaciones').limit(30),
+      supabase.from('configuracion').select('nombre_empresa, cif, direccion, telefono, email').eq('id', 1).maybeSingle()
+    ])
+
+    return `
+--- BASE DE DATOS DEL TALLER PILOTO (DM CAR / GESTARIAN) ---
+TALLER: ${config?.nombre_empresa || 'DM CAR'} (CIF: ${config?.cif || '—'}, Dir: ${config?.direccion || '—'})
+CLIENTES REGISTRADOS (${clientes?.length || 0}):
+${(clientes || []).map(c => `- Cliente #${c.numero} [ID: ${c.id}]: "${c.nombre}", Tel: ${c.telefono || '—'}, DNI: ${c.dni || '—'}, Dir/Loc: ${c.direccion || ''} ${c.localidad || ''}`).join('\n')}
+
+VEHÍCULOS (${vehiculos?.length || 0}):
+${(vehiculos || []).map(v => `- Vehículo [ID: ${v.id}, ClienteID: ${v.cliente_id}]: Matrícula: ${v.matricula}, ${v.marca || ''} ${v.modelo || ''}, Color: ${v.codigo_color || '—'}, VIN: ${v.vin || '—'}`).join('\n')}
+
+PRESUPUESTOS RECIENTES (${presupuestos?.length || 0}):
+${(presupuestos || []).map(p => `- Presupuesto ${p.numero} [ClienteID: ${p.cliente_id}, VehID: ${p.vehiculo_id}]: Fecha: ${p.fecha || p.created_at}, Total: ${p.total}€, Estado: ${p.estado}. Conceptos: ${JSON.stringify(p.conceptos || [])}`).join('\n')}
+
+FACTURAS EMITIDAS Y COBROS (${facturas?.length || 0}):
+${(facturas || []).map(f => `- Factura ${f.numero} [ClienteID: ${f.cliente_id}, VehID: ${f.vehiculo_id}]: Fecha: ${f.fecha || f.created_at}, Total: ${f.total}€, Cobro: ${f.estado_cobro}. Conceptos: ${JSON.stringify(f.conceptos || [])}`).join('\n')}
+
+CITAS AGENDADAS (${citas?.length || 0}):
+${(citas || []).map(ct => `- Cita [ClienteID: ${ct.cliente_id}, VehID: ${ct.vehiculo_id}]: Fecha: ${ct.fecha} ${ct.hora || ''}, Estado: ${ct.estado}, Obs: ${ct.observaciones || '—'}`).join('\n')}
+------------------------------------------------------------
+`
+  } catch (e) {
+    console.warn('No se pudo cargar el snapshot completo de la BD para METIS:', e)
+    return '--- Base de datos no disponible temporalmente ---'
+  }
+}
+
 // MAIN ENTRY POINT
 export async function processMetisMessage(
   userText: string,
@@ -128,22 +174,26 @@ export async function processMetisMessage(
 
 // ── GEMINI INFERENCE ENGINE ──
 async function processWithGemini(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
-  const systemInstruction = `Eres METIS, la inteligencia artificial conversacional experta de GESTARIAN en gestión de talleres mecánicos y fiscalidad en España.
-REGLAS DE ORO:
-1. Responde SIEMPRE en Español de España nativo y castellano fluido (como ChatGPT Voice).
-2. Tu campo "text" SERÁ LEÍDO EN VOZ ALTA por altavoz en castellano. Redacta frases completas, claras, sin abreviaturas extrañas, sin código ni caracteres extraños.
-3. Si el usuario te solicita crear un presupuesto, cita, o buscar datos, responde en JSON con la estructura:
+  const dbSnapshot = await getFullWorkshopSnapshot()
+
+  const systemInstruction = `Eres METIS, el cerebro de inteligencia artificial y asistente experto de GESTARIAN para el taller piloto DM CAR.
+Tienes acceso directo y en tiempo real a toda la base de datos operativa del taller (clientes, vehículos, presupuestos, facturas, cobros, citas e histórico de reparaciones).
+
+PERSONALIDAD Y VOZ:
+- Hablas un Español de España impecable, natural, fluido y castizo (como alguien culto y directo de Valladolid o Madrid). Nada de tono robótico, nada de "¡Hola! ¿En qué puedo ayudarte hoy?". Ve directo al grano, con seguridad técnica y amabilidad profesional de taller.
+- Tu respuesta en el campo "text" será reproducida POR VOZ ALTA con síntesis de voz humana. Por ello, redacta frases naturales, fáciles de escuchar, sin listas de asteriscos, sin código JSON ni signos raros en el texto hablado.
+- CRUCE INTELIGENTE DE DATOS: Cuando te pregunten cosas como "¿Cuánto se le cobró por pintar el coche a Manolo el de Fuengirola la semana pasada?", busca en el snapshot de clientes (Manolo/Manuel, Fuengirola), localiza su vehículo, sus facturas o presupuestos y los conceptos de pintura, calcula los importes exactos y responde con total precisión: "A Manolo de Fuengirola se le cobraron 240 euros el martes pasado por el pintado del capó y aleta en la factura FAC-0012."
+- Si el usuario te pide crear un presupuesto, cita o navegar, genera la respuesta con el formato JSON:
 {
-  "text": "Tu respuesta explicativa en español fluido para hablar por altavoz.",
+  "text": "Respuesta explicativa en perfecto español de España para ser leída por voz.",
   "actionResult": {
     "type": "presupuesto_creado" | "cita_creada" | "busqueda_realizada" | "info",
-    "title": "Título corto",
-    "details": "Detalles",
-    "navigationPath": "/presupuestos" | "/citas" | "/clientes"
+    "title": "Título de la acción",
+    "details": "Detalles relevantes",
+    "navigationPath": "/presupuestos" | "/citas" | "/clientes" | "/expedientes"
   }
 }
-4. Si es una pregunta conversacional, responde directamente en castellano nativo de España.
-5. ADAPTACIÓN AL HABLA ANDALUZA: El usuario puede hablar español de Andalucía. Interpreta el lenguaje coloquial andaluz y sus particularidades fonéticas. No confundas una pronunciación relajada, pérdida o aspiración de sonidos, contracciones o palabras parcialmente pronunciadas con una palabra diferente cuando el contexto permita determinar la intención. Evalúa siempre la frase completa, el vocabulario del taller (GESTARIAN) y la intención para recuperar correctamente posibles errores de transcripción.`
+- Si es una consulta o conversación, devuelve el JSON con "text" respondiendo directamente con la información cruzada de la base de datos.`
 
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
@@ -152,8 +202,11 @@ REGLAS DE ORO:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [
-          { parts: [{ text: `${systemInstruction}\n\nContexto UI actual: ${JSON.stringify(context || {})}\n\nInstrucción del usuario: ${userText}` }] }
-        ]
+          { parts: [{ text: `${systemInstruction}\n\n${dbSnapshot}\n\nContexto UI actual: ${JSON.stringify(context || {})}\n\nPregunta / Orden del jefe de taller: "${userText}"` }] }
+        ],
+        generationConfig: {
+          temperature: 0.2
+        }
       })
     }
   )

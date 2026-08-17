@@ -258,11 +258,11 @@ export function PresupuestoHibridoPage() {
         setManualPlate(plate)
         setPlateConfidence(result.confidence || 95)
 
-        const cleanPlate = plate.replace(/\s+/g, '')
+        const cleanPlate = plate.replace(/\s+/g, '').toUpperCase()
         const { data: vehs } = await supabase
           .from('vehiculos')
           .select('*, clientes(*)')
-          .ilike('matricula', `%${cleanPlate}%`)
+          .ilike('matricula', cleanPlate)
           .limit(1)
 
         if (vehs && vehs.length > 0) {
@@ -272,9 +272,17 @@ export function PresupuestoHibridoPage() {
             const cli = (veh as any).clientes as Cliente
             setClientData(cli)
             setClientExists(true)
+          } else if (veh.cliente_id) {
+            const { data: cli } = await supabase.from('clientes').select('*').eq('id', veh.cliente_id).maybeSingle()
+            if (cli) {
+              setClientData(cli)
+              setClientExists(true)
+            }
           }
         } else {
           setClientExists(false)
+          setVehicleData(null)
+          setClientData(null)
         }
 
         setPhase('confirmPlate')
@@ -291,10 +299,35 @@ export function PresupuestoHibridoPage() {
   }, [captureFrame, speak])
 
   // Aceptar matrícula -> Activa la cámara automáticamente de inmediato
-  const handleConfirmPlate = useCallback(() => {
+  const handleConfirmPlate = useCallback(async () => {
     if (!manualPlate) return
     const plate = normalizeSpanishPlate(manualPlate)
     setPlateText(plate)
+    
+    // Si aún no tenemos los datos del vehículo o cliente, buscarlos
+    const cleanPlate = plate.replace(/\s+/g, '').toUpperCase()
+    const { data: vehs } = await supabase
+      .from('vehiculos')
+      .select('*, clientes(*)')
+      .ilike('matricula', cleanPlate)
+      .limit(1)
+
+    if (vehs && vehs.length > 0) {
+      const veh = vehs[0]
+      setVehicleData(veh)
+      if ((veh as any).clientes) {
+        const cli = (veh as any).clientes as Cliente
+        setClientData(cli)
+        setClientExists(true)
+      } else if (veh.cliente_id) {
+        const { data: cli } = await supabase.from('clientes').select('*').eq('id', veh.cliente_id).maybeSingle()
+        if (cli) {
+          setClientData(cli)
+          setClientExists(true)
+        }
+      }
+    }
+
     setPhase('burst')
     setPreviewPhoto(null)
     setCameraOn(true)
@@ -340,57 +373,67 @@ export function PresupuestoHibridoPage() {
       if (docData.cif_nif || docData.proveedor) {
         setClientForm((prev) => ({
           ...prev,
-          nombre: docData.proveedor || prev.nombre,
           dni: docData.cif_nif || prev.dni,
+          nombre: docData.proveedor || prev.nombre,
         }))
       }
-
       setDocPhotos((prev) => [dataUrl, ...prev])
-      speak('Documento escaneado y guardado en el expediente interno.')
-    } catch (e) {
+      setPreviewPhoto(dataUrl)
+      setTimeout(() => setPreviewPhoto(null), 1200)
+      speak('Documento escaneado y procesado por OCR.')
+    } catch (err) {
       setDocPhotos((prev) => [dataUrl, ...prev])
-      speak('Documento capturado.')
+      speak('Documento guardado.')
     } finally {
       setUploading(false)
     }
   }, [captureFrame, speak])
 
   // --------------------------------------------------
-  // PASO 4: GUARDAR EXPEDIENTE E IMÁGENES EN SUPABASE STORAGE Y TABLAS
+  // PASO 4: GUARDAR IMÁGENES EN EL EXPEDIENTE
   // --------------------------------------------------
-  const handleSaveExpedienteImages = useCallback(async (cliId?: string | null, vehId?: string | null) => {
-    const cId = cliId || clientData?.id || null
-    const vId = vehId || vehicleData?.id || null
-    if (!plateText || (photos.length === 0 && docPhotos.length === 0)) return
-
-    setUploading(true)
-    try {
-      for (const photo of photos) {
-        await saveExpedienteFoto(photo, cId, vId, 'fotos')
-      }
-
-      for (const docPhoto of docPhotos) {
-        await saveExpedienteFoto(docPhoto, cId, vId, 'documentos')
-      }
-
-      speak('Imágenes guardadas correctamente en el expediente interno.')
-    } catch (err: any) {
-      console.error('Error guardando fotos del expediente:', err)
-    } finally {
-      setUploading(false)
+  const handleSaveExpedienteImages = useCallback(async (cliId?: string, vehId?: string) => {
+    const allImgs = [...photos, ...docPhotos]
+    for (const img of allImgs) {
+      await saveExpedienteFoto(img, cliId, vehId)
     }
-  }, [plateText, photos, docPhotos, clientData, vehicleData, speak])
+  }, [photos, docPhotos])
 
   // --------------------------------------------------
   // PASO 5: GENERAR PRESUPUESTO
   // --------------------------------------------------
   const handleGenerarPresupuesto = useCallback(async () => {
-    if (clientExists && clientData && vehicleData) {
-      await handleSaveExpedienteImages(clientData.id, vehicleData.id)
+    let finalClient = clientData
+    let finalVeh = vehicleData
+
+    // Doble verificación directa en base de datos si por algún motivo no estuvieran en memoria
+    if (!finalClient || !finalVeh) {
+      const cleanPlate = (plateText || manualPlate || '').replace(/\s+/g, '').toUpperCase()
+      if (cleanPlate) {
+        const { data: vehs } = await supabase
+          .from('vehiculos')
+          .select('*, clientes(*)')
+          .ilike('matricula', cleanPlate)
+          .limit(1)
+
+        if (vehs && vehs.length > 0) {
+          finalVeh = vehs[0]
+          if ((finalVeh as any).clientes) {
+            finalClient = (finalVeh as any).clientes as Cliente
+          } else if (finalVeh.cliente_id) {
+            const { data: cli } = await supabase.from('clientes').select('*').eq('id', finalVeh.cliente_id).maybeSingle()
+            if (cli) finalClient = cli
+          }
+        }
+      }
+    }
+
+    if (finalClient && finalVeh) {
+      await handleSaveExpedienteImages(finalClient.id, finalVeh.id)
       navigate('/presupuestos', {
         state: {
-          clienteId: clientData.id,
-          vehiculoId: vehicleData.id,
+          clienteId: finalClient.id,
+          vehiculoId: finalVeh.id,
           openForm: true,
           initialFotos: photos,
         }
@@ -399,7 +442,7 @@ export function PresupuestoHibridoPage() {
       setPhase('cliente')
       speak('Matrícula no encontrada en la base de datos. Por favor, cumplimentar los datos del nuevo cliente.')
     }
-  }, [clientExists, clientData, vehicleData, navigate, handleSaveExpedienteImages, photos, speak])
+  }, [clientData, vehicleData, plateText, manualPlate, navigate, handleSaveExpedienteImages, photos, speak])
 
   // Guardar cliente nuevo cuando no existía
   const handleSaveNewClient = useCallback(async () => {
