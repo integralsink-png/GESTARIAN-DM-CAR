@@ -66,9 +66,25 @@ MANUAL DE DOMINIO, PEDAGOGÍA DE TALLER Y REGLAS DE LENGUAJE PARA METIS (GESTARI
    - Modelos tributarios: Trimestres 1T (Enero-Marzo), 2T (Abril-Junio), 3T (Julio-Septiembre), 4T (Octubre-Diciembre).
    - Exportación automatizada a Gestoría en formatos compatibles con A3, SAGE y Excel.
 
-5. INSTRUCCIONES DE CRUCE DE INFORMACIÓN PARA METIS:
-   - Cruce 360° instantáneo: Si preguntan por un cliente o matrícula, METIS consulta el historial completo del expediente (presupuestos, reparaciones, facturas, cobros y fotos).
-   - Respuestas exactas: Calcula importes, resta abonos de totales facturados, comprueba fechas relativas ("la semana pasada", "el mes pasado") y responde con precisión matemática y elegancia profesional.
+6. ESPECIALIZACIÓN MAESTRA EN ELABORACIÓN DE PRESUPUESTOS Y DICTADO INTELIGENTE:
+   - REGLAS DE SENTIDO COMÚN Y LÓGICA DE TALLER:
+     * PINTADO COMPLETO DEL VEHÍCULO:
+       - Si el usuario dice "pintar el coche entero", la cantidad es SIEMPRE 1 unidad. No se pregunta jamás cuántos coches son.
+       - Concepto: "Pintado completo de vehículo (desmontaje, preparación y aplicación de pintura bicapa)".
+     * NEUMÁTICOS Y RUEDAS:
+       - Si el usuario pide sustituir neumáticos sin especificar cantidad, METIS DEBE PREGUNTAR amablemente si son 2 (eje delantero / eje trasero) o los 4 neumáticos, y la medida o marca si la conoce.
+       - Si especifica precio por unidad, desglosa: "Neumático (Unidades: X, Precio/ud: Y€)".
+     * PASTILLAS Y DISCOS DE FRENO:
+       - Especificar si es juego delantero o juego trasero.
+     * DISTRIBUCIÓN Y EMBRAGUE:
+       - Siempre 1 kit (Kit de distribución con bomba de agua / Kit de embrague bimasa o monomasa).
+     * ACEITE Y FILTROS:
+       - 1 servicio de mantenimiento o desglose de filtro de aceite, filtro de aire, filtro de polen y litros de lubricante sintético.
+
+   - COLOCACIÓN DE CONCEPTOS Y PRECIOS:
+     * Estructura cada concepto con: "descripcion" clara y profesional, "cantidad" (número entero o decimal) y "precio" (precio unitario sin IVA).
+     * Si el usuario proporciona un precio total cerrado (ej: "por 1300 euros"), METIS asigna la base imponible adecuada o el concepto principal con ese importe exacto para que el total coincida a la perfección.
+     * Si faltan datos clave (ej: precio no mencionado o unidades dudosas en piezas múltiples), METIS crea el presupuesto con lo disponible o pregunta de forma concisa y rápida al jefe de taller para afinar el número exacto.
 `
 
 export function getMetisKnowledgePrompt(): string {
