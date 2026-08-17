@@ -189,11 +189,13 @@ export function buildRoadmap(data: ExpedienteData, actions: RoadmapActions): Tim
         action: { onClick: () => actions.onVerFactura(fac.numero, 'scrollToSend') }
       })
     } else if (fac.estado_cobro === 'pagada') {
-      // Abono total -> verde y texto FACTURA ABONADA
+      // Abono total -> verde, texto FACTURA ABONADA, subtítulo EXPEDIENTE CERRADO y glow animado
       steps.push({
         id: 'cobro',
         title: 'Factura Abonada',
+        subtitle: 'EXPEDIENTE CERRADO',
         color: 'emerald',
+        animatedBorder: true,
         action: { onClick: () => actions.onVerFactura(fac.numero) }
       })
     } else if (fac.estado_cobro === 'parcial') {

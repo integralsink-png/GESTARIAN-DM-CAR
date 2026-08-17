@@ -1,6 +1,6 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { ThemeProvider } from './lib/theme'
 import { MobileModeContext } from './lib/mobileMode'
 import { UIStateProvider } from './lib/uiState'
@@ -30,6 +30,7 @@ import {
   VehiculoAdminPage
 } from './pages/Pages'
 import { motion, AnimatePresence } from 'framer-motion'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // NUEVO IMPORT: Añadimos tu componente de animación
 import { IntroAnimation } from './components/IntroAnimation'
@@ -73,6 +74,7 @@ function Layout() {
   const [knownMatricula, setKnownMatricula] = useState<string | null>(null)
   const [mobileMode, setMobileMode] = useState(false)
   const [direction, setDirection] = useState(0)
+  const lastSwipeTime = useRef(0)
 
   // Scroll to top on every page change
   useEffect(() => {
@@ -84,44 +86,42 @@ function Layout() {
   const swipeRoutes = NAV_ITEMS.map(item => item.path)
 
   const handleSwipe = useCallback((newDirection: number) => {
+    const now = Date.now()
+    if (now - lastSwipeTime.current < 350) return
+    lastSwipeTime.current = now
+
     const currentIndex = swipeRoutes.indexOf(location.pathname)
     if (currentIndex !== -1) {
       if (newDirection === 1) {
-        // Avanzar (+1), pero si estamos al final, no hacemos nada (no damos la vuelta)
         if (currentIndex < swipeRoutes.length - 1) {
           setDirection(1)
           navigate(swipeRoutes[currentIndex + 1])
         }
       } else if (newDirection === -1) {
-        // Retroceder (-1), pero si estamos al principio, no hacemos nada
         if (currentIndex > 0) {
           setDirection(-1)
           navigate(swipeRoutes[currentIndex - 1])
         }
       }
-    } else {
-      // Si la ruta no está directamente en el array, vuelve a la primera o anterior
-      setDirection(newDirection)
-      navigate(newDirection === 1 ? swipeRoutes[0] : swipeRoutes[swipeRoutes.length - 1])
     }
   }, [location.pathname, navigate, swipeRoutes])
 
   const variants = {
     enter: (direction: number) => ({
-      x: direction > 0 ? '100%' : '-100%',
-      opacity: 0.6
+      x: direction === 0 ? 0 : (direction > 0 ? 25 : -25),
+      opacity: 0,
     }),
     center: {
       zIndex: 1,
       x: 0,
-      opacity: 1
+      opacity: 1,
     },
     exit: (direction: number) => ({
       zIndex: 0,
-      x: direction < 0 ? '100%' : '-100%',
-      opacity: 0.6
-    })
-  };
+      x: direction === 0 ? 0 : (direction < 0 ? 25 : -25),
+      opacity: 0,
+    }),
+  }
 
   useEffect(() => {
     function handleCameraEvent(e: Event) {
@@ -289,7 +289,7 @@ function Layout() {
         <FullscreenExitButton />
 
         <main className="w-full relative min-h-screen">
-          <AnimatePresence initial={false} custom={direction} mode="popLayout">
+          <AnimatePresence initial={false} custom={direction} mode="wait">
             <motion.div
               key={location.pathname}
               custom={direction}
@@ -298,32 +298,34 @@ function Layout() {
               animate="center"
               exit="exit"
               transition={{
-                x: { type: "tween", ease: [0.25, 0.46, 0.45, 0.94], duration: 0.28 },
-                opacity: { duration: 0.2 }
+                duration: 0.16,
+                ease: "easeOut",
               }}
-              style={{ willChange: 'transform, opacity' }}
+              style={{ willChange: 'opacity, transform' }}
               className="w-full min-h-screen p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto pt-3 lg:pt-16 pb-28"
             >
-              <Routes location={location} key={location.pathname}>
-                <Route path="/" element={<InicioPage />} />
-                <Route path="/clientes" element={<ClientesPage />} />
-                <Route path="/cliente-admin/:id" element={<ClienteAdminPage />} />
-                <Route path="/vehiculo-admin/:id" element={<VehiculoAdminPage />} />
-                <Route path="/expediente/:vehiculoId" element={<ExpedientePage />} />
-                <Route path="/presupuestos" element={<PresupuestosPage />} />
-                <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
-                <Route path="/citas" element={<CitasPage />} />
-                <Route path="/reparaciones" element={<ReparacionesPage />} />
-                <Route path="/facturas" element={<FacturasPage />} />
-                <Route path="/balances" element={<BalancesPage />} />
-                <Route path="/expedientes" element={<ExpedientesPage />} />
-                <Route path="/asignar-cita" element={<AsignarCitaPage />} />
-                <Route path="/proveedores" element={<ProveedoresPage />} />
-                <Route path="/incidencias" element={<IncidenciasPage />} />
-                <Route path="/usuarios" element={<UsuariosPage />} />
-                <Route path="/configuracion" element={<ConfiguracionPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes location={location} key={location.pathname}>
+                  <Route path="/" element={<InicioPage />} />
+                  <Route path="/clientes" element={<ClientesPage />} />
+                  <Route path="/cliente-admin/:id" element={<ClienteAdminPage />} />
+                  <Route path="/vehiculo-admin/:id" element={<VehiculoAdminPage />} />
+                  <Route path="/expediente/:vehiculoId" element={<ExpedientePage />} />
+                  <Route path="/presupuestos" element={<PresupuestosPage />} />
+                  <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
+                  <Route path="/citas" element={<CitasPage />} />
+                  <Route path="/reparaciones" element={<ReparacionesPage />} />
+                  <Route path="/facturas" element={<FacturasPage />} />
+                  <Route path="/balances" element={<BalancesPage />} />
+                  <Route path="/expedientes" element={<ExpedientesPage />} />
+                  <Route path="/asignar-cita" element={<AsignarCitaPage />} />
+                  <Route path="/proveedores" element={<ProveedoresPage />} />
+                  <Route path="/incidencias" element={<IncidenciasPage />} />
+                  <Route path="/usuarios" element={<UsuariosPage />} />
+                  <Route path="/configuracion" element={<ConfiguracionPage />} />
+                  <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+              </ErrorBoundary>
             </motion.div>
           </AnimatePresence>
         </main>
@@ -346,25 +348,28 @@ function Layout() {
 }
 
 export default function App() {
-  const [showIntro, setShowIntro] = useState(true)
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('gestarian_intro_shown'))
   const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
 
-  // Efecto inicial para automatizar toda la secuencia de la animación
+  // Efecto inicial para automatizar toda la secuencia de la animación en primer arranque
   useEffect(() => {
-    // 1. Arranca la animación (aparece el logo)
+    if (sessionStorage.getItem('gestarian_intro_shown')) {
+      setShowIntro(false)
+      return
+    }
+
     const growTimer = setTimeout(() => {
       setIntroState('grow')
     }, 100)
 
-    // 2. Inicia el desvanecimiento (fadeOut) después de 2 segundos de mostrarse
     const fadeOutTimer = setTimeout(() => {
       setIntroState('fadeOut')
-    }, 2000)
+    }, 1800)
 
-    // 3. Destruye el componente de la memoria 500ms después para mostrar la app
     const removeTimer = setTimeout(() => {
+      sessionStorage.setItem('gestarian_intro_shown', 'true')
       setShowIntro(false)
-    }, 2500)
+    }, 2300)
 
     return () => {
       clearTimeout(growTimer)
@@ -374,24 +379,25 @@ export default function App() {
   }, [])
 
   return (
-    <ThemeProvider>
-      <UIStateProvider>
-        
-        <ToastProvider>
-        {/* COMPONENTE DE INTRODUCCIÓN AUTOMÁTICO */}
-        <IntroAnimation 
-          showIntro={showIntro} 
-          introState={introState} 
-        />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <UIStateProvider>
+          <ToastProvider>
+            {/* COMPONENTE DE INTRODUCCIÓN AUTOMÁTICO */}
+            <IntroAnimation 
+              showIntro={showIntro} 
+              introState={introState} 
+            />
 
-        <BrowserRouter>
-          <Routes>
-            <Route path="/cliente/:token" element={<ClientePage />} />
-            <Route path="/*" element={<Layout />} />
-          </Routes>
-        </BrowserRouter>
-        </ToastProvider>
-      </UIStateProvider>
-    </ThemeProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/cliente/:token" element={<ClientePage />} />
+                <Route path="/*" element={<Layout />} />
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
+        </UIStateProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }

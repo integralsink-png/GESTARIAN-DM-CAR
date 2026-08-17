@@ -743,15 +743,45 @@ select:focus {
 
 @keyframes contour-pulse {
   0%, 100% {
-    border-color: rgba(234, 179, 8, 0.3); /* yellow-500 approx */
+    border-color: rgba(234, 179, 8, 0.4);
     box-shadow: 0 0 0px rgba(234, 179, 8, 0);
   }
   50% {
     border-color: rgba(234, 179, 8, 1);
-    box-shadow: 0 0 12px rgba(234, 179, 8, 0.8);
+    box-shadow: 0 0 16px rgba(234, 179, 8, 0.8), inset 0 0 8px rgba(234, 179, 8, 0.3);
   }
 }
 
 .animated-contour-border {
   animation: contour-pulse 1.5s infinite ease-in-out !important;
+}
+
+@keyframes contour-pulse-emerald {
+  0%, 100% {
+    border-color: rgba(52, 211, 153, 0.4);
+    box-shadow: 0 0 5px rgba(52, 211, 153, 0.2), inset 0 0 5px rgba(52, 211, 153, 0.1);
+  }
+  50% {
+    border-color: rgba(52, 211, 153, 1);
+    box-shadow: 0 0 20px rgba(52, 211, 153, 0.85), inset 0 0 10px rgba(52, 211, 153, 0.4);
+  }
+}
+
+.animated-contour-border-emerald {
+  animation: contour-pulse-emerald 1.5s infinite ease-in-out !important;
+}
+
+@keyframes contour-pulse-amber {
+  0%, 100% {
+    border-color: rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 0px rgba(245, 158, 11, 0);
+  }
+  50% {
+    border-color: rgba(245, 158, 11, 1);
+    box-shadow: 0 0 16px rgba(245, 158, 11, 0.85), inset 0 0 8px rgba(245, 158, 11, 0.3);
+  }
+}
+
+.animated-contour-border-amber {
+  animation: contour-pulse-amber 1.5s infinite ease-in-out !important;
 }

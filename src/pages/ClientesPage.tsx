@@ -991,14 +991,14 @@ export function ClientesPage() {
 
       {/* MODAL FORMULARIO NUEVO VEHÍCULO */}
       {showNuevoVehiculoModal && (
-        <div className="fixed inset-0 bg-black/80 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoVehiculoModal(null)}>
-          <Card className="w-full max-w-md p-5 sm:p-6 my-auto max-h-[92vh] overflow-y-auto scrollbar-thin">
-            <div onClick={(e) => e.stopPropagation()} className="space-y-4 pb-44 sm:pb-6">
+        <div className="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto" onClick={() => setShowNuevoVehiculoModal(null)}>
+          <Card className="w-full max-w-md p-5 sm:p-6 my-auto max-h-[90vh] overflow-y-auto scrollbar-thin border-2 border-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.25)]">
+            <div onClick={(e) => e.stopPropagation()} className="space-y-4 pb-2">
               <div className="flex items-center justify-between border-b border-bg-700 pb-3 sticky top-0 bg-bg-800 z-10 pt-1">
                 <h2 className="text-lg font-bold text-white flex items-center gap-2">
                   <Plus className="w-5 h-5 text-amber-400" /> <Car className="w-5 h-5 text-amber-400" /> Añadir Vehículo
                 </h2>
-                <button onClick={() => setShowNuevoVehiculoModal(null)} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
+                <button onClick={() => setShowNuevoVehiculoModal(null)} className="text-slate-400 hover:text-white p-1"><X className="w-5 h-5" /></button>
               </div>
 
               <div className="space-y-3">

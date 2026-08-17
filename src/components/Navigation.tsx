@@ -306,14 +306,16 @@ export function MobileFooter() {
                 }
               `}</style>
 
-              {/* 1. INICIO (Fila 1, 6 columnas) */}
-              {NAV_ITEMS[0] && (() => {
-                const item = NAV_ITEMS[0]
+              {/* 1. INICIO */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[0]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.05s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -324,14 +326,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 2. CLIENTES (Fila 1, 6 columnas) */}
-              {NAV_ITEMS[1] && (() => {
-                const item = NAV_ITEMS[1]
+              {/* 2. EXPEDIENTES */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/expedientes')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[1]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.12s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -342,14 +346,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 3. PRESUPUESTOS (Fila 2, Ancho especial: 8 columnas) */}
-              {NAV_ITEMS[2] && (() => {
-                const item = NAV_ITEMS[2]
+              {/* 3. CLIENTES */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/clientes')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[2]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.2s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -360,14 +366,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 4. CITAS (Fila 2, 4 columnas) */}
-              {NAV_ITEMS[3] && (() => {
-                const item = NAV_ITEMS[3]
+              {/* 4. CITAS */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/citas')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[3]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.28s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -378,14 +386,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 5. REPARACIONES (Fila 3, Ancho especial: 8 columnas) */}
-              {NAV_ITEMS[4] && (() => {
-                const item = NAV_ITEMS[4]
+              {/* 5. PRESUPUESTOS */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/presupuestos')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[4]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTop', animationDelay: '0.35s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -396,14 +406,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 6. BALANCES (Fila 3, 4 columnas) */}
-              {NAV_ITEMS[6] && (() => {
-                const item = NAV_ITEMS[6]
+              {/* 6. REPARACIONES */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/reparaciones')
+                if (!item) return null
                 const Icon = item.icon
-                const color = MENU_COLORS[6]
+                const color = MENU_COLORS[5]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.42s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -414,14 +426,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 7. FACTURACIÓN (Fila 4, Ancho especial: 8 columnas) */}
-              {NAV_ITEMS[5] && (() => {
-                const item = NAV_ITEMS[5]
+              {/* 7. FACTURACIÓN */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/facturas')
+                if (!item) return null
                 const Icon = item.icon
-                const color = MENU_COLORS[5]
+                const color = MENU_COLORS[6]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.5s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -432,14 +446,16 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 8. PROVEEDORES (Fila 4, 4 columnas) */}
-              {NAV_ITEMS[7] && (() => {
-                const item = NAV_ITEMS[7]
+              {/* 8. BALANCES */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/balances')
+                if (!item) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[7]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
                     style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.58s' }}
                     onClick={() => handleNavClick(item.path)}
@@ -450,16 +466,18 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 9. CONFIGURACIÓN (Fila 5, Ancho especial: 8 columnas) */}
-              {NAV_ITEMS[10] && (() => {
-                const item = NAV_ITEMS[10]
+              {/* 9. PROVEEDORES */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/proveedores')
+                if (!item) return null
                 const Icon = item.icon
-                const color = MENU_COLORS[10]
+                const color = MENU_COLORS[8]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.65s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.65s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -468,16 +486,18 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 10. INCIDENCIAS (Fila 5, 4 columnas) */}
-              {NAV_ITEMS[8] && (() => {
-                const item = NAV_ITEMS[8]
+              {/* 10. INCIDENCIAS */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/incidencias')
+                if (!item) return null
                 const Icon = item.icon
-                const color = MENU_COLORS[8]
+                const color = MENU_COLORS[9]
                 const isActive = location.pathname === item.path
                 return (
                   <button
+                    key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.72s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.72s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -486,15 +506,45 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 11. EXPEDIENTES (Fila 6, Ocupa 12 columnas centradas abajo) */}
-              <button
-                className={`bento-btn ${location.pathname === '/expedientes' ? 'active-page' : ''}`}
-                style={{ gridColumn: 'span 12', backgroundColor: `${MENU_COLORS[9]}28`, borderColor: MENU_COLORS[9], animationName: 'flyFromBottom', animationDelay: '0.8s' }}
-                onClick={() => handleNavClick('/expedientes')}
-              >
-                <FolderOpen className="w-6 h-6 shrink-0" style={{ color: MENU_COLORS[9] }} strokeWidth={1.8} />
-                <span className="text-white font-bold text-sm truncate">EXPEDIENTES</span>
-              </button>
+              {/* 11. USUARIOS */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/usuarios')
+                if (!item) return null
+                const Icon = item.icon
+                const color = MENU_COLORS[10]
+                const isActive = location.pathname === item.path
+                return (
+                  <button
+                    key={item.path}
+                    className={`bento-btn ${isActive ? 'active-page' : ''}`}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.78s' }}
+                    onClick={() => handleNavClick(item.path)}
+                  >
+                    <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
+                    <span className="text-white font-bold text-sm truncate">{item.label}</span>
+                  </button>
+                )
+              })()}
+
+              {/* 12. CONFIGURACIÓN */}
+              {(() => {
+                const item = NAV_ITEMS.find(n => n.path === '/configuracion')
+                if (!item) return null
+                const Icon = item.icon
+                const color = MENU_COLORS[11]
+                const isActive = location.pathname === item.path
+                return (
+                  <button
+                    key={item.path}
+                    className={`bento-btn ${isActive ? 'active-page' : ''}`}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.84s' }}
+                    onClick={() => handleNavClick(item.path)}
+                  >
+                    <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
+                    <span className="text-white font-bold text-sm truncate">{item.label}</span>
+                  </button>
+                )
+              })()}
             </div>
           </div>
         </div>

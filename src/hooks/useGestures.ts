@@ -141,17 +141,9 @@ export const useGestures = ({
         return
       }
 
-      // ── 2. SWIPE HORIZONTAL (Navegación secuencial de páginas) ────────────────
-      if (directionLocked.current === 'h' && Math.abs(diffX) > 40) {
-        const threshold = window.innerWidth * 0.20
+      // ── 2. SWIPE HORIZONTAL ────────────────
+      if (directionLocked.current === 'h') {
         setIsAnimating(true)
-        if (diffX < -threshold) {
-          // Deslizamiento de DERECHA a IZQUIERDA -> Avanzar (+1)
-          window.dispatchEvent(new CustomEvent('gestarian-swipe-page', { detail: { direction: 1 } }))
-        } else if (diffX > threshold) {
-          // Deslizamiento de IZQUIERDA a DERECHA -> Retroceder (-1)
-          window.dispatchEvent(new CustomEvent('gestarian-swipe-page', { detail: { direction: -1 } }))
-        }
         setOffsetX(0)
         return
       }

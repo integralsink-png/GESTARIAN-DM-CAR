@@ -51,15 +51,17 @@ export function VehiculoAdminPage() {
 
       setVehiculo(veh)
 
-      const { data: cli } = await supabase.from('clientes').select('*').eq('id', veh.cliente_id).maybeSingle()
+      const { data: cli } = veh.cliente_id 
+        ? await supabase.from('clientes').select('*').eq('id', veh.cliente_id).maybeSingle()
+        : { data: null }
       setCliente(cli)
 
       const [reps, pres, facs, nts, cts] = await Promise.all([
         supabase.from('reparaciones').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
         supabase.from('presupuestos').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
-        supabase.from('facturas').select('*').eq('cliente_id', cli.id).order('created_at', { ascending: false }),
+        cli ? supabase.from('facturas').select('*').eq('cliente_id', cli.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
         supabase.from('notas_vehiculo').select('*').eq('vehiculo_id', veh.id).eq('visible_cliente', true).order('created_at', { ascending: false }),
-        supabase.from('citas').select('*').eq('cliente_id', cli.id).order('fecha', { ascending: false }),
+        cli ? supabase.from('citas').select('*').eq('cliente_id', cli.id).order('fecha', { ascending: false }) : Promise.resolve({ data: [] }),
       ])
 
       setReparaciones(reps.data ?? [])

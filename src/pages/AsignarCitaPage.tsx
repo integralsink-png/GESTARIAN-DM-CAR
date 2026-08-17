@@ -1,14 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { playSuccessChime } from '../lib/sound';
-import { Calendar as CalendarIcon, Clock, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { playSuccessChime, playRadioTuningStatic } from '../lib/sound';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronUp, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { MatriculaBadge } from '../components/UI';
 
-const HORAS = ['07', '08', '09', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20'];
-const MINUTOS = ['00', '15', '30', '45'];
+// Generar intervalos de 15 minutos desde 07:00 hasta 21:00
+const TIME_SLOTS: string[] = [];
+for (let h = 7; h <= 21; h++) {
+  for (let m = 0; m < 60; m += 15) {
+    if (h === 21 && m > 0) break;
+    TIME_SLOTS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
+  }
+}
+
+// Índice por defecto para las 12:00
+const DEFAULT_12_INDEX = TIME_SLOTS.indexOf('12:00') !== -1 ? TIME_SLOTS.indexOf('12:00') : 20;
 
 const MESES = [
   'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
@@ -31,11 +40,14 @@ export function AsignarCitaPage() {
 
   const [currentDate, setCurrentDate] = useState(() => new Date());
   const [selectedDay, setSelectedDay] = useState<number>(() => new Date().getDate());
-  const [selectedHoraIndex, setSelectedHoraIndex] = useState<number>(2); // Default '09'
-  const [selectedMinutoIndex, setSelectedMinutoIndex] = useState<number>(0); // Default '00'
+  const [selectedTimeIndex, setSelectedTimeIndex] = useState<number>(DEFAULT_12_INDEX);
   
   const [guardando, setGuardando] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
+
+  // Referencias para el control táctil/arrastre de la rueda vintage
+  const wheelRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number | null>(null);
 
   // Month navigation
   const currentYear = currentDate.getFullYear();
@@ -55,23 +67,39 @@ export function AsignarCitaPage() {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayIndex = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7; // Monday = 0
 
-  // Roller picker helpers
-  const handleHoraWheel = (e: React.WheelEvent) => {
+  // Scroll de rueda vintage tuning con sonido analógico
+  const handleWheelTuning = (e: React.WheelEvent) => {
     e.preventDefault();
+    playRadioTuningStatic();
     if (e.deltaY > 0) {
-      setSelectedHoraIndex((prev) => (prev < HORAS.length - 1 ? prev + 1 : prev));
+      setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
     } else {
-      setSelectedHoraIndex((prev) => (prev > 0 ? prev - 1 : prev));
+      setSelectedTimeIndex((prev) => Math.max(0, prev - 1));
     }
   };
 
-  const handleMinutoWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    if (e.deltaY > 0) {
-      setSelectedMinutoIndex((prev) => (prev < MINUTOS.length - 1 ? prev + 1 : prev));
-    } else {
-      setSelectedMinutoIndex((prev) => (prev > 0 ? prev - 1 : prev));
+  // Arrastre táctil en la rueda tuning con sonido analógico
+  const handleTouchStart = (e: React.TouchEvent) => {
+    dragStartY.current = e.touches[0].clientY;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (dragStartY.current === null) return;
+    const currentY = e.touches[0].clientY;
+    const diff = dragStartY.current - currentY;
+    if (Math.abs(diff) > 16) {
+      playRadioTuningStatic();
+      if (diff > 0) {
+        setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
+      } else {
+        setSelectedTimeIndex((prev) => Math.max(0, prev - 1));
+      }
+      dragStartY.current = currentY;
     }
+  };
+
+  const handleTouchEnd = () => {
+    dragStartY.current = null;
   };
 
   // Horizontal swipe for month change
@@ -89,7 +117,7 @@ export function AsignarCitaPage() {
     setGuardando(true);
 
     try {
-      const horaStr = `${HORAS[selectedHoraIndex]}:${MINUTOS[selectedMinutoIndex]}`;
+      const horaStr = TIME_SLOTS[selectedTimeIndex] || '12:00';
       const dayFormatted = String(selectedDay).padStart(2, '0');
       const monthFormatted = String(currentMonth + 1).padStart(2, '0');
       const fechaStr = `${currentYear}-${monthFormatted}-${dayFormatted}`;
@@ -105,7 +133,7 @@ export function AsignarCitaPage() {
       if (state.vehiculoId) citaData.vehiculo_id = state.vehiculoId;
       if (state.presupuestoId) citaData.presupuesto_id = state.presupuestoId;
 
-      const { data: nuevaCita, error: citaError } = await supabase
+      const { error: citaError } = await supabase
         .from('citas')
         .insert(citaData)
         .select()
@@ -131,8 +159,9 @@ export function AsignarCitaPage() {
       setTimeout(() => {
         navigate('/expedientes', {
           state: {
-            expandVehiculoId: state.vehiculoId,
+            expandPresupuestoId: state.presupuestoId,
             expandExpedienteId: state.expedienteId,
+            expandVehiculoId: state.vehiculoId,
             search: state.matricula || state.clienteNombre || '',
           },
         });
@@ -143,9 +172,12 @@ export function AsignarCitaPage() {
     }
   };
 
+  const currentTime = TIME_SLOTS[selectedTimeIndex] || '12:00';
+  const [horaDisplay, minutoDisplay] = currentTime.split(':');
+
   return (
-    <div className="fixed inset-0 z-50 bg-bg-950 text-white flex flex-col justify-between p-3 sm:p-5 overflow-hidden select-none touch-none">
-      {/* Toast animado verde con texto blanco y bordes blancos (Centrado en pantalla vía Portal) */}
+    <div className="flex flex-col justify-between min-h-[calc(100vh-80px)] p-4 max-w-2xl mx-auto select-none">
+      {/* Toast Centrado con Glow */}
       <AnimatePresence>
         {showSuccessToast && createPortal(
           <div className="fixed inset-0 z-[99999] flex items-center justify-center pointer-events-none p-4">
@@ -165,7 +197,7 @@ export function AsignarCitaPage() {
       </AnimatePresence>
 
       {/* Header Superior */}
-      <div className="flex items-center justify-between border-b border-bg-800 pb-2">
+      <div className="flex items-center justify-between border-b border-bg-800 pb-2 mb-2">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -191,7 +223,7 @@ export function AsignarCitaPage() {
           </div>
         </div>
 
-        {/* Flecha arriba para avanzar de mes rápido */}
+        {/* Selector rápido de mes */}
         <div className="flex items-center gap-1 bg-bg-900 border border-bg-700 rounded-xl p-1">
           <button
             onClick={handlePrevMonth}
@@ -217,38 +249,38 @@ export function AsignarCitaPage() {
         </div>
       </div>
 
-      {/* Contenedor Central: Calendario con Swipe Horizontal + Selector de Hora Rodillo */}
-      <div className="flex-1 flex flex-col justify-around py-2 max-w-xl mx-auto w-full overflow-hidden">
+      {/* Contenedor Central: Calendario + Selector de Hora Vintage Tuning */}
+      <div className="flex-1 flex flex-col justify-around py-1 max-w-xl mx-auto w-full overflow-hidden gap-3">
         {/* 1. Calendario del Mes */}
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={handleDragEnd}
-          className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-6 shadow-xl cursor-grab active:cursor-grabbing mb-3"
+          className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-5 shadow-xl cursor-grab active:cursor-grabbing"
         >
           {/* Cabecera del Mes */}
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <button
               onClick={handlePrevMonth}
-              className="p-2 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes anterior"
             >
-              <ChevronLeft className="w-12 h-12 text-cyan-400" />
+              <ChevronLeft className="w-10 h-10 text-cyan-400" />
             </button>
             <span className="font-black text-2xl sm:text-3xl text-white tracking-widest uppercase">
               {MESES[currentMonth]} {currentYear}
             </span>
             <button
               onClick={handleNextMonth}
-              className="p-2 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
+              className="p-1.5 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes siguiente"
             >
-              <ChevronRight className="w-12 h-12 text-cyan-400" />
+              <ChevronRight className="w-10 h-10 text-cyan-400" />
             </button>
           </div>
 
-          {/* Días de la semana */}
-          <div className="grid grid-cols-7 gap-1 text-center font-black text-lg sm:text-xl mb-1">
+          {/* Días de la semana (Letras x1.5) */}
+          <div className="grid grid-cols-7 gap-1 text-center font-black text-[24px] sm:text-[27px] mb-1 leading-none">
             {DIAS_SEMANA.map((d, i) => {
               let colorClass = 'text-slate-400';
               if (d === 'S') colorClass = 'text-blue-400 font-black';
@@ -262,10 +294,10 @@ export function AsignarCitaPage() {
             })}
           </div>
 
-          {/* Grid de días */}
+          {/* Grid de días (Números x1.5 en el mismo espacio) */}
           <div className="grid grid-cols-7 gap-1 text-center">
             {Array.from({ length: firstDayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-9 sm:h-10" />
+              <div key={`empty-${i}`} className="h-10 sm:h-11" />
             ))}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -280,7 +312,7 @@ export function AsignarCitaPage() {
                 <button
                   key={dayNum}
                   onClick={() => setSelectedDay(dayNum)}
-                  className={`h-9 sm:h-10 rounded-xl font-black text-xl sm:text-2xl flex items-center justify-center transition-all active:scale-90 ${
+                  className={`h-10 sm:h-11 rounded-xl font-black text-[27px] sm:text-[30px] flex items-center justify-center transition-all active:scale-90 leading-none ${
                     isSelected
                       ? 'bg-cyan-500 text-bg-950 font-black shadow-[0_0_15px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
                       : isToday
@@ -295,128 +327,98 @@ export function AsignarCitaPage() {
           </div>
         </motion.div>
 
-        {/* 2. Selector de Hora Tipo Rodillo (Grande, Minutero en Cuartos de Hora) */}
-        <div className="bg-bg-800/95 border border-bg-700/80 rounded-2xl p-4 sm:p-6 shadow-xl">
-          <div className="flex items-center justify-center gap-3 mb-3 text-cyan-400 font-black text-lg sm:text-xl uppercase tracking-widest">
-            <Clock className="w-8 h-8" />
-            <span>HORA DE LLEGADA</span>
+        {/* 2. Selector de Hora con Rueda Vintage Tuning (Intervalos de 15 min, Default 12:00) */}
+        <div className="bg-bg-800/95 border border-bg-700/80 rounded-2xl px-5 py-4 shadow-xl flex items-center justify-between gap-3 sm:gap-6">
+          {/* A la izquierda: Etiqueta "Hora:" */}
+          <div className="flex items-center gap-2 shrink-0">
+            <span className="font-black text-2xl sm:text-3xl text-cyan-400 tracking-wider uppercase">
+              Hora:
+            </span>
           </div>
 
-          <div className="flex items-center justify-center gap-4 sm:gap-8 py-2">
-            {/* Rodillo de HORAS */}
-            <div
-              onWheel={handleHoraWheel}
-              className="relative flex flex-col items-center justify-center w-24 sm:w-28 h-32 overflow-hidden cursor-pointer"
-            >
-              {/* Botón arriba */}
-              <button
-                onClick={() => setSelectedHoraIndex((prev) => Math.max(0, prev - 1))}
-                className="absolute top-0 z-10 p-1 text-slate-400 hover:text-white"
-              >
-                <ChevronUp className="w-5 h-5" />
-              </button>
+          {/* Al centro: Display compacto de la hora seleccionada */}
+          <div className="flex items-center justify-center gap-1.5 py-1 px-4 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+            <span className="text-4xl sm:text-5xl font-black text-white tracking-tight tabular-nums">
+              {horaDisplay}
+            </span>
+            <span className="text-3xl sm:text-4xl font-black text-cyan-400 animate-pulse pb-1">:</span>
+            <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-tight tabular-nums">
+              {minutoDisplay}
+            </span>
+          </div>
 
-              {/* Elementos anteriores y activos */}
-              <div className="flex flex-col items-center justify-center space-y-1">
-                {/* Hora anterior */}
-                <span
-                  onClick={() => setSelectedHoraIndex((prev) => Math.max(0, prev - 1))}
-                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
-                >
-                  {HORAS[selectedHoraIndex - 1] || '—'}
-                </span>
-
-                {/* Hora seleccionada (GRANDE) */}
-                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/15 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                  {HORAS[selectedHoraIndex]}
-                </span>
-
-                {/* Hora siguiente */}
-                <span
-                  onClick={() => setSelectedHoraIndex((prev) => Math.min(HORAS.length - 1, prev + 1))}
-                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
-                >
-                  {HORAS[selectedHoraIndex + 1] || '—'}
-                </span>
+          {/* A la derecha: Rueda Vintage Tuning interactiva con scroll */}
+          <div
+            ref={wheelRef}
+            onWheel={handleWheelTuning}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
+            className="flex items-center gap-2 cursor-ns-resize group select-none shrink-0"
+            title="Gira la rueda o haz scroll para ajustar la hora"
+          >
+            {/* Rueda Vintage Tuning Estilizada */}
+            <div className="relative w-16 sm:w-20 h-20 sm:h-24 rounded-2xl bg-gradient-to-b from-slate-700 via-slate-900 to-slate-700 border-2 border-amber-400/80 shadow-[0_0_15px_rgba(251,191,36,0.35)] flex flex-col justify-between py-1.5 px-2 overflow-hidden active:scale-95 transition-transform">
+              {/* Reflejos metálicos vintage y muescas del sintonizador */}
+              <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/30 pointer-events-none" />
+              <div className="flex flex-col justify-between h-full w-full py-0.5 z-10">
+                <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
+                <div className="h-1 w-full bg-amber-400/80 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+                <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
+                <div className="h-1.5 w-full bg-cyan-400 rounded-full shadow-[0_0_8px_rgba(6,182,212,0.9)]" />
+                <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
+                <div className="h-1 w-full bg-amber-400/80 rounded-full shadow-[0_0_6px_rgba(251,191,36,0.8)]" />
+                <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
               </div>
 
-              {/* Botón abajo */}
-              <button
-                onClick={() => setSelectedHoraIndex((prev) => Math.min(HORAS.length - 1, prev + 1))}
-                className="absolute bottom-0 z-10 p-1 text-slate-400 hover:text-white"
-              >
-                <ChevronDown className="w-5 h-5" />
-              </button>
+              {/* Marcador central de sintonización */}
+              <div className="absolute inset-y-0 right-1 w-1 bg-red-500/90 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
             </div>
 
-            {/* Separador de dos puntos */}
-            <span className="text-4xl sm:text-5xl font-black text-slate-400 pb-1">:</span>
-
-            {/* Rodillo de MINUTOS (Cuartos de hora: 00, 15, 30, 45) */}
-            <div
-              onWheel={handleMinutoWheel}
-              className="relative flex flex-col items-center justify-center w-24 sm:w-28 h-32 overflow-hidden cursor-pointer"
-            >
-              {/* Botón arriba */}
+            {/* Micro flechas de ayuda para la rueda */}
+            <div className="flex flex-col gap-1">
               <button
-                onClick={() => setSelectedMinutoIndex((prev) => Math.max(0, prev - 1))}
-                className="absolute top-0 z-10 p-1 text-slate-400 hover:text-white"
+                onClick={() => {
+                  playRadioTuningStatic();
+                  setSelectedTimeIndex((prev) => Math.max(0, prev - 1));
+                }}
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90 border border-slate-700"
+                title="+15 min"
               >
-                <ChevronUp className="w-5 h-5" />
+                <ChevronUp className="w-4 h-4" />
               </button>
-
-              <div className="flex flex-col items-center justify-center space-y-1">
-                {/* Minuto anterior */}
-                <span
-                  onClick={() => setSelectedMinutoIndex((prev) => Math.max(0, prev - 1))}
-                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
-                >
-                  {MINUTOS[selectedMinutoIndex - 1] || '—'}
-                </span>
-
-                {/* Minuto seleccionado (GRANDE) */}
-                <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-wider py-1 px-3 rounded-xl bg-cyan-500/15 border border-cyan-500/40 shadow-[0_0_15px_rgba(6,182,212,0.3)]">
-                  {MINUTOS[selectedMinutoIndex]}
-                </span>
-
-                {/* Minuto siguiente */}
-                <span
-                  onClick={() => setSelectedMinutoIndex((prev) => Math.min(MINUTOS.length - 1, prev + 1))}
-                  className="text-slate-500 font-bold text-lg opacity-40 select-none cursor-pointer"
-                >
-                  {MINUTOS[selectedMinutoIndex + 1] || '—'}
-                </span>
-              </div>
-
-              {/* Botón abajo */}
               <button
-                onClick={() => setSelectedMinutoIndex((prev) => Math.min(MINUTOS.length - 1, prev + 1))}
-                className="absolute bottom-0 z-10 p-1 text-slate-400 hover:text-white"
+                onClick={() => {
+                  playRadioTuningStatic();
+                  setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
+                }}
+                className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90 border border-slate-700"
+                title="-15 min"
               >
-                <ChevronDown className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 -rotate-90" />
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Botones Inferiores: ASIGNAR CITA y CANCELAR */}
-      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2 border-t border-bg-800 max-w-xl mx-auto w-full">
-        <button
-          onClick={handleAsignarCita}
-          disabled={guardando}
-          className="w-full sm:flex-1 py-3.5 px-6 rounded-2xl font-black text-base sm:text-lg bg-emerald-500 hover:bg-emerald-400 text-bg-950 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
-        >
-          <CalendarIcon className="w-5 h-5" />
-          <span>{guardando ? 'ASIGNANDO...' : 'ASIGNAR CITA'}</span>
-        </button>
-
+      {/* Footer: Botones ASIGNAR CITA y CANCELAR repartiéndose el espacio equilibradamente */}
+      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-bg-800 max-w-xl mx-auto w-full mt-2">
         <button
           onClick={() => navigate(-1)}
           disabled={guardando}
-          className="w-full sm:w-auto py-3.5 px-6 rounded-2xl font-bold text-sm sm:text-base border border-bg-700 bg-bg-850 hover:bg-bg-800 text-slate-300 hover:text-white transition-all active:scale-95 uppercase tracking-wider"
+          className="py-4 px-6 rounded-2xl font-bold text-base sm:text-lg border-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white transition-all active:scale-95 uppercase tracking-wider text-center flex items-center justify-center"
         >
           CANCELAR
+        </button>
+
+        <button
+          onClick={handleAsignarCita}
+          disabled={guardando}
+          className="py-4 px-6 rounded-2xl font-black text-base sm:text-lg bg-emerald-500 hover:bg-emerald-400 text-bg-950 border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider text-center"
+        >
+          <CalendarIcon className="w-5 h-5 shrink-0" />
+          <span>{guardando ? 'ASIGNANDO...' : 'ASIGNAR CITA'}</span>
         </button>
       </div>
     </div>

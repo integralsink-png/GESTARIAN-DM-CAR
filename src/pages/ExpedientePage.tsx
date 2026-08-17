@@ -54,15 +54,16 @@ export function ExpedientePage() {
           .from('vehiculos')
           .select('*')
           .eq('id', vehiculoId)
-          .single()
+          .maybeSingle()
 
-        if (vError) throw vError
+        if (vError) console.error('Error loading vehiculo:', vError)
 
         if (cancelled) return
 
         if (!vData) {
           setVehiculo(null)
           setCliente(null)
+          setLoading(false)
           return
         }
 
@@ -75,9 +76,9 @@ export function ExpedientePage() {
           .from('clientes')
           .select('*')
           .eq('id', vData.cliente_id)
-          .single()
+          .maybeSingle()
 
-        if (cError) throw cError
+        if (cError) console.error('Error loading cliente:', cError)
 
         if (cancelled) return
 
@@ -272,6 +273,7 @@ export function ExpedientePage() {
       const { error: repError } = await supabase.from('reparaciones').insert({
         vehiculo_id: vehiculoId,
         cliente_id: clienteId,
+        cita_id: citaId,
         estado: 'en_proceso'
       })
       if (!repError) {

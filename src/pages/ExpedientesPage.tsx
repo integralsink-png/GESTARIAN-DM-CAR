@@ -20,6 +20,7 @@ import { useGoBack } from '../lib/useGoBack'
 import { useToast } from '../lib/ToastContext'
 import { playSuccessChime } from '../lib/sound'
 import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
+import { PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -275,7 +276,7 @@ function TarjetaExpediente({
         className={`
           relative
           gestarian-panel
-          border
+          border-[3px]
           ${borderColor}
           rounded-xl
           overflow-hidden
@@ -341,63 +342,34 @@ function TarjetaExpediente({
           )}
         </AnimatePresence>
 
-        {/* Línea 1: ID | Fecha | Matrícula */}
-        <div className="flex items-center justify-between gap-2 px-3 pt-3 pb-1">
-
-          <span
-            className="
-              font-mono
-              text-[18px]
-              font-bold
-              text-cyan-300
-              bg-cyan-500/10
-              px-2
-              py-0.5
-              rounded
-              border
-              border-cyan-500/20
-              shrink-0
-            "
-          >
-            {row.expedienteId}
-          </span>
-
-          <span
-            className="
-              text-[18px]
-              text-slate-400
-              tabular-nums
-            "
-          >
-            {fmtFecha(row.fecha)}
-          </span>
-
-          <MatriculaBadge matricula={row.matricula} />
-
+        {/* Línea 1: Matrícula sola centrada x2 con marco gris plata de 1px, fondo blanco y texto negro */}
+        <div className="flex justify-center items-center pt-3 pb-1.5 px-3">
+          <MatriculaBadge matricula={row.matricula} size="xl" />
         </div>
 
-        {/* Línea 2: Nombre cliente */}
-        <div className="px-3 pb-3">
+        {/* Línea 2: Expediente y Fecha con misma tipografía (font-mono), mismo peso (font-bold) y tamaño x1.5 */}
+        <div className="flex items-center justify-center gap-8 sm:gap-14 px-3 py-1.5 text-center">
+          <span className="font-mono text-[27px] sm:text-3xl font-bold text-cyan-300">
+            {row.expedienteId}
+          </span>
+          <span className="font-mono text-[27px] sm:text-3xl font-bold text-slate-300 tabular-nums">
+            {fmtFecha(row.fecha)}
+          </span>
+        </div>
 
-          <p
-            className="
-              text-[21px]
-              font-semibold
-              text-white
-              truncate
-            "
-          >
+        {/* Línea 3: Nombre cliente (x0.75) y Marca/Modelo (x1.5) */}
+        <div className="px-3 pb-3 text-center">
+          <p className="text-[23px] sm:text-[27px] font-bold text-white truncate leading-tight tracking-wide">
             {row.clienteNombre}
           </p>
 
           {(row.marca || row.modelo) && (
-            <p className="text-xs text-slate-500 truncate">
+            <p className="text-[21px] font-semibold text-slate-300 truncate mt-1">
               {[row.marca, row.modelo]
                 .filter(Boolean)
                 .join(' ')}
             </p>
           )}
-
         </div>
 
         {/* Expansión */}
@@ -441,103 +413,83 @@ function TarjetaExpediente({
                   <TimelineVisual steps={steps} />
                 </div>
 
-                {/* Botones inferiores */}
-                <div className="grid grid-cols-4 gap-2">
+                {/* Botones inferiores: Solo iconos flotantes transparentes de altura idéntica (x2 tamaño) */}
+                <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap pt-4 pb-2 border-t border-white/10 mt-2">
 
                   <button
-                    onClick={() => navigate('/clientes')}
-                    className="
-                      flex
-                      flex-col
-                      items-center
-                      gap-1
-                      py-2
-                      rounded-xl
-                      bg-slate-800/60
-                      border
-                      border-white/10
-                      hover:border-cyan-500/40
-                      hover:bg-cyan-500/10
-                      transition-all
-                      text-xs
-                      text-slate-300
-                      active:scale-95
-                    "
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/clientes', { state: { expandClienteId: row.clienteId } })
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Ver Cliente"
+                    aria-label="Ver Cliente"
                   >
-                    <User className="w-4 h-4 text-cyan-400" />
-                    Cliente
+                    <User className="w-12 h-12 sm:w-14 sm:h-14 text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
                   </button>
 
                   <button
-                    onClick={() => navigate('/clientes')}
-                    className="
-                      flex
-                      flex-col
-                      items-center
-                      gap-1
-                      py-2
-                      rounded-xl
-                      bg-slate-800/60
-                      border
-                      border-white/10
-                      hover:border-blue-500/40
-                      hover:bg-blue-500/10
-                      transition-all
-                      text-xs
-                      text-slate-300
-                      active:scale-95
-                    "
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/clientes', { state: { expandClienteId: row.clienteId } })
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Ver Vehículo"
+                    aria-label="Ver Vehículo"
                   >
-                    <CarIcon className="w-4 h-4 text-blue-400" />
-                    Vehículo
+                    <CarIcon className="w-12 h-12 sm:w-14 sm:h-14 text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
                   </button>
 
                   <button
-                    onClick={() => setImgOpen(true)}
-                    className="
-                      flex
-                      flex-col
-                      items-center
-                      gap-1
-                      py-2
-                      rounded-xl
-                      bg-slate-800/60
-                      border
-                      border-white/10
-                      hover:border-violet-500/40
-                      hover:bg-violet-500/10
-                      transition-all
-                      text-xs
-                      text-slate-300
-                      active:scale-95
-                    "
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/presupuestos')
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Ver Presupuesto"
+                    aria-label="Ver Presupuesto"
                   >
-                    <ImageIcon className="w-4 h-4 text-violet-400" />
-                    Imágenes
+                    <PresupuestoIcon className="w-12 h-12 sm:w-14 sm:h-14 text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
                   </button>
 
                   <button
-                    onClick={onToggle}
-                    className="
-                      flex
-                      flex-col
-                      items-center
-                      gap-1
-                      py-2
-                      rounded-xl
-                      bg-slate-800/60
-                      border
-                      border-white/10
-                      hover:border-rose-500/40
-                      hover:bg-rose-500/10
-                      transition-all
-                      text-xs
-                      text-slate-300
-                      active:scale-95
-                    "
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (row.factura?.numero) {
+                        navigate('/facturas', { state: { facturaNumero: row.factura.numero } })
+                      } else {
+                        navigate('/facturas')
+                      }
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Ver Factura"
+                    aria-label="Ver Factura"
                   >
-                    <ArrowLeft className="w-4 h-4 text-rose-400" />
-                    Volver
+                    <FacturaIcon className="w-12 h-12 sm:w-14 sm:h-14 text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setImgOpen(true)
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Ver Imágenes"
+                    aria-label="Ver Imágenes"
+                  >
+                    <ImageIcon className="w-12 h-12 sm:w-14 sm:h-14 text-violet-400 drop-shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onToggle()
+                    }}
+                    className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
+                    title="Cerrar Roadmap"
+                    aria-label="Cerrar Roadmap"
+                  >
+                    <ArrowLeft className="w-12 h-12 sm:w-14 sm:h-14 text-rose-400 drop-shadow-[0_0_12px_rgba(244,63,94,0.8)]" />
                   </button>
 
                 </div>
@@ -567,13 +519,16 @@ export function ExpedientesPage() {
   const [loading, setLoading] = useState(true)
   const location = useLocation()
   const [search, setSearch] = useState(location.state?.search ?? '')
-  const [openId, setOpenId] = useState<string | null>(location.state?.expandVehiculoId ?? null)
+  const [openId, setOpenId] = useState<string | null>(
+    location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId ?? null
+  )
 
   useEffect(() => {
-    if (location.state?.expandVehiculoId) {
-      setOpenId(location.state.expandVehiculoId)
+    const targetId = location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId
+    if (targetId) {
+      setOpenId(targetId)
     }
-  }, [location.state?.expandVehiculoId])
+  }, [location.state?.expandPresupuestoId, location.state?.expandExpedienteId, location.state?.expandVehiculoId])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -681,10 +636,10 @@ export function ExpedientesPage() {
       const expId = getExpediente(p, cliente, [])
 
       const emailSentAt = fac?.id 
-        ? (fac.enviado_email_at || localStorage.getItem(`factura_${fac.id}_email_at`)) 
+        ? localStorage.getItem(`factura_${fac.id}_email_at`) 
         : null
       const whatsappSentAt = fac?.id 
-        ? (fac.enviado_whatsapp_at || localStorage.getItem(`factura_${fac.id}_wa_at`)) 
+        ? localStorage.getItem(`factura_${fac.id}_wa_at`) 
         : null
 
       const row: ExpRow = {
@@ -904,26 +859,27 @@ export function ExpedientesPage() {
 
         <div className="space-y-2">
 
-          {filtered.map((row) => (
+          {filtered.map((row) => {
+            const cardUniqueId = row.presupuesto?.id ?? row.expedienteId
+            const isCardOpen = openId === cardUniqueId || openId === row.expedienteId || openId === row.vehiculoId
 
-            <TarjetaExpediente
-              key={row.vehiculoId}
-              row={row}
-              isOpen={
-                openId === row.vehiculoId
-              }
-              onToggle={() =>
-                setOpenId((prev) =>
-                  prev === row.vehiculoId
-                    ? null
-                    : row.vehiculoId
-                )
-              }
-              onDelete={handleDelete}
-              onRefresh={load}
-            />
-
-          ))}
+            return (
+              <TarjetaExpediente
+                key={cardUniqueId}
+                row={row}
+                isOpen={isCardOpen}
+                onToggle={() =>
+                  setOpenId((prev) =>
+                    prev === cardUniqueId || prev === row.expedienteId || prev === row.vehiculoId
+                      ? null
+                      : cardUniqueId
+                  )
+                }
+                onDelete={handleDelete}
+                onRefresh={load}
+              />
+            )
+          })}
 
         </div>
 

@@ -173,9 +173,7 @@ export function InicioPage() {
         backfaceVisibility: 'hidden',
       }}
     >
-      <IntroAnimation showIntro={showIntro} introState={introState} />
-
-      <div className={`transition-opacity duration-500 ease-in-out ${showIntro ? 'opacity-0' : 'opacity-100'}`}>
+      <div>
         <PanelControlHeader
           showPanels={showPanels} isFadingOut={isFadingOut} hora={hora} tempActual={tempActual}
           cargandoClima={cargandoClima} tempColor={tempColor} totalAvisos={totalAvisos}

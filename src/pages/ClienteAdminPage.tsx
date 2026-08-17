@@ -56,10 +56,10 @@ export function ClienteAdminPage() {
       setVehiculo(veh)
 
       const [reps, pres, facs, nts, cts] = await Promise.all([
-        supabase.from('reparaciones').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
-        supabase.from('presupuestos').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
+        veh ? supabase.from('reparaciones').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
+        veh ? supabase.from('presupuestos').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
         supabase.from('facturas').select('*').eq('cliente_id', cli.id).order('created_at', { ascending: false }),
-        supabase.from('notas_vehiculo').select('*').eq('vehiculo_id', veh.id).eq('visible_cliente', true).order('created_at', { ascending: false }),
+        veh ? supabase.from('notas_vehiculo').select('*').eq('vehiculo_id', veh.id).eq('visible_cliente', true).order('created_at', { ascending: false }) : Promise.resolve({ data: [] }),
         supabase.from('citas').select('*').eq('cliente_id', cli.id).order('fecha', { ascending: false }),
       ])
 
