@@ -5,7 +5,6 @@ import { supabase } from '../lib/supabase'
 import type { Cita, Cliente, Vehiculo, Presupuesto } from '../lib/types'
 import { PageHeader, Card, Badge, EmptyState, MatriculaBadge } from '../components/UI'
 import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
-import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { getExpediente } from '../lib/utils'
@@ -349,11 +348,13 @@ export function CitasPage() {
           </div>
         )}
 
-      <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
-
       <GlobalImageViewer
-        isOpen={showExpedienteViewer}
-        onClose={() => setShowExpedienteViewer(false)}
+        isOpen={showExpedienteViewer || !!viewerMatricula}
+        onClose={() => {
+          setShowExpedienteViewer(false)
+          setViewerMatricula(null)
+        }}
+        matricula={viewerMatricula || undefined}
         images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           await saveExpedienteFoto(dataUrl)

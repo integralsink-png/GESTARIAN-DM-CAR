@@ -34,15 +34,15 @@ export function getFallbackConfig(): FallbackAiConfig {
     try { return JSON.parse(saved); } catch (e) { /* fallback */ }
   }
   return {
-    provider: 'groq',
-    model: 'llama-3.3-70b-versatile',
-    api_key: localStorage.getItem('gestarian_groq_api_key') || '',
+    provider: 'openrouter',
+    model: 'deepseek/deepseek-chat:free',
+    api_key: localStorage.getItem('gestarian_openrouter_api_key') || localStorage.getItem('gestarian_fallback_api_key') || '',
     enabled: false,
     status: 'disconnected'
   };
 }
 
-export async function testAiConnection(config: AiAssistantConfig): Promise<{ success: boolean; message: string }> {
+export async function testAiConnection(config: AiAssistantConfig | FallbackAiConfig): Promise<{ success: boolean; message: string }> {
   if (!config.api_key || config.api_key.trim() === '') {
     return { success: false, message: 'La Clave API no está configurada.' };
   }
@@ -66,6 +66,28 @@ export async function testAiConnection(config: AiAssistantConfig): Promise<{ suc
       return { success: true, message: 'Conexión con Gemini verificada correctamente.' };
     }
 
+    if (config.provider === 'openrouter') {
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${config.api_key}`,
+          'HTTP-Referer': 'https://gestarian.app',
+          'X-Title': 'GESTARIAN Taller'
+        },
+        body: JSON.stringify({
+          model: config.model || 'deepseek/deepseek-chat:free',
+          messages: [{ role: 'user', content: 'Ping de conexión' }],
+          max_tokens: 10
+        })
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, message: errorData.error?.message || `Error HTTP ${response.status} en OpenRouter` };
+      }
+      return { success: true, message: 'Conexión con OpenRouter (Modelos Gratuitos) verificada correctamente.' };
+    }
+
     if (config.provider === 'groq') {
       const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
@@ -85,7 +107,7 @@ export async function testAiConnection(config: AiAssistantConfig): Promise<{ suc
       return { success: true, message: 'Conexión con Groq verificada correctamente.' };
     }
 
-    return { success: true, message: 'Conexión simulada verificada.' };
+    return { success: true, message: 'Conexión verificada.' };
   } catch (error: any) {
     return { success: false, message: error?.message || 'Error de red al probar conexión.' };
   }
@@ -98,9 +120,9 @@ export async function processAiInstruction(userMessage: string, contextData?: an
   const config = getAiConfig();
   const fallback = getFallbackConfig();
 
-  // Prompt del sistema para la comprensión coloquial en español de GESTARIAN
+  // Prompt del sistema para la comprensión coloquial en español de España y dialecto andaluz en GESTARIAN
   const systemPrompt = `Eres el Ayudante IA oficial de GESTARIAN, un software para gestión de talleres mecánicos y de chapa/pintura.
-Entiendes el español coloquial de taller (ej. "el cliente quiere cambio de aceite", "añade 2 horas de mano de obra").
+Hablas y comprendes perfectamente el español de España y expresiones coloquiales y dialectales (incluyendo andaluz y jerga de taller como 'cambiale el aceite a ese coche', 'ponle dos horas de chapa', 'mira la bujía', 'quillo', 'illo', 'vamos a meterle mano a este buga').
 Tu tarea es comprender la instrucción y responder de forma profesional, concisa y servicial.`;
 
   try {
@@ -127,17 +149,28 @@ Tu tarea es comprender la instrucción y responder de forma profesional, concisa
     console.warn('Fallo en proveedor primario IA, intentando fallback...', e);
   }
 
-  // Fallback a Groq si está habilitado
+  // Fallback a OpenRouter / Groq si está habilitado
   if (fallback.enabled && fallback.api_key) {
     try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const endpoint = fallback.provider === 'openrouter'
+        ? 'https://openrouter.ai/api/v1/chat/completions'
+        : 'https://api.groq.com/openai/v1/chat/completions';
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${fallback.api_key}`
+      };
+
+      if (fallback.provider === 'openrouter') {
+        headers['HTTP-Referer'] = 'https://gestarian.app';
+        headers['X-Title'] = 'GESTARIAN Taller';
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${fallback.api_key}`
-        },
+        headers,
         body: JSON.stringify({
-          model: fallback.model || 'llama-3.3-70b-versatile',
+          model: fallback.model || (fallback.provider === 'openrouter' ? 'deepseek/deepseek-chat:free' : 'llama-3.3-70b-versatile'),
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userMessage }

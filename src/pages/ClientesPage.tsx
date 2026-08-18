@@ -42,9 +42,31 @@ export function ClientesPage() {
 
   useEffect(() => {
     if (location.state?.expandClienteId) {
-      setExpandedClienteId(location.state.expandClienteId)
+      const cId = location.state.expandClienteId
+      setExpandedClienteId(cId)
+      if (location.state?.openSubpanel) {
+        const sub = location.state.openSubpanel as 'editar' | 'vehiculos' | 'presupuestos' | 'facturas'
+        setActiveSubpanel({ [cId]: sub })
+        if (sub === 'vehiculos') {
+          loadVehiculosCliente(cId)
+        } else if (sub === 'presupuestos') {
+          loadPresupuestosCliente(cId)
+        } else if (sub === 'facturas') {
+          loadFacturasCliente(cId)
+        } else if (sub === 'editar') {
+          const cli = clientes.find(c => c.id === cId)
+          if (cli) setEditForm({ ...cli })
+        }
+      }
+
+      setTimeout(() => {
+        const el = document.getElementById(`cliente-${cId}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 150)
     }
-  }, [location.state])
+  }, [location.state, clientes])
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('gestarian-toggle-footer', { detail: { hide: showNuevoClienteModal } }))
@@ -113,12 +135,40 @@ export function ClientesPage() {
       // Ordenar por número de cliente en orden decreciente
       const sorted = [...clientesConNumero].sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0))
       setClientes(sorted)
+
+      // Cargar vehículos de todos los clientes
       const vehiculoMap: Record<string, Vehiculo[]> = {}
       for (const c of data) {
         const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', c.id)
         vehiculoMap[c.id] = vehs ?? []
       }
       setVehiculos(vehiculoMap)
+
+      // Cargar todos los presupuestos de todos los clientes en bloque
+      const { data: allPresups } = await supabase.from('presupuestos').select('*').order('created_at', { ascending: false })
+      if (allPresups) {
+        const pMap: Record<string, Presupuesto[]> = {}
+        for (const p of allPresups) {
+          if (p.cliente_id) {
+            if (!pMap[p.cliente_id]) pMap[p.cliente_id] = []
+            pMap[p.cliente_id].push(p as Presupuesto)
+          }
+        }
+        setPresupuestosCliente(pMap)
+      }
+
+      // Cargar todas las facturas de todos los clientes en bloque
+      const { data: allFacts } = await supabase.from('facturas').select('*').order('created_at', { ascending: false })
+      if (allFacts) {
+        const fMap: Record<string, Factura[]> = {}
+        for (const f of allFacts) {
+          if (f.cliente_id) {
+            if (!fMap[f.cliente_id]) fMap[f.cliente_id] = []
+            fMap[f.cliente_id].push(f as Factura)
+          }
+        }
+        setFacturasCliente(fMap)
+      }
     }
     setLoading(false)
   }
@@ -136,9 +186,11 @@ export function ClientesPage() {
   function toggleCliente(cliente: Cliente) {
     if (expandedClienteId === cliente.id) {
       setExpandedClienteId(null)
+      setActiveSubpanel(prev => ({ ...prev, [cliente.id]: null }))
     } else {
       setExpandedClienteId(cliente.id)
       setEditForm(cliente)
+      setActiveSubpanel(prev => ({ ...prev, [cliente.id]: 'vehiculos' }))
       loadPresupuestosCliente(cliente.id)
       loadFacturasCliente(cliente.id)
     }
@@ -542,6 +594,7 @@ export function ClientesPage() {
               <motion.div
                 layout
                 key={cliente.id}
+                id={`cliente-${cliente.id}`}
                 transition={{ layout: { duration: 0.28, ease: "easeInOut" } }}
                 className={`rounded-2xl border transition-all duration-300 w-[98%] mx-auto shadow-md ${
                   isExpanded
@@ -852,6 +905,62 @@ export function ClientesPage() {
                     )}
 
 
+                    {/* SUBPANEL PRESUPUESTOS */}
+                    {subpanel === 'presupuestos' && (
+                      <div className="p-4 bg-bg-800 rounded-xl border border-bg-700 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Presupuestos del cliente</h4>
+                          <button
+                            onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
+                            className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30 flex items-center justify-center transition-all active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
+                            title="Nuevo Presupuesto"
+                            aria-label="Nuevo Presupuesto"
+                          >
+                            <div className="flex items-center gap-1">
+                              <Plus className="w-5 h-5" />
+                              <NuevoPresupuestoA4Icon className="w-6 h-6" />
+                            </div>
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {(presupuestosCliente[cliente.id] ?? []).length === 0 ? (
+                            <div className="text-center py-6 text-slate-400 bg-bg-900/40 rounded-xl border border-bg-700/50">
+                              <p className="text-sm font-semibold">Sin presupuestos registrados</p>
+                              <p className="text-xs text-slate-500 mt-1">Crea un presupuesto usando el botón superior</p>
+                            </div>
+                          ) : (
+                            (presupuestosCliente[cliente.id] ?? []).map((p) => {
+                              const v = (vehiculos[cliente.id] ?? []).find(veh => veh.id === p.vehiculo_id) || null
+                              return (
+                                <div
+                                  key={p.id}
+                                  onClick={() => setViewPresupuesto({ presup: p, cliente, vehiculo: v })}
+                                  className="flex items-center justify-between bg-bg-900 p-3.5 rounded-xl border border-bg-700 text-xs hover:border-cyan-500/60 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group shadow"
+                                >
+                                  <div className="space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-extrabold text-cyan-400 text-sm">{p.numero}</span>
+                                      {v?.matricula && <MatriculaBadge matricula={v.matricula} size="sm" />}
+                                    </div>
+                                    <div className="text-slate-400">
+                                      Total: <strong className="text-white text-sm">{p.total?.toFixed(2) ?? '0.00'} €</strong>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      text={p.estado}
+                                      color={p.estado === 'aceptado' ? 'green' : p.estado === 'rechazado' ? 'red' : 'yellow'}
+                                    />
+                                  </div>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* SUBPANEL FACTURAS */}
                     {subpanel === 'facturas' && (
                       <div className="p-4 bg-bg-800 rounded-xl border border-bg-700 space-y-3">
@@ -1129,6 +1238,7 @@ export function ClientesPage() {
         isOpen={!!viewingVehFotos}
         onClose={() => setViewingVehFotos(null)}
         title={viewingVehFotos ? `Vehículo ${viewingVehFotos.matricula}` : "Imágenes"}
+        matricula={viewingVehFotos?.matricula}
         images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           if (!viewingVehFotos) return

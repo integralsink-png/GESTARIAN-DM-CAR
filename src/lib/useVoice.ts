@@ -51,8 +51,11 @@ export function useVoice() {
     const r = getRecognition()
     if (!r) { setSupported(false); return null }
     r.lang = 'es-ES'
-    r.continuous = true
+    // En móviles (iOS Safari / Android Chrome), continuous: true a veces cuelga el reconocedor o no emite eventos
+    const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+    r.continuous = !isMobile
     r.interimResults = true
+
     r.onresult = (e: SpeechRecognitionEvent) => {
       let interimTranscript = ''
       let finalTranscript = finalRef.current
@@ -84,7 +87,7 @@ export function useVoice() {
     return r
   }, [])
 
-  const start = useCallback(async () => {
+  const start = useCallback(() => {
     finalRef.current = ''
     setTranscript('')
     setInterim('')
@@ -95,24 +98,17 @@ export function useVoice() {
       }
     } catch {}
 
-    // Solicitar permiso de micrófono explícito si el navegador lo requiere
-    if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-        // Liberar pistas del stream para que SpeechRecognition tome el control
-        stream.getTracks().forEach((track) => track.stop())
-      } catch (micErr) {
-        console.warn('Permiso de micrófono no concedido o cancelado:', micErr)
-      }
-    }
-
     const r = initRecognition()
-    if (!r) return
+    if (!r) {
+      alert("El reconocimiento de voz no está soportado en este navegador. Prueba con Google Chrome o Safari.")
+      return
+    }
 
     setListening(true)
     try {
+      // Directamente arrancar desde el evento táctil del usuario
       r.start()
-    } catch (err) {
+    } catch (err: any) {
       console.warn('Cannot start recognition:', err)
       setListening(false)
     }

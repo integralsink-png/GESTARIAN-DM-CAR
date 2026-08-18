@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { X } from 'lucide-react';
+import { playLongSuccessChime } from '../lib/sound';
 
 export type TimelineColor = 'emerald' | 'amber' | 'yellow' | 'blue' | 'slate' | 'red';
 
@@ -20,45 +21,61 @@ interface TimelineVisualProps {
 }
 
 export function TimelineVisual({ steps }: TimelineVisualProps) {
-  const [confirmStepId, setConfirmStepId] = React.useState<string | null>(null);
+  const [confirmStepId, setConfirmStepId] = useState<string | null>(null);
+  const [animatingStepId, setAnimatingStepId] = useState<string | null>(null);
 
   return (
-    <div className="w-full flex flex-col items-center gap-3 py-4">
+    <div className="w-full flex flex-col items-center gap-3 py-4 overflow-visible">
       {steps.map((step) => {
-        const isPresupuestoPendiente = step.id === 'presupuesto' && step.title === 'Presupuesto Pendiente';
+        const isPresupuesto = step.id === 'presupuesto';
+        const isPresupuestoPendiente = isPresupuesto && (step.title === 'Presupuesto Pendiente' || step.color === 'amber');
         const isConfirming = confirmStepId === step.id;
+        const isBursting = animatingStepId === step.id;
+
+        // Si esta parada está en animación de aceptación activa
+        const effectiveColor = isBursting ? 'emerald' : step.color;
+        const effectiveTitle = isBursting ? 'Presupuesto Aceptado' : step.title;
         
         let bgClass = 'bg-slate-700/20 border-slate-600 text-slate-300';
-        if (step.color === 'emerald') {
+        if (effectiveColor === 'emerald') {
           bgClass = 'bg-emerald-500/25 border-emerald-400 text-emerald-300 hover:bg-emerald-500/35 shadow-[0_0_20px_rgba(16,185,129,0.3)] drop-shadow-[0_0_6px_rgba(16,185,129,0.4)]';
-        } else if (step.color === 'amber') {
+        } else if (effectiveColor === 'amber') {
           bgClass = 'bg-amber-500/20 border-amber-500/60 text-amber-400 hover:bg-amber-500/25 shadow-[0_0_15px_rgba(245,158,11,0.2)]';
-        } else if (step.color === 'blue') {
+        } else if (effectiveColor === 'blue') {
           bgClass = 'bg-blue-500/20 border-blue-500/60 text-blue-400 hover:bg-blue-500/25 shadow-[0_0_15px_rgba(59,130,246,0.2)]';
-        } else if (step.color === 'yellow') {
+        } else if (effectiveColor === 'yellow') {
           bgClass = 'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 hover:bg-yellow-500/25 shadow-[0_0_15px_rgba(234,179,8,0.2)]';
-        } else if (step.color === 'red') {
+        } else if (effectiveColor === 'red') {
           bgClass = 'bg-red-500/20 border-red-500/60 text-red-400 hover:bg-red-500/25 shadow-[0_0_15px_rgba(239,68,68,0.2)]';
-        } else if (step.color === 'slate') {
+        } else if (effectiveColor === 'slate') {
           bgClass = 'bg-slate-500/20 border-slate-600/30 text-slate-500';
         }
 
         let borderAnimClass = '';
-        if (step.animatedBorder) {
-          if (step.color === 'emerald') borderAnimClass = 'animated-contour-border-emerald';
-          else if (step.color === 'amber' || step.color === 'yellow') borderAnimClass = 'animated-contour-border-amber';
+        if (step.animatedBorder && !isBursting) {
+          if (effectiveColor === 'emerald') borderAnimClass = 'animated-contour-border-emerald';
+          else if (effectiveColor === 'amber' || effectiveColor === 'yellow') borderAnimClass = 'animated-contour-border-amber';
           else borderAnimClass = 'animated-contour-border';
         }
 
-        // Renderizado especial cuando está en fase de confirmación
-        if (isPresupuestoPendiente && isConfirming) {
+        const burstAnimClass = isBursting ? 'animated-step-burst' : '';
+
+        // Renderizado especial cuando está en fase de confirmación previa
+        if (isPresupuestoPendiente && isConfirming && !isBursting) {
           return (
             <React.Fragment key={step.id}>
               <div className="w-full max-w-sm rounded-xl border-[2px] p-3 flex items-center justify-between transition-all bg-emerald-500/25 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.35)]">
                 <div 
                   onClick={() => {
                     setConfirmStepId(null);
-                    step.action!.onClick();
+                    setAnimatingStepId(step.id);
+                    playLongSuccessChime();
+                    setTimeout(() => {
+                      setAnimatingStepId(null);
+                      if (step.action?.onClick) {
+                        step.action.onClick();
+                      }
+                    }, 500);
                   }}
                   className="flex-1 text-center font-extrabold uppercase tracking-wider text-sm md:text-base py-2 cursor-pointer active:scale-95 transition-transform text-white"
                 >
@@ -79,7 +96,7 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
           );
         }
 
-        const isInteractive = !!step.action && step.color !== 'slate';
+        const isInteractive = !!step.action && effectiveColor !== 'slate' && !isBursting;
         const Container = isInteractive ? 'button' : 'div';
         const containerProps = isInteractive ? { 
           onClick: () => {
@@ -89,9 +106,9 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
               step.action!.onClick();
             }
           },
-          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all cursor-pointer active:scale-95 ${bgClass} ${borderAnimClass}`
+          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all cursor-pointer active:scale-95 ${bgClass} ${borderAnimClass} ${burstAnimClass}`
         } : {
-          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all ${bgClass} ${borderAnimClass}`
+          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all ${bgClass} ${borderAnimClass} ${burstAnimClass}`
         };
 
         return (
@@ -99,9 +116,9 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
             <Container {...(containerProps as any)}>
               <div className="flex flex-col items-center justify-center gap-1 py-1">
                 <span className="font-bold uppercase tracking-wider text-sm md:text-base">
-                  {step.title}
+                  {effectiveTitle}
                 </span>
-                {step.subtitle && (
+                {step.subtitle && !isBursting && (
                   <span className="font-black uppercase tracking-wider text-xs md:text-sm text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.9)] mt-0.5">
                     {step.subtitle}
                   </span>

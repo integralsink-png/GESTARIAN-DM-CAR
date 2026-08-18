@@ -9,7 +9,13 @@ import { supabase } from './supabase'
 export async function fetchExpedienteFotos(
   clienteId?: string | null,
   vehiculoId?: string | null,
-  entityFotos: string[] = []
+  entityFotos: string[] = [],
+  pipelineIds?: {
+    presupuestoId?: string | null;
+    citaId?: string | null;
+    reparacionId?: string | null;
+    facturaId?: string | null;
+  }
 ): Promise<string[]> {
   const result: string[] = []
 
@@ -20,6 +26,53 @@ export async function fetchExpedienteFotos(
         result.push(f)
       }
     })
+  }
+
+  // 1.1 Si se especifican pipelineIds concretos del expediente, recuperar únicamente las fotos de las paradas de este expediente
+  if (pipelineIds && (pipelineIds.presupuestoId || pipelineIds.citaId || pipelineIds.reparacionId || pipelineIds.facturaId)) {
+    try {
+      if (pipelineIds.presupuestoId) {
+        const { data } = await supabase.from('presupuestos').select('fotos').eq('id', pipelineIds.presupuestoId).maybeSingle()
+        if (data?.fotos && Array.isArray(data.fotos)) {
+          data.fotos.forEach((f: string) => {
+            const cleanUrl = f && f.includes(':') ? f.substring(f.indexOf(':') + 1) : f
+            if (cleanUrl && !result.includes(cleanUrl)) result.push(cleanUrl)
+          })
+        }
+      }
+      if (pipelineIds.citaId) {
+        const { data } = await supabase.from('citas').select('fotos').eq('id', pipelineIds.citaId).maybeSingle()
+        if (data?.fotos && Array.isArray(data.fotos)) {
+          data.fotos.forEach((f: string) => {
+            const cleanUrl = f && f.includes(':') ? f.substring(f.indexOf(':') + 1) : f
+            if (cleanUrl && !result.includes(cleanUrl)) result.push(cleanUrl)
+          })
+        }
+      }
+      if (pipelineIds.reparacionId) {
+        const { data } = await supabase.from('reparaciones').select('fotos').eq('id', pipelineIds.reparacionId).maybeSingle()
+        if (data?.fotos && Array.isArray(data.fotos)) {
+          data.fotos.forEach((f: string) => {
+            const cleanUrl = f && f.includes(':') ? f.substring(f.indexOf(':') + 1) : f
+            if (cleanUrl && !result.includes(cleanUrl)) result.push(cleanUrl)
+          })
+        }
+      }
+      if (pipelineIds.facturaId) {
+        const { data } = await supabase.from('facturas').select('fotos').eq('id', pipelineIds.facturaId).maybeSingle()
+        if (data?.fotos && Array.isArray(data.fotos)) {
+          data.fotos.forEach((f: string) => {
+            const cleanUrl = f && f.includes(':') ? f.substring(f.indexOf(':') + 1) : f
+            if (cleanUrl && !result.includes(cleanUrl)) result.push(cleanUrl)
+          })
+        }
+      }
+    } catch (e) {
+      console.warn('Error recuperando fotos del pipeline del expediente:', e)
+    }
+
+    // Devolver exclusivamente las fotos vinculadas a este expediente
+    return result
   }
 
   // 2. Fotos registradas en el vehículo

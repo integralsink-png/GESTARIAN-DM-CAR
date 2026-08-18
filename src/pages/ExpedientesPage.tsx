@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase'
 import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { TimelineVisual } from '../components/TimelineVisual'
 import { getExpediente } from '../lib/utils'
-import { ImageViewer } from '../components/ImageViewer'
+import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import {
   FolderOpen,
   ArrowLeft,
@@ -102,8 +103,19 @@ function TarjetaExpediente({
   const { showToast } = useToast()
 
   const [imgOpen, setImgOpen] = useState(false)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
   const [deleteVisible, setDeleteVisible] = useState(false)
   const cardRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (imgOpen) {
+      fetchExpedienteFotos(row.clienteId, row.vehiculoId, [], {
+        presupuestoId: row.presupuesto?.id,
+        citaId: row.cita?.id,
+        reparacionId: row.reparacion?.id
+      }).then(setExpedienteFotos)
+    }
+  }, [imgOpen, row.clienteId, row.vehiculoId, row.presupuesto?.id, row.cita?.id, row.reparacion?.id])
 
   useEffect(() => {
     if (isOpen && cardRef.current) {
@@ -119,8 +131,6 @@ function TarjetaExpediente({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longPressTriggered = useRef(false)
 
-  const { borderColor } = fase(row)
-
   const expData: ExpedienteData = {
     clienteId: row.clienteId,
     vehiculoId: row.vehiculoId,
@@ -132,13 +142,12 @@ function TarjetaExpediente({
   }
 
   const actions: RoadmapActions = {
-    onNavigateCliente: (clienteId) => navigate('/clientes', { state: { expandClienteId: clienteId } }),
+    onNavigateCliente: (clienteId) => navigate('/clientes', { state: { expandClienteId: clienteId, openSubpanel: 'editar' } }),
     onCrearPresupuesto: (_vehiculoId, _clienteId) => navigate('/presupuestos'),
-    onVerPresupuesto: (_presupuestoId) => navigate('/presupuestos'),
+    onVerPresupuesto: (_presupuestoId) => navigate('/presupuestos', { state: { clienteId: row.clienteId, openForm: false } }),
     onAceptarPresupuesto: async (presupuestoId) => {
       const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
       if (!error) {
-        showToast('PRESUPUESTO ACEPTADO', 'success')
         onRefresh()
       } else {
         showToast('Error al aceptar presupuesto', 'error')
@@ -156,7 +165,7 @@ function TarjetaExpediente({
         },
       });
     },
-    onVerCita: (_citaId) => navigate('/citas'),
+    onVerCita: (citaId) => navigate('/citas', { state: { citaId } }),
     onConfirmarCita: async (citaId) => {
       const { error } = await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
       if (!error) {
@@ -209,7 +218,7 @@ function TarjetaExpediente({
         },
       })
     },
-    onVerFactura: (numero, mode) => navigate('/facturas', { state: { facturaNumero: numero, mode } })
+    onVerFactura: (numero, mode) => navigate('/facturas', { state: { facturaNumero: numero, mode, clienteId: row.clienteId } })
   }
 
   const steps = buildRoadmap(expData, actions)
@@ -248,158 +257,105 @@ function TarjetaExpediente({
     onToggle()
   }
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation()
-
-    const confirmar = window.confirm(
-      `¿Quieres ocultar el expediente ${row.expedienteId} de la lista?`
-    )
-
-    if (!confirmar) return
-
-    onDelete(row)
-  }
-
   return (
     <>
       <div
         ref={cardRef}
-        className={`
-          relative
-          gestarian-panel
-          border-[3px]
-          ${borderColor}
-          rounded-2xl
-          overflow-hidden
-          cursor-pointer
-          transition-all
-          duration-200
-          hover:shadow-lg
-          select-none
-          scroll-mt-4
-        `}
-        onClick={handleCardClick}
-        onPointerDown={startLongPress}
-        onPointerUp={cancelLongPress}
-        onPointerLeave={cancelLongPress}
-        onPointerCancel={cancelLongPress}
+        className={`relative rounded-2xl border-[3px] transition-all duration-300 overflow-hidden ${
+          isOpen
+            ? 'border-yellow-400 bg-bg-800 shadow-[0_0_20px_rgba(250,204,21,0.25)]'
+            : row.borderColor
+            ? `${row.borderColor} bg-bg-800/80 hover:brightness-110`
+            : 'border-slate-700 bg-bg-800/80 hover:border-slate-600'
+        }`}
       >
+        {/* Cabecera de la tarjeta */}
+        <div
+          onClick={handleCardClick}
+          onMouseDown={startLongPress}
+          onMouseUp={cancelLongPress}
+          onMouseLeave={cancelLongPress}
+          onTouchStart={startLongPress}
+          onTouchEnd={cancelLongPress}
+          className="p-3 sm:p-4 cursor-pointer select-none"
+        >
+          {/* Fila 1: EXP a la izquierda, Fecha a la derecha */}
+          <div className="flex items-center justify-between text-xs sm:text-sm font-black font-mono uppercase tracking-wider mb-2">
+            <span className="text-cyan-400 truncate">
+              {row.expedienteId}
+            </span>
+            <span className="text-slate-400 shrink-0 ml-2">
+              {fmtFecha(row.fecha)}
+            </span>
+          </div>
 
-        {/* Papelera tras pulsación prolongada */}
+          {/* Fila 2: Nombre del cliente centrado (text-xl sm:text-2xl) */}
+          <div className="text-center font-black uppercase text-xl sm:text-2xl text-white truncate py-1">
+            {row.clienteNombre}
+          </div>
+
+          {/* Fila 3: Matrícula oficial a la izquierda, Marca y Modelo centrados */}
+          <div className="flex items-center justify-between gap-3 mt-2">
+            <div className="shrink-0">
+              <MatriculaBadge matricula={row.matricula} />
+            </div>
+
+            <div className="flex-1 text-center font-bold text-slate-300 text-sm sm:text-base truncate">
+              {row.marca || row.modelo ? (
+                <span>
+                  {row.marca} {row.modelo}
+                </span>
+              ) : (
+                <span className="text-slate-500 italic">Sin datos vehículo</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Botón flotante de eliminar (aparece con long-press) */}
         <AnimatePresence>
           {deleteVisible && (
-            <motion.button
-              initial={{
-                opacity: 0,
-                scale: 0.7,
-              }}
-              animate={{
-                opacity: 1,
-                scale: 1,
-              }}
-              exit={{
-                opacity: 0,
-                scale: 0.7,
-              }}
-              transition={{
-                duration: 0.18,
-              }}
-              onClick={handleDelete}
-              className="
-                absolute
-                top-2
-                right-2
-                z-20
-                w-11
-                h-11
-                rounded-xl
-                bg-rose-600
-                text-white
-                border
-                border-rose-300/60
-                shadow-[0_0_18px_rgba(244,63,94,0.45)]
-                flex
-                items-center
-                justify-center
-                hover:bg-rose-500
-                active:scale-90
-                transition-all
-              "
-              title="Eliminar expediente de la lista"
-              aria-label="Eliminar expediente"
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="absolute inset-0 bg-bg-950/80 backdrop-blur-sm flex items-center justify-center gap-4 z-20"
             >
-              <Trash2 className="w-5 h-5" />
-            </motion.button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDeleteVisible(false)
+                }}
+                className="px-4 py-2 rounded-xl bg-slate-700 text-white font-bold text-xs flex items-center gap-2 hover:bg-slate-600 transition-colors"
+              >
+                <X className="w-4 h-4" /> Cancelar
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setDeleteVisible(false)
+                  onDelete(row)
+                }}
+                className="px-4 py-2 rounded-xl bg-rose-600 text-white font-bold text-xs flex items-center gap-2 hover:bg-rose-500 shadow-lg shadow-rose-600/30 transition-colors"
+              >
+                <Trash2 className="w-4 h-4" /> Eliminar Expediente
+              </button>
+            </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Línea 1: Matrícula sola centrada x2 con marco gris plata de 1px, fondo blanco y texto negro */}
-        <div className="flex justify-center items-center pt-3 pb-1.5 px-3">
-          <MatriculaBadge matricula={row.matricula} size="xl" />
-        </div>
-
-        {/* Línea 2: Expediente y Fecha con misma tipografía (font-mono), mismo peso (font-bold) y tamaño x1.5 */}
-        <div className="flex items-center justify-center gap-8 sm:gap-14 px-3 py-1.5 text-center">
-          <span className="font-mono text-[27px] sm:text-3xl font-bold text-cyan-300">
-            {row.expedienteId}
-          </span>
-          <span className="font-mono text-[27px] sm:text-3xl font-bold text-slate-300 tabular-nums">
-            {fmtFecha(row.fecha)}
-          </span>
-        </div>
-
-        {/* Línea 3: Nombre cliente (x0.75) y Marca/Modelo (x1.5) */}
-        <div className="px-3 pb-3 text-center">
-          <p className="text-[23px] sm:text-[27px] font-bold text-white truncate leading-tight tracking-wide">
-            {row.clienteNombre}
-          </p>
-
-          {(row.marca || row.modelo) && (
-            <p className="text-[21px] font-semibold text-slate-300 truncate mt-1">
-              {[row.marca, row.modelo]
-                .filter(Boolean)
-                .join(' ')}
-            </p>
-          )}
-        </div>
-
-        {/* Expansión */}
+        {/* Contenido desplegable: Roadmap y acciones */}
         <AnimatePresence initial={false}>
           {isOpen && (
             <motion.div
-              key="expanded"
-              initial={{
-                height: 0,
-                opacity: 0,
-              }}
-              animate={{
-                height: 'auto',
-                opacity: 1,
-              }}
-              exit={{
-                height: 0,
-                opacity: 0,
-              }}
-              transition={{
-                duration: 0.28,
-                ease: [0.4, 0, 0.2, 1],
-              }}
-              className="overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden border-t border-white/10 bg-bg-900/60"
             >
-
-              <div
-                className="
-                  px-3
-                  pb-4
-                  space-y-4
-                  border-t
-                  border-white/5
-                  pt-3
-                "
-              >
-
-                {/* Roadmap */}
+              <div className="p-3 sm:p-4 space-y-4">
+                {/* Visualización del Roadmap de paradas */}
                 <div data-roadmap className="gestarian-roadmap-open overflow-x-auto" data-roadmap-open="true">
                   <TimelineVisual steps={steps} />
                 </div>
@@ -407,70 +363,72 @@ function TarjetaExpediente({
                 {/* Botones inferiores: Solo iconos flotantes transparentes de altura idéntica (x2 tamaño) */}
                 <div className="flex items-center justify-center gap-3 sm:gap-6 flex-wrap pt-4 pb-2 border-t border-white/10 mt-2">
 
+                  {/* 1. CLIENTE: Redirige a la ficha específica del cliente */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate('/clientes', { state: { expandClienteId: row.clienteId } })
+                      navigate('/clientes', { state: { expandClienteId: row.clienteId, openSubpanel: 'editar' } })
                     }}
                     className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
-                    title="Ver Cliente"
-                    aria-label="Ver Cliente"
+                    title="Ficha del Cliente"
+                    aria-label="Ficha del Cliente"
                   >
                     <User className="w-12 h-12 sm:w-14 sm:h-14 text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
                   </button>
 
+                  {/* 2. VEHÍCULO: Redirige a la ficha de vehículos del cliente del expediente */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate('/clientes', { state: { expandClienteId: row.clienteId } })
+                      navigate('/clientes', { state: { expandClienteId: row.clienteId, openSubpanel: 'vehiculos' } })
                     }}
                     className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
-                    title="Ver Vehículo"
-                    aria-label="Ver Vehículo"
+                    title="Vehículos del Cliente"
+                    aria-label="Vehículos del Cliente"
                   >
                     <CarIcon className="w-12 h-12 sm:w-14 sm:h-14 text-blue-400 drop-shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
                   </button>
 
+                  {/* 3. PRESUPUESTO: Muestra únicamente los presupuestos del cliente relacionado */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate('/presupuestos')
+                      navigate('/presupuestos', { state: { clienteId: row.clienteId, openForm: false } })
                     }}
                     className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
-                    title="Ver Presupuesto"
-                    aria-label="Ver Presupuesto"
+                    title="Presupuestos del Cliente"
+                    aria-label="Presupuestos del Cliente"
                   >
                     <PresupuestoIcon className="w-12 h-12 sm:w-14 sm:h-14 text-cyan-400 drop-shadow-[0_0_12px_rgba(6,182,212,0.8)]" />
                   </button>
 
+                  {/* 4. FACTURA: Redirige a las facturas del cliente relacionado mostrando todas sus facturas */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
-                      if (row.factura?.numero) {
-                        navigate('/facturas', { state: { facturaNumero: row.factura.numero } })
-                      } else {
-                        navigate('/facturas')
-                      }
+                      navigate('/facturas', { state: { clienteId: row.clienteId } })
                     }}
                     className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
-                    title="Ver Factura"
-                    aria-label="Ver Factura"
+                    title="Facturas del Cliente"
+                    aria-label="Facturas del Cliente"
                   >
                     <FacturaIcon className="w-12 h-12 sm:w-14 sm:h-14 text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.8)]" />
                   </button>
 
+                  {/* 5. IMÁGENES: Muestra exclusivamente las imágenes del expediente en concreto */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       setImgOpen(true)
                     }}
                     className="w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center p-0 transition-all hover:scale-125 active:scale-95 cursor-pointer bg-transparent border-0 outline-none shrink-0"
-                    title="Ver Imágenes"
-                    aria-label="Ver Imágenes"
+                    title="Imágenes del Expediente"
+                    aria-label="Imágenes del Expediente"
                   >
                     <ImageIcon className="w-12 h-12 sm:w-14 sm:h-14 text-violet-400 drop-shadow-[0_0_12px_rgba(139,92,246,0.8)]" />
                   </button>
 
+                  {/* 6. CERRAR ROADMAP */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
@@ -490,10 +448,26 @@ function TarjetaExpediente({
         </AnimatePresence>
       </div>
 
-      {/* Visor de imágenes */}
-      <ImageViewer
-        open={imgOpen}
+      {/* Visor global único de imágenes */}
+      <GlobalImageViewer
+        isOpen={imgOpen}
         matricula={row.matricula}
+        title={`Expediente ${row.expedienteId}`}
+        images={expedienteFotos}
+        onAddImage={async (dataUrl) => {
+          if (row.presupuesto?.id) {
+            const { data: p } = await supabase.from('presupuestos').select('fotos').eq('id', row.presupuesto.id).maybeSingle()
+            const cur: string[] = p?.fotos && Array.isArray(p.fotos) ? p.fotos : []
+            if (!cur.includes(dataUrl)) {
+              await supabase.from('presupuestos').update({ fotos: [...cur, dataUrl] }).eq('id', row.presupuesto.id)
+            }
+          }
+          await saveExpedienteFoto(dataUrl, row.clienteId, row.vehiculoId)
+          setExpedienteFotos((prev) => [...prev, dataUrl])
+        }}
+        onDeleteImage={async (index) => {
+          setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
+        }}
         onClose={() => setImgOpen(false)}
       />
     </>

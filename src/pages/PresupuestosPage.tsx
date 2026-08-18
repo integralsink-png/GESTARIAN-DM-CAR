@@ -36,9 +36,9 @@ import {
   Edit3,
   ImageIcon,
   Folder,
+  FolderOpen,
 } from "lucide-react";
 import { PresupuestoIcon, ExpedienteFolderIcon } from "../components/CustomIcons";
-import { ImageViewer } from "../components/ImageViewer";
 import { GlobalImageViewer } from "../components/GlobalImageViewer";
 import { useVoice, parseVoiceToConceptos } from "../lib/useVoice";
 import { useToast } from "../lib/ToastContext";
@@ -49,10 +49,16 @@ function ConceptoMobileCard({
   concepto,
   onChange,
   onDelete,
+  animarDescripcion,
+  animarCantidad,
+  animarPrecio,
 }: {
   concepto: Concepto;
   onChange: (c: Concepto) => void;
   onDelete: () => void;
+  animarDescripcion?: boolean;
+  animarCantidad?: boolean;
+  animarPrecio?: boolean;
 }) {
   const { listening, transcript, interim, supported, start, stop, reset } =
     useVoice();
@@ -87,8 +93,9 @@ function ConceptoMobileCard({
   }
 
   return (
-    <div className="bg-white/90 rounded-lg p-3 border border-gray-300 space-y-2">
-      <div className="flex items-start gap-2">
+    <div className="bg-white rounded-2xl p-3 border border-gray-300 shadow-sm space-y-2">
+      {/* Fila descripción */}
+      <div className="flex items-center gap-2">
         <input
           type="text"
           placeholder="Descripción del trabajo..."
@@ -96,7 +103,11 @@ function ConceptoMobileCard({
           onChange={(e) =>
             onChange({ ...concepto, descripcion: e.target.value })
           }
-          className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:border-gray-800 focus:outline-none min-w-0"
+          className={`flex-1 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-3 py-2 text-sm focus:border-blue-700 focus:outline-none min-w-0 font-medium transition-all ${
+            animarDescripcion
+              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+              : "border-gray-300"
+          }`}
         />
         <button
           onClick={onDelete}
@@ -107,7 +118,7 @@ function ConceptoMobileCard({
       </div>
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">
+          <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
             Cantidad
           </label>
           <input
@@ -121,11 +132,15 @@ function ConceptoMobileCard({
                 cantidad: parseFloat(e.target.value) || 0,
               })
             }
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center focus:border-gray-800 focus:outline-none"
+            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
+              animarCantidad
+                ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                : "border-gray-300"
+            }`}
           />
         </div>
         <div className="flex-1">
-          <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">
+          <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
             Precio €
           </label>
           <input
@@ -136,24 +151,28 @@ function ConceptoMobileCard({
             onChange={(e) =>
               onChange({ ...concepto, precio: parseFloat(e.target.value) || 0 })
             }
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center focus:border-gray-800 focus:outline-none"
+            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
+              animarPrecio
+                ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                : "border-gray-300"
+            }`}
           />
         </div>
         <div className="flex-shrink-0">
-          <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">
+          <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
             Importe
           </label>
-          <p className="text-sm font-bold py-1.5">
+          <div className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white !bg-white text-black !text-black font-black text-sm text-center shadow-inner">
             {(concepto.cantidad * concepto.precio).toFixed(2)} €
-          </p>
+          </div>
         </div>
       </div>
       {supported && !editingVoice && (
         <button
           onClick={startVoiceEdit}
-          className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200"
+          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white hover:bg-blue-50 text-blue-600 border border-blue-400 text-xs font-black uppercase tracking-wider shadow-sm transition-all active:scale-95"
         >
-          <Mic className="w-3.5 h-3.5" /> Editar con voz
+          <Mic className="w-4 h-4 text-blue-600" /> <span>EDITAR CON VOZ</span>
         </button>
       )}
       {editingVoice && (
@@ -207,6 +226,7 @@ export function PresupuestosPage() {
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [facturas, setFacturas] = useState<any[]>([]);
   const [citadoId, setCitadoId] = useState<string | null>(null);
   const [config, setConfig] = useState<Configuracion | null>(null);
   const [showForm, setShowForm] = useState(openFormFromNav ?? false);
@@ -226,9 +246,19 @@ export function PresupuestosPage() {
   const [showExpedienteViewer, setShowExpedienteViewer] = useState(false);
   const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente");
   const [showSentToast, setShowSentToast] = useState<string | null>(null);
+  const [showRedirectToast, setShowRedirectToast] = useState<{
+    presupuestoId: string;
+    vehiculoId?: string;
+    clienteId?: string;
+    expedienteId?: string;
+  } | null>(null);
+  const [animarEnvioPostSave, setAnimarEnvioPostSave] = useState(false);
 
   useEffect(() => {
-    if (clienteIdFromNav) setSelectedClienteId(clienteIdFromNav);
+    if (clienteIdFromNav) {
+      setSelectedClienteId(clienteIdFromNav);
+      setExpandedClienteId(clienteIdFromNav);
+    }
     if (vehiculoIdFromNav) setSelectedVehiculoId(vehiculoIdFromNav);
     if (openFormFromNav && !presupuestoIdFromNav) setShowForm(true);
 
@@ -380,17 +410,19 @@ export function PresupuestosPage() {
         .then(({ data }) => {
           const vehs = data ?? [];
           setVehiculos(vehs);
-          if (vehs.length === 1) {
+          if (vehiculoIdFromNav && vehs.some((v) => v.id === vehiculoIdFromNav)) {
+            setSelectedVehiculoId(vehiculoIdFromNav);
+          } else if (vehs.length === 1) {
             setSelectedVehiculoId(vehs[0].id);
           } else {
-            setSelectedVehiculoId("");
+            setSelectedVehiculoId((prev) => (vehs.some((v) => v.id === prev) ? prev : ""));
           }
         });
     } else {
       setVehiculos([]);
       setSelectedVehiculoId("");
     }
-  }, [selectedClienteId]);
+  }, [selectedClienteId, vehiculoIdFromNav]);
 
 
 
@@ -433,11 +465,17 @@ export function PresupuestosPage() {
     }
   }, [presupuestos, presupuestoIdFromNav, editingId]);
 
+  async function loadFacturas() {
+    const { data } = await supabase.from("facturas").select("id, numero, vehiculo_id, cliente_id, reparacion_id, created_at");
+    setFacturas(data ?? []);
+  }
+
   async function loadData() {
     await Promise.all([
       loadClientes(),
       loadPresupuestos(),
       loadCitas(),
+      loadFacturas(),
       loadConfig()
     ]);
   }
@@ -514,7 +552,7 @@ export function PresupuestosPage() {
     const expediente_id = `${clienteNum}E${currentYearSuffix}${String(maxExpSeq + 1).padStart(4, '0')}`;
 
     if (editingId) {
-      const { error } = await supabase
+      const { data: updatedPres, error } = await supabase
         .from("presupuestos")
         .update({
           cliente_id: selectedClienteId,
@@ -523,16 +561,25 @@ export function PresupuestosPage() {
           total: total,
           observaciones: observaciones || null,
         })
-        .eq("id", editingId);
+        .eq("id", editingId)
+        .select()
+        .maybeSingle();
         
       if (error) {
         console.error("Error actualizando presupuesto:", error);
         showToast("Error al guardar presupuesto: " + error.message, "error");
         return;
       }
-      showToast("PRESUPUESTO GUARDADO", "success");
+      playSuccessSound();
+      setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+      setAnimarEnvioPostSave(false);
+      setTimeout(() => {
+        setShowSentToast(null);
+        setAnimarEnvioPostSave(true);
+      }, 2000);
+      if (updatedPres?.id) setEditingId(updatedPres.id);
     } else {
-      const { error } = await supabase.from("presupuestos").insert({
+      const { data: newPres, error } = await supabase.from("presupuestos").insert({
         numero,
         expediente_id,
         cliente_id: selectedClienteId,
@@ -542,15 +589,23 @@ export function PresupuestosPage() {
         observaciones: observaciones || null,
         fotos: navState?.initialFotos || [],
         estado: "pendiente",
-      });
+      }).select().maybeSingle();
       
       if (error) {
         console.error("Error creando presupuesto:", error);
         showToast("Error al guardar presupuesto: " + error.message, "error");
         return;
       }
-      showToast("PRESUPUESTO GUARDADO", "success");
-      resetForm();
+      playSuccessSound();
+      setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+      setAnimarEnvioPostSave(false);
+      setTimeout(() => {
+        setShowSentToast(null);
+        setAnimarEnvioPostSave(true);
+      }, 2000);
+      if (newPres?.id) {
+        setEditingId(newPres.id);
+      }
     }
     await loadPresupuestos();
   }
@@ -777,185 +832,279 @@ export function PresupuestosPage() {
             </div>
 
             {/* Datos cliente + vehículo */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-              <div>
-                <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
-                  Cliente
-                </p>
-                <select
-                  value={selectedClienteId}
-                  onChange={(e) => handleChangeCliente(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2 focus:border-gray-800 focus:outline-none"
-                >
-                  <option value="">Seleccionar cliente...</option>
-                  {clientes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
-                {selectedClienteId &&
-                  (() => {
-                    const c = clienteData(selectedClienteId);
-                    return c ? (
-                      <div className="text-xs gestarian-paper-muted space-y-0.5">
-                        {c.dni && <p>DNI: {c.dni}</p>}
-                        {c.direccion && <p>{c.direccion}</p>}
-                        {c.cp && <p>CP: {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
-                        {c.telefono && <p>Tel: {c.telefono}</p>}
-                        {c.email && <p>{c.email}</p>}
-                      </div>
-                    ) : null;
-                  })()}
-              </div>
-              <div>
-                <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
-                  Vehículo
-                </p>
-                <select
-                  value={selectedVehiculoId}
-                  onChange={(e) => handleChangeVehiculo(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2 focus:border-gray-800 focus:outline-none"
-                  disabled={!selectedClienteId}
-                >
-                  <option value="">Sin vehículo</option>
-                  {vehiculos.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.matricula} — {v.marca} {v.modelo ?? ""}
-                    </option>
-                  ))}
-                </select>
-                {selectedVehiculoId &&
-                  (() => {
-                    const v = vehiculoData(selectedVehiculoId);
-                    return v ? (
-                      <div className="text-xs gestarian-paper-muted space-y-0.5">
-                        <p>Matrícula: {v.matricula}</p>
-                        {v.marca && (
-                          <p>
-                            {v.marca} {v.modelo ?? ""}
-                          </p>
-                        )}
-                        {v.anio && <p>Año: {v.anio}</p>}
-                        {v.vin && <p>VIN: {v.vin}</p>}
-                      </div>
-                    ) : null;
-                  })()}
-              </div>
-            </div>
+            {(() => {
+              const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null;
+              const hasCliente = !!selectedClienteId;
+              const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+              const isSaved = !!(editingId || currentP?.id);
+              const isSent = !!(currentP?.enviado_email_at || currentP?.enviado_whatsapp_at);
+
+              const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
+              const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+
+              // ── SECUENCIA LÓGICA DE ANIMACIÓN ÚNICA EN PANTALLA (COLOR AZUL) ──
+              // 1. Cliente (si no hay cliente seleccionado)
+              const animarCliente = !hasCliente;
+              // 2. Vehículo (si hay cliente pero no vehículo y existen vehículos)
+              const animarVehiculo = hasCliente && !hasVehiculo;
+              // 3. Descripción de concepto (tras seleccionar vehículo, si la descripción está vacía)
+              const animarDescripcion = hasCliente && hasVehiculo && !isSaved && !firstConcept.descripcion.trim();
+              // 4. Cantidad / Unidades (si hay descripción pero cantidad es 0)
+              const animarCantidad = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad === 0;
+              // 5. Precio / Importe (si hay descripción, cantidad > 0 pero precio es 0)
+              const animarPrecio = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad > 0 && firstConcept.precio === 0;
+              // 6. Añadir línea (cuando hay importe y solo 1 línea)
+              const animarAddLinea = hasCliente && hasVehiculo && hasImporte && !isSaved && conceptos.length === 1;
+              // 7. Guardar (cuando hay importe y el usuario ya completó el presupuesto)
+              const animarGuardar = hasCliente && hasVehiculo && hasImporte && !isSaved && (conceptos.length > 1 || firstConcept.descripcion.trim().length > 3);
+              // 8. Envío alternado asíncrono (cuando el presupuesto ya está guardado y aún no se ha enviado)
+              const animarEnvio = isSaved && !isSent;
+
+              return (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                      <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
+                        Cliente
+                      </p>
+                      <select
+                        value={selectedClienteId}
+                        onChange={(e) => handleChangeCliente(e.target.value)}
+                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
+                          animarCliente
+                            ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                            : "border-gray-300"
+                        }`}
+                      >
+                        <option value="">Seleccionar cliente...</option>
+                        {clientes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedClienteId &&
+                        (() => {
+                          const c = clienteData(selectedClienteId);
+                          return c ? (
+                            <div className="text-xs gestarian-paper-muted space-y-0.5">
+                              {c.dni && <p>DNI: {c.dni}</p>}
+                              {c.direccion && <p>{c.direccion}</p>}
+                              {c.cp && <p>CP: {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
+                              {c.telefono && <p>Tel: {c.telefono}</p>}
+                              {c.email && <p>{c.email}</p>}
+                            </div>
+                          ) : null;
+                        })()}
+                    </div>
+                    <div>
+                      <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
+                        Vehículo
+                      </p>
+                      <select
+                        value={selectedVehiculoId}
+                        onChange={(e) => handleChangeVehiculo(e.target.value)}
+                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
+                          animarVehiculo
+                            ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                            : "border-gray-300"
+                        }`}
+                        disabled={!selectedClienteId}
+                      >
+                        <option value="">
+                          {!selectedClienteId 
+                            ? "Seleccione cliente primero..." 
+                            : vehiculos.length > 1 
+                              ? "Selecciona vehículo..." 
+                              : "Sin vehículo"}
+                        </option>
+                        {vehiculos.map((v) => (
+                          <option key={v.id} value={v.id}>
+                            {v.matricula} — {v.marca} {v.modelo ?? ""}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedVehiculoId &&
+                        (() => {
+                          const v = vehiculoData(selectedVehiculoId);
+                          return v ? (
+                            <div className="text-xs gestarian-paper-muted space-y-0.5">
+                              <p>Matrícula: {v.matricula}</p>
+                              {v.marca && (
+                                <p>
+                                  {v.marca} {v.modelo ?? ""}
+                                </p>
+                              )}
+                              {v.anio && <p>Año: {v.anio}</p>}
+                              {v.vin && <p>VIN: {v.vin}</p>}
+                            </div>
+                          ) : null;
+                        })()}
+                    </div>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* Tabla conceptos — desktop */}
-            <table className="w-full text-sm mb-4 hidden sm:table">
-              <thead>
-                <tr className="border-b-2 border-gray-800 text-left text-xs uppercase gestarian-paper-muted">
-                  <th className="py-2 w-1/2">Descripción</th>
-                  <th className="py-2 text-center w-16">Cant.</th>
-                  <th className="py-2 text-right w-24">Precio</th>
-                  <th className="py-2 text-right w-28">Importe</th>
-                  <th className="py-2 w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {conceptos.map((c, i) => (
-                  <tr key={i} className="border-b border-gray-200">
-                    <td className="py-1.5">
-                      <input
-                        type="text"
-                        placeholder="Descripción del trabajo..."
-                        value={c.descripcion}
-                        onChange={(e) => {
+            {(() => {
+              const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null;
+              const hasCliente = !!selectedClienteId;
+              const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+              const isSaved = !!(editingId || currentP?.id);
+              const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
+              const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+
+              const animarDescripcion = hasCliente && hasVehiculo && !isSaved && !firstConcept.descripcion.trim();
+              const animarCantidad = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad === 0;
+              const animarPrecio = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad > 0 && firstConcept.precio === 0;
+              const animarAddLinea = hasCliente && hasVehiculo && hasImporte && !isSaved && conceptos.length === 1;
+
+              return (
+                <>
+                  <table className="w-full text-sm mb-4 hidden sm:table border-separate border-spacing-y-1.5">
+                    <thead>
+                      <tr className="border-b-2 border-gray-800 text-left text-xs uppercase gestarian-paper-muted">
+                        <th className="py-2 w-1/2">Descripción</th>
+                        <th className="py-2 text-center w-20">Cant.</th>
+                        <th className="py-2 text-right w-24">Precio</th>
+                        <th className="py-2 text-right w-28">Importe</th>
+                        <th className="py-2 w-8"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {conceptos.map((c, i) => {
+                        const isFirst = i === 0;
+                        return (
+                          <tr key={i}>
+                            <td className="py-1">
+                              <input
+                                type="text"
+                                placeholder="Descripción del trabajo..."
+                                value={c.descripcion}
+                                onChange={(e) => {
+                                  const next = [...conceptos];
+                                  next[i] = { ...c, descripcion: e.target.value };
+                                  handleChangeConcepto(next);
+                                }}
+                                className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${
+                                  isFirst && animarDescripcion
+                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                    : "border-gray-300"
+                                }`}
+                              />
+                            </td>
+                            <td className="py-1 text-center">
+                              <input
+                                type="number"
+                                value={c.cantidad === 0 ? "" : c.cantidad}
+                                placeholder="0"
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const next = [...conceptos];
+                                  next[i] = {
+                                    ...c,
+                                    cantidad: parseFloat(e.target.value) || 0,
+                                  };
+                                  handleChangeConcepto(next);
+                                }}
+                                className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
+                                  isFirst && animarCantidad
+                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                    : "border-gray-300"
+                                }`}
+                              />
+                            </td>
+                            <td className="py-1 text-right">
+                              <input
+                                type="number"
+                                value={c.precio === 0 ? "" : c.precio}
+                                placeholder="0"
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const next = [...conceptos];
+                                  next[i] = {
+                                    ...c,
+                                    precio: parseFloat(e.target.value) || 0,
+                                  };
+                                  handleChangeConcepto(next);
+                                }}
+                                className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
+                                  isFirst && animarPrecio
+                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                    : "border-gray-300"
+                                }`}
+                              />
+                            </td>
+                            <td className="py-1 text-right">
+                              <div className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white !bg-white text-black !text-black font-black text-right shadow-inner">
+                                {(c.cantidad * c.precio).toFixed(2)} €
+                              </div>
+                            </td>
+                            <td className="py-1 text-center">
+                              <button
+                                onClick={() =>
+                                  handleChangeConcepto(
+                                    conceptos.filter((_, idx) => idx !== i),
+                                  )
+                                }
+                                className="text-gray-400 hover:text-red-500 p-1"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+
+                  {/* Tarjetas conceptos — móvil */}
+                  <div className="sm:hidden mb-4 space-y-3">
+                    {conceptos.map((c, i) => (
+                      <ConceptoMobileCard
+                        key={i}
+                        concepto={c}
+                        animarDescripcion={i === 0 && animarDescripcion}
+                        animarCantidad={i === 0 && animarCantidad}
+                        animarPrecio={i === 0 && animarPrecio}
+                        onChange={(updated) => {
                           const next = [...conceptos];
-                          next[i] = { ...c, descripcion: e.target.value };
+                          next[i] = updated;
                           handleChangeConcepto(next);
                         }}
-                        className="w-full bg-transparent border-0 px-1 py-1 text-sm focus:outline-none focus:bg-gray-100 rounded"
-                      />
-                    </td>
-                    <td className="py-1.5 text-center">
-                      <input
-                        type="number"
-                        value={c.cantidad === 0 ? "" : c.cantidad}
-                        placeholder="0"
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => {
-                          const next = [...conceptos];
-                          next[i] = {
-                            ...c,
-                            cantidad: parseFloat(e.target.value) || 0,
-                          };
-                          handleChangeConcepto(next);
-                        }}
-                        className="w-14 bg-transparent border-0 px-1 py-1 text-sm text-center focus:outline-none focus:bg-gray-100 rounded"
-                      />
-                    </td>
-                    <td className="py-1.5 text-right">
-                      <input
-                        type="number"
-                        value={c.precio === 0 ? "" : c.precio}
-                        placeholder="0"
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => {
-                          const next = [...conceptos];
-                          next[i] = {
-                            ...c,
-                            precio: parseFloat(e.target.value) || 0,
-                          };
-                          handleChangeConcepto(next);
-                        }}
-                        className="w-20 bg-transparent border-0 px-1 py-1 text-sm text-right focus:outline-none focus:bg-gray-100 rounded"
-                      />
-                    </td>
-                    <td className="py-1.5 text-right font-medium">
-                      {(c.cantidad * c.precio).toFixed(2)} €
-                    </td>
-                    <td className="py-1.5 text-center">
-                      <button
-                        onClick={() =>
+                        onDelete={() =>
                           handleChangeConcepto(
                             conceptos.filter((_, idx) => idx !== i),
                           )
                         }
-                        className="text-gray-400 hover:text-red-500"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      />
+                    ))}
+                  </div>
 
-            {/* Tarjetas conceptos — móvil */}
-            <div className="sm:hidden mb-4 space-y-3">
-              {conceptos.map((c, i) => (
-                <ConceptoMobileCard
-                  key={i}
-                  concepto={c}
-                  onChange={(updated) => {
-                    const next = [...conceptos];
-                    next[i] = updated;
-                    handleChangeConcepto(next);
-                  }}
-                  onDelete={() =>
-                    handleChangeConcepto(
-                      conceptos.filter((_, idx) => idx !== i),
-                    )
-                  }
-                />
-              ))}
-            </div>
-
-            <button
-              onClick={() =>
-                handleChangeConcepto([
-                  ...conceptos,
-                  { descripcion: "", cantidad: 1, precio: 0 },
-                ])
-              }
-              className="flex items-center gap-1 text-sm gestarian-paper-muted hover:text-gray-800 mb-4"
-            >
-              <Plus className="w-4 h-4" /> Añadir línea
-            </button>
+                  {/* Botón AÑADIR LÍNEA centrado con relleno celeste casi blanco y borde azul animado cuando hay importe */}
+                  <div className="flex justify-center my-4">
+                    <button
+                      onClick={() =>
+                        handleChangeConcepto([
+                          ...conceptos,
+                          { descripcion: "", cantidad: 1, precio: 0 },
+                        ])
+                      }
+                      className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${
+                        animarAddLinea
+                          ? "border-blue-600 animated-contour-border-blue shadow-[0_0_16px_rgba(37,99,235,0.7)]"
+                          : "border-blue-300 hover:border-blue-400"
+                      }`}
+                      title="Añadir nueva línea"
+                    >
+                      <Plus className="w-4 h-4 text-blue-600 font-black" />
+                      <span>Añadir línea</span>
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
 
             {/* El Panel de dictado clásico se ha eliminado a favor del Icono Flotante METIS */}
 
@@ -1017,6 +1166,35 @@ export function PresupuestosPage() {
                 const emailSentAt = currentP?.enviado_email_at
                 const whatsappSentAt = currentP?.enviado_whatsapp_at
 
+                // Comprobar si este presupuesto específico ha completado su roadmap hasta CONFIRMAR factura
+                const pId = editingId || currentP?.id
+                const vId = selectedVehiculoId || currentP?.vehiculo_id
+                const cId = selectedClienteId || currentP?.cliente_id
+                
+                // Un presupuesto solo se bloquea si su expediente ha llegado a FACTURA -> GENERAR FACTURA -> BORRADOR -> CONFIRMAR
+                const tieneFacturaConfirmada = (() => {
+                  if (!pId) return false;
+                  // Comprobar si hay una factura confirmada (con número emitido) generada desde la reparación de este presupuesto
+                  const citaVinculada = citas.find(c => c.presupuesto_id === pId);
+                  const repVinculada = citaVinculada ? reparaciones.find(r => r.cita_id === citaVinculada.id) : null;
+                  if (repVinculada) {
+                    return facturas.some(f => f.reparacion_id === repVinculada.id && !!f.numero);
+                  }
+                  return false;
+                })();
+
+                // Estado de animación única
+                const hasCliente = !!selectedClienteId;
+                const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+                const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+                const isSaved = !!(editingId || currentP?.id);
+                const isSent = !!(emailSentAt || whatsappSentAt);
+
+                // Guardar se anima si hay cliente, vehículo, importe y no está guardado aún (y ya no se anima añadir línea)
+                const animarGuardar = hasCliente && hasVehiculo && hasImporte && !isSaved && (conceptos.length > 1 || conceptos.some(c => c.descripcion.trim().length > 3));
+                // Envío se anima (alternando asíncronamente Email y WhatsApp con 10% crecimiento) si está guardado y aún no se ha enviado (y no está mostrándose el toast inicial)
+                const animarEnvio = (isSaved || animarEnvioPostSave) && !isSent && !showSentToast;
+
                 const formatSentDate = (isoStr: string) => {
                   try {
                     const d = new Date(isoStr)
@@ -1028,11 +1206,11 @@ export function PresupuestosPage() {
 
                 return (
                   <div className="space-y-6">
-                    {/* DOS LÍNEAS DE ACCIONES CENTRADAS */}
+                    {/* DOS LÍNEAS DE ACCIONES */}
                     <div className="space-y-4">
-                      {/* LÍNEA 1: EMAIL | IMÁGENES | IMPRIMIR | WHATSAPP */}
-                      <div className="flex items-center justify-center gap-3 sm:gap-5">
-                        {/* 1. EMAIL (Flotante sin recuadro) */}
+                      {/* LÍNEA 1: EMAIL | IMÁGENES | EXPEDIENTE (EN EL CENTRO) | IMPRIMIR | WHATSAPP */}
+                      <div className="flex items-center justify-center gap-3 sm:gap-4">
+                        {/* 1. EMAIL (Flotante sin recuadro con animación alternada) */}
                         {!emailSentAt && (
                           <button
                             onClick={async () => {
@@ -1047,45 +1225,75 @@ export function PresupuestosPage() {
                               }
                               playSuccessSound()
                               setShowSentToast("ENVIADO!!")
-                              setTimeout(() => setShowSentToast(null), 3500)
+                              setTimeout(() => {
+                                setShowSentToast(null)
+                                if (currentP?.id) {
+                                  setShowRedirectToast({
+                                    presupuestoId: currentP.id,
+                                    vehiculoId: vId,
+                                    clienteId: cId,
+                                    expedienteId: numExpediente,
+                                  })
+                                }
+                              }, 2000)
                             }}
-                            className="p-1 hover:scale-110 transition-transform active:scale-95 shrink-0"
+                            className={`p-1 hover:scale-110 transition-transform active:scale-95 shrink-0 ${
+                              animarEnvio ? "animated-send-email-alt" : ""
+                            }`}
                             title="ENVIAR POR EMAIL"
                             aria-label="ENVIAR POR EMAIL"
                           >
-                            <svg className="w-16 h-16 sm:w-20 sm:h-20 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg className="w-14 h-14 sm:w-16 sm:h-16 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                               <polyline points="22,6 12,13 2,6" />
                             </svg>
                           </button>
                         )}
 
-                        {/* 2. IMÁGENES (Muestra TODAS las fotos del expediente) */}
+                        {/* 2. IMÁGENES (Gris 80%) */}
                         <button
                           onClick={() => {
-                            const cId = selectedClienteId || currentP?.cliente_id
-                            const vId = selectedVehiculoId || currentP?.vehiculo_id
+                            const cIdSel = selectedClienteId || currentP?.cliente_id
+                            const vIdSel = selectedVehiculoId || currentP?.vehiculo_id
                             const eFotos = currentP?.fotos || []
-                            openExpedienteViewer(cId, vId, eFotos, `Expediente Presupuesto ${currentP?.numero || ''}`)
+                            openExpedienteViewer(cIdSel, vIdSel, eFotos, `Expediente Presupuesto ${currentP?.numero || ''}`)
                           }}
-                          className="w-16 h-16 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
                           title="IMÁGENES DEL EXPEDIENTE"
                           aria-label="IMÁGENES DEL EXPEDIENTE"
                         >
-                          <ImageIcon className="w-8 h-8 text-amber-400" />
+                          <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" />
                         </button>
 
-                        {/* 3. IMPRIMIR */}
+                        {/* 3. BOTÓN EXPEDIENTE EN EL CENTRO DE LA PRIMERA LÍNEA (Gris 80% con Carpeta Abierta Amarilla) */}
+                        <button
+                          onClick={() => {
+                            navigate('/expedientes', {
+                              state: {
+                                expandPresupuestoId: pId,
+                                expandVehiculoId: vId,
+                                clienteId: cId
+                              }
+                            });
+                          }}
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+                          title="VER EXPEDIENTE COMPLETO / ROADMAP"
+                          aria-label="EXPEDIENTE"
+                        >
+                          <FolderOpen className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400 fill-amber-400/30" />
+                        </button>
+
+                        {/* 4. IMPRIMIR (Gris 80%) */}
                         <button
                           onClick={() => window.print()}
-                          className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-white border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
                           title="IMPRIMIR"
                           aria-label="IMPRIMIR"
                         >
-                          <Printer className="w-8 h-8 text-slate-300" />
+                          <Printer className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                         </button>
 
-                        {/* 4. WHATSAPP (Bocadillo verde) */}
+                        {/* 5. WHATSAPP (Bocadillo verde con animación alternada) */}
                         {!whatsappSentAt && (
                           <button
                             onClick={async () => {
@@ -1101,7 +1309,7 @@ export function PresupuestosPage() {
                                   pdfBlob,
                                   cliente,
                                   matricula: veh?.matricula,
-                                })
+                                  })
 
                                 if (res.success) {
                                   if (currentP?.id) {
@@ -1114,26 +1322,38 @@ export function PresupuestosPage() {
                                     await loadPresupuestos()
                                     playSuccessSound()
                                     setShowSentToast("ENVIADO!!")
-                                    setTimeout(() => setShowSentToast(null), 3500)
+                                    setTimeout(() => {
+                                      setShowSentToast(null)
+                                      if (currentP?.id) {
+                                        setShowRedirectToast({
+                                          presupuestoId: currentP.id,
+                                          vehiculoId: vId,
+                                          clienteId: cId,
+                                          expedienteId: numExpediente,
+                                        })
+                                      }
+                                    }, 2000)
                                   }
                                 }
-                                } catch (e: any) {
-                                  console.error('[WhatsApp Presupuesto Error]', e)
-                                  alert('No se ha podido preparar el documento para WhatsApp: ' + e.message)
-                                }
+                              } catch (e: any) {
+                                console.error('[WhatsApp Presupuesto Error]', e)
+                                alert('No se ha podido preparar el documento para WhatsApp: ' + e.message)
+                              }
                             }}
-                            className="hover:scale-110 transition-transform active:scale-95 shrink-0"
+                            className={`hover:scale-110 transition-transform active:scale-95 shrink-0 ${
+                              animarEnvio ? "animated-send-wa-alt" : ""
+                            }`}
                             title="ENVIAR POR WHATSAPP"
                             aria-label="ENVIAR POR WHATSAPP"
                           >
-                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
                               <svg className="w-full h-full drop-shadow-md" viewBox="0 0 48 48" fill="none">
                                 <path
                                   d="M24 4C12.95 4 4 12.95 4 24C4 27.84 5.08 31.43 6.96 34.5L4 44L13.82 41.13C16.76 42.97 20.26 44 24 44C35.05 44 44 35.05 44 24C44 12.95 35.05 4 24 4Z"
                                   fill="#25D366"
                                 />
                               </svg>
-                              <svg viewBox="0 0 24 24" fill="currentColor" className="absolute inset-0 m-auto w-8 h-8 sm:w-10 sm:h-10 text-white">
+                              <svg viewBox="0 0 24 24" fill="currentColor" className="absolute inset-0 m-auto w-7 h-7 sm:w-8 sm:h-8 text-white">
                                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
                               </svg>
                             </div>
@@ -1157,32 +1377,38 @@ export function PresupuestosPage() {
                         </div>
                       )}
 
-                      {/* LÍNEA 2: GUARDAR | EDITAR | VOLVER */}
-                      <div className="flex items-center justify-center gap-3 pt-1">
-                        <button
-                          onClick={handleSave}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
-                        >
-                          GUARDAR
-                        </button>
+                      {/* AVISO DE PRESUPUESTO BLOQUEADO SI YA EXISTE FACTURA CONFIRMADA */}
+                      {tieneFacturaConfirmada && (
+                        <div className="w-full text-center text-xs font-bold text-amber-300 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/30">
+                          PRESUPUESTO CERRADO: FACTURA DE EXPEDIENTE YA CONFIRMADA
+                        </div>
+                      )}
 
-                        <button
-                          onClick={() => {
-                            const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
-                            if (firstInput) firstInput.focus()
-                          }}
-                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 shadow transition-all active:scale-95 flex items-center justify-center"
-                          title="EDITAR"
-                          aria-label="EDITAR"
-                        >
-                          <Edit3 className="w-5 h-5 text-cyan-400" />
-                        </button>
-
+                      {/* LÍNEA 2: VOLVER (IZQUIERDA) | GUARDAR (DERECHA) */}
+                      <div className="flex items-center justify-between pt-2 px-2">
+                        {/* VOLVER A LA IZQUIERDA (Gris 80%) */}
                         <button
                           onClick={resetForm}
-                          className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
+                          className="px-5 py-2.5 rounded-xl bg-gray-500/80 hover:bg-gray-500 text-white border border-gray-400/60 font-bold text-xs tracking-wider uppercase shadow-md transition-all active:scale-95"
                         >
                           VOLVER
+                        </button>
+
+                        {/* GUARDAR A LA DERECHA (Relleno blanco, texto verde y contorno verde whatsapp con animación de crecimiento) */}
+                        <button
+                          onClick={handleSave}
+                          disabled={tieneFacturaConfirmada}
+                          className={`px-6 py-2.5 rounded-xl font-black text-xs tracking-wider uppercase shadow-md transition-all active:scale-95 flex items-center gap-2 bg-white !bg-white text-[#25D366] !text-[#25D366] border-2 border-[#25D366] ${
+                            tieneFacturaConfirmada 
+                              ? 'bg-gray-100 !bg-gray-100 text-gray-400 !text-gray-400 border-gray-300 cursor-not-allowed opacity-60'
+                              : animarGuardar
+                                ? 'animated-guardar-whatsapp'
+                                : 'hover:bg-green-50'
+                          }`}
+                          title={tieneFacturaConfirmada ? "Presupuesto cerrado por factura confirmada" : "GUARDAR PRESUPUESTO"}
+                        >
+                          <Check className="w-4 h-4 text-[#25D366] stroke-[3]" />
+                          <span className="text-[#25D366] font-black">GUARDAR</span>
                         </button>
                       </div>
                     </div>
@@ -1424,15 +1650,13 @@ export function PresupuestosPage() {
         </motion.div>
       )}
 
-      <ImageViewer
-        open={!!viewerMatricula}
-        matricula={viewerMatricula ?? ""}
-        onClose={() => setViewerMatricula(null)}
-      />
-
       <GlobalImageViewer
-        isOpen={showExpedienteViewer}
-        onClose={() => setShowExpedienteViewer(false)}
+        isOpen={showExpedienteViewer || !!viewerMatricula}
+        onClose={() => {
+          setShowExpedienteViewer(false);
+          setViewerMatricula(null);
+        }}
+        matricula={viewerMatricula || (selectedVehiculoId ? vehiculoData(selectedVehiculoId)?.matricula : undefined)}
         images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null
@@ -1451,6 +1675,51 @@ export function PresupuestosPage() {
           <div className="bg-emerald-600 text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.7)] border-4 border-white animate-bounce flex items-center gap-4">
             <span className="text-3xl sm:text-4xl">✓</span>
             <span>{showSentToast}</span>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {showRedirectToast && createPortal(
+        <div className="fixed top-6 left-0 right-0 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border-2 border-cyan-400 text-white rounded-2xl shadow-2xl p-4 sm:p-5 max-w-md w-full flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <FolderOpen className="w-8 h-8 text-cyan-400 shrink-0" />
+              <div>
+                <p className="text-sm font-black text-white uppercase tracking-wide">
+                  Presupuesto Enviado con Éxito
+                </p>
+                <p className="text-xs text-slate-300">
+                  Continuar con el flujo de trabajo en el expediente
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const target = showRedirectToast;
+                  setShowRedirectToast(null);
+                  navigate('/expedientes', {
+                    state: {
+                      expandPresupuestoId: target.presupuestoId,
+                      expandVehiculoId: target.vehiculoId,
+                      clienteId: target.clienteId,
+                      search: target.expedienteId || ''
+                    }
+                  });
+                }}
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase rounded-xl tracking-wider transition-all shadow-md active:scale-95"
+              >
+                IR AL ROADMAP
+              </button>
+              <button
+                onClick={() => setShowRedirectToast(null)}
+                className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
+                title="Cerrar"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>,
         document.body

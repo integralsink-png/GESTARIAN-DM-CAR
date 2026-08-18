@@ -329,7 +329,7 @@ export interface StorageConfig {
 }
 
 export interface FallbackAiConfig {
-  provider: 'groq' | 'huggingface' | 'openai'
+  provider: 'openrouter' | 'groq' | 'huggingface' | 'openai' | 'deepseek'
   model: string
   api_key: string
   enabled: boolean

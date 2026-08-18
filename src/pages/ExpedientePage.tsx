@@ -4,7 +4,8 @@ import { ArrowLeft, User, Car } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
 import { PageHeader, Card, ActionMenu, TimelineVisual, MatriculaBadge } from '../components/UI'
-import { ImageViewer } from '../components/ImageViewer'
+import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import type {
   Vehiculo,
   Cliente,
@@ -34,6 +35,13 @@ export function ExpedientePage() {
   const [ultimoCobro, setUltimoCobro] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [viewerOpen, setViewerOpen] = useState(false)
+  const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
+
+  useEffect(() => {
+    if (viewerOpen && vehiculo) {
+      fetchExpedienteFotos(cliente?.id, vehiculo.id, vehiculo.fotos || []).then(setExpedienteFotos)
+    }
+  }, [viewerOpen, cliente?.id, vehiculo?.id])
 
   useEffect(() => {
     let cancelled = false
@@ -251,7 +259,6 @@ export function ExpedientePage() {
     onAceptarPresupuesto: async (presupuestoId) => {
       const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
       if (!error) {
-        showToast('PRESUPUESTO ACEPTADO', 'success')
         onRefresh()
       } else {
         showToast('Error al aceptar presupuesto', 'error')
@@ -615,11 +622,22 @@ export function ExpedientePage() {
 
       </div>
 
-      <ImageViewer
-        open={viewerOpen}
-        matricula={vehiculo.matricula}
-        onClose={() => setViewerOpen(false)}
-      />
+      {vehiculo && (
+        <GlobalImageViewer
+          isOpen={viewerOpen}
+          matricula={vehiculo.matricula}
+          title={`Vehículo ${vehiculo.matricula}`}
+          images={expedienteFotos}
+          onAddImage={async (dataUrl) => {
+            await saveExpedienteFoto(dataUrl, cliente?.id, vehiculo.id)
+            setExpedienteFotos((prev) => [...prev, dataUrl])
+          }}
+          onDeleteImage={async (index) => {
+            setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
+          }}
+          onClose={() => setViewerOpen(false)}
+        />
+      )}
     </div>
   )
 }

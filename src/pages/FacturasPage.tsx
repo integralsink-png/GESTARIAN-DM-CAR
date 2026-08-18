@@ -7,7 +7,6 @@ import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Veh
 import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search, CheckCircle2, Plus } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
 import { Card, Badge, Modal, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
-import { ImageViewer } from '../components/ImageViewer'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
@@ -120,24 +119,32 @@ export function FacturasPage() {
   }
 
   const trimestres = getTrimestres()
+  const clienteIdFromNav = navState?.clienteId
 
   const facturasFiltradas = useMemo(() => {
-    let result = trimestreFilter
-      ? facturas.filter((f) => {
-          const t = trimestres.find((t) => t.value === trimestreFilter)
-          return t && f.fecha >= t.start && f.fecha <= t.end
-        })
-      : (() => {
-          const now = new Date()
-          const month = now.getMonth()
-          const y = now.getFullYear()
-          let start: string, end: string
-          if (month <= 2) { start = `${y}-01-01`; end = `${y}-03-31` }
-          else if (month <= 5) { start = `${y}-04-01`; end = `${y}-06-30` }
-          else if (month <= 8) { start = `${y}-07-01`; end = `${y}-09-30` }
-          else { start = `${y}-10-01`; end = `${y}-12-31` }
-          return facturas.filter((f) => f.fecha >= start && f.fecha <= end)
-        })()
+    let result = facturas
+
+    // Si viene desde el roadmap para ver todas las facturas del cliente
+    if (clienteIdFromNav) {
+      result = result.filter(f => f.cliente_id === clienteIdFromNav)
+    }
+
+    if (trimestreFilter) {
+      result = result.filter((f) => {
+        const t = trimestres.find((t) => t.value === trimestreFilter)
+        return t && f.fecha >= t.start && f.fecha <= t.end
+      })
+    } else if (!clienteIdFromNav) {
+      const now = new Date()
+      const month = now.getMonth()
+      const y = now.getFullYear()
+      let start: string, end: string
+      if (month <= 2) { start = `${y}-01-01`; end = `${y}-03-31` }
+      else if (month <= 5) { start = `${y}-04-01`; end = `${y}-06-30` }
+      else if (month <= 8) { start = `${y}-07-01`; end = `${y}-09-30` }
+      else { start = `${y}-10-01`; end = `${y}-12-31` }
+      result = result.filter((f) => f.fecha >= start && f.fecha <= end)
+    }
 
     if (estadoFilter) {
       result = result.filter(f => {
@@ -172,7 +179,7 @@ export function FacturasPage() {
       })
     }
     return result
-  }, [facturas, trimestreFilter, trimestres, globalSearchText, clientes, vehiculos, estadoFilter])
+  }, [facturas, trimestreFilter, trimestres, globalSearchText, clientes, vehiculos, estadoFilter, clienteIdFromNav])
 
   function toggleFotos(id: string) {
     if (fotosExpandida === id) {
@@ -1526,11 +1533,13 @@ export function FacturasPage() {
         </div>
       )}
 
-      <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
-
       <GlobalImageViewer
-        isOpen={showExpedienteViewer}
-        onClose={() => setShowExpedienteViewer(false)}
+        isOpen={showExpedienteViewer || !!viewerMatricula}
+        onClose={() => {
+          setShowExpedienteViewer(false)
+          setViewerMatricula(null)
+        }}
+        matricula={viewerMatricula || (selectedFactura?.vehiculo_id ? vehiculos.find(v => v.id === selectedFactura.vehiculo_id)?.matricula : undefined)}
         images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           const cId = selectedFactura?.cliente_id

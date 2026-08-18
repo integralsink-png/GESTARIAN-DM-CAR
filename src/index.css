@@ -29,12 +29,98 @@
   }
 }
 
+@keyframes contour-pulse-blue {
+  0%, 100% {
+    border-color: rgba(37, 99, 235, 1);
+    box-shadow: 0 0 16px rgba(59, 130, 246, 0.85), inset 0 0 0 1px rgba(37, 99, 235, 0.6);
+  }
+  50% {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.3), inset 0 0 0 1px rgba(37, 99, 235, 0.2);
+  }
+}
+
 .animated-contour-border {
   animation: contour-pulse 1.8s ease-in-out infinite !important;
 }
 
 .animated-contour-border-amber {
   animation: contour-pulse-amber 1.8s ease-in-out infinite !important;
+}
+
+.animated-contour-border-blue {
+  animation: contour-pulse-blue 1.8s ease-in-out infinite !important;
+}
+
+/* ── Animación de Crecimiento para Botón Guardar Presupuesto (Sin Glow, Borde Verde WhatsApp) ── */
+@keyframes pulse-growth-whatsapp {
+  0%, 100% {
+    transform: scale(1);
+    border-color: #25D366;
+  }
+  50% {
+    transform: scale(1.08);
+    border-color: #25D366;
+  }
+}
+
+.animated-guardar-whatsapp {
+  animation: pulse-growth-whatsapp 1.6s ease-in-out infinite !important;
+}
+
+/* ── Animación Asíncrona Alternada para Envío (Email y WhatsApp con 10% de crecimiento) ── */
+@keyframes contour-pulse-email-alt {
+  0%, 45% {
+    transform: scale(1.10);
+  }
+  50%, 95% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(1.10);
+  }
+}
+
+@keyframes contour-pulse-wa-alt {
+  0%, 45% {
+    transform: scale(1);
+  }
+  50%, 95% {
+    transform: scale(1.10);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animated-send-email-alt {
+  animation: contour-pulse-email-alt 2.5s ease-in-out infinite !important;
+}
+
+.animated-send-wa-alt {
+  animation: contour-pulse-wa-alt 2.5s ease-in-out infinite !important;
+}
+
+/* ── Animación de Parada Aceptada (Crecimiento 20% desbordando pantalla durante 0.5s) ── */
+@keyframes step-overflow-burst {
+  0% {
+    transform: scale(1);
+    z-index: 50;
+  }
+  50% {
+    transform: scale(1.20);
+    z-index: 50;
+  }
+  100% {
+    transform: scale(1);
+    z-index: 1;
+  }
+}
+
+.animated-step-burst {
+  animation: step-overflow-burst 0.5s cubic-bezier(0.25, 1, 0.5, 1) forwards !important;
+  z-index: 50 !important;
+  position: relative !important;
 }
 
 /* ── Animación en cascada secuencial para las flechas del Roadmap (Fade In 0.2s con 50% solapamiento a 0.1s) ── */
@@ -786,3 +872,51 @@ select:focus {
 .animated-contour-border-amber {
   animation: contour-pulse-amber 1.5s infinite ease-in-out !important;
 }
+
+/* ── Animación botón CAPTURAR al pulsar: borde 2px a 3px verde y crecimiento 5% ── */
+@keyframes capture-btn-pulse {
+  0% {
+    border-width: 2px;
+    border-color: #d1d5db;
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+  }
+  50% {
+    border-width: 3px;
+    border-color: #22c55e;
+    transform: scale(1.05);
+    box-shadow: 0 0 16px rgba(34, 197, 94, 0.85);
+  }
+  100% {
+    border-width: 2px;
+    border-color: #d1d5db;
+    transform: scale(1);
+    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+  }
+}
+
+.btn-capture-animating {
+  animation: capture-btn-pulse 0.45s ease-in-out forwards !important;
+}
+
+/* ── Reglas de Impresión en Escala de Grises ── */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    filter: grayscale(100%) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+
+  button, nav, footer, .no-print, [aria-label="METIS Asistente IA"], [aria-label="Abrir asistente METIS"] {
+    display: none !important;
+  }
+}
+

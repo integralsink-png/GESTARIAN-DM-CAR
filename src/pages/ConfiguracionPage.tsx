@@ -4,8 +4,8 @@ import { supabase } from '../lib/supabase'
 import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } from '../lib/types'
 import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
-import { Box, Chip, FormControl, InputLabel, MenuItem, Select, Stack, Switch, TextField, ToggleButton, ToggleButtonGroup, Typography } from '@mui/material'
-import { Save, Building2, Mail, Image as ImageIcon, Palette, Volume2, Sparkles, Sun, Moon, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog } from 'lucide-react'
+import { Chip, Stack, Switch, TextField } from '@mui/material'
+import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 // Servicios centralizados
@@ -48,7 +48,8 @@ export function ConfiguracionPage() {
 
   // 4. Fallback IA
   const [fallbackEnabled, setFallbackEnabled] = useState(false)
-  const [fallbackModel, setFallbackModel] = useState('llama-3.3-70b-versatile')
+  const [fallbackProvider, setFallbackProvider] = useState<'openrouter' | 'groq' | 'deepseek'>('openrouter')
+  const [fallbackModel, setFallbackModel] = useState('deepseek/deepseek-chat:free')
   const [fallbackApiKey, setFallbackApiKey] = useState('')
   const [showFallbackKey, setShowFallbackKey] = useState(false)
   const [fallbackStatus, setFallbackStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
@@ -165,9 +166,11 @@ export function ConfiguracionPage() {
 
     // Cargar Fallback IA
     const fallbackCfg = getFallbackConfig()
-    setFallbackEnabled(fallbackCfg.enabled || false)
-    setFallbackModel(fallbackCfg.model || 'llama-3.3-70b-versatile')
-    setFallbackApiKey(fallbackCfg.api_key || localStorage.getItem('gestarian_groq_api_key') || '')
+    const storedOpenRouterKey = localStorage.getItem('gestarian_openrouter_api_key') || localStorage.getItem('gestarian_fallback_api_key') || fallbackCfg.api_key || ''
+    setFallbackEnabled(fallbackCfg.enabled ?? (!!storedOpenRouterKey))
+    setFallbackProvider('openrouter')
+    setFallbackModel(fallbackCfg.model && fallbackCfg.model !== 'llama-3.3-70b-versatile' ? fallbackCfg.model : 'deepseek/deepseek-chat:free')
+    setFallbackApiKey(storedOpenRouterKey)
 
     // Cargar Colores de Texto
     const savedColors = localStorage.getItem('gestarian_text_colors')
@@ -218,9 +221,15 @@ export function ConfiguracionPage() {
     localStorage.setItem('gestarian_plate_recognizer_config', JSON.stringify(plateConfigObj))
     if (plateApiKey) localStorage.setItem('gestarian_plate_recognizer_key', plateApiKey)
 
-    const fallbackConfigObj = { provider: 'groq', model: fallbackModel, api_key: fallbackApiKey, enabled: fallbackEnabled, status: fallbackStatus }
+    const fallbackConfigObj = { provider: fallbackProvider, model: fallbackModel, api_key: fallbackApiKey, enabled: fallbackEnabled, status: fallbackStatus }
     localStorage.setItem('gestarian_fallback_ai_config', JSON.stringify(fallbackConfigObj))
-    if (fallbackApiKey) localStorage.setItem('gestarian_groq_api_key', fallbackApiKey)
+    if (fallbackApiKey) {
+      if (fallbackProvider === 'openrouter') {
+        localStorage.setItem('gestarian_openrouter_api_key', fallbackApiKey)
+      } else {
+        localStorage.setItem('gestarian_groq_api_key', fallbackApiKey)
+      }
+    }
 
     // 2. Guardar Colores de Texto y aplicarlos mediante Variables CSS Dinámicas
     localStorage.setItem('gestarian_text_colors', JSON.stringify(textColors))
@@ -291,7 +300,7 @@ export function ConfiguracionPage() {
 
   async function handleTestFallback() {
     setFallbackStatus('testing')
-    const res = await testAiConnection({ provider: 'groq', model: fallbackModel, api_key: fallbackApiKey, status: 'testing' })
+    const res = await testAiConnection({ provider: fallbackProvider, model: fallbackModel, api_key: fallbackApiKey, enabled: fallbackEnabled, status: 'testing' })
     setFallbackStatus(res.success ? 'connected' : 'error')
     setTestResult({ service: 'IA ALTERNATIVA / FALLBACK', message: res.message, success: res.success })
   }
@@ -655,7 +664,7 @@ export function ConfiguracionPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">PROVEEDOR IA ALTERNATIVO / FALLBACK</h3>
-                  <span className="text-xs text-slate-400 font-medium">Groq Llama 3 (Conmutación por Fallo)</span>
+                  <span className="text-xs text-purple-400 font-medium">OpenRouter (100% Gratuito · Español de España y Andaluz)</span>
                 </div>
               </div>
 
@@ -673,29 +682,60 @@ export function ConfiguracionPage() {
             </div>
 
             <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-              Servidor IA alternativo preparado para responder cuando Gemini no esté disponible o cuando se requiera máxima velocidad de respuesta.
+              Servidor IA alternativo 100% gratuito que comprende a la perfección el español de España, dialecto andaluz y la jerga de taller. Actúa de inmediato si Gemini no estuviera disponible.
             </p>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor Fallback</label>
+                <select
+                  value={fallbackProvider}
+                  onChange={(e) => {
+                    const p = e.target.value as any;
+                    setFallbackProvider(p);
+                    if (p === 'openrouter') setFallbackModel('deepseek/deepseek-chat:free');
+                    if (p === 'groq') setFallbackModel('llama-3.3-70b-versatile');
+                  }}
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
+                >
+                  <option value="openrouter">OpenRouter (Gratuito - DeepSeek / Llama)</option>
+                  <option value="groq">Groq (Llama 3.3)</option>
+                </select>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-slate-400 mb-1">Modelo Fallback</label>
                 <input 
                   type="text" 
                   value={fallbackModel} 
                   onChange={(e) => setFallbackModel(e.target.value)}
-                  placeholder="llama-3.3-70b-versatile"
+                  placeholder="deepseek/deepseek-chat:free"
                   className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-400 mb-1">Clave API de Groq</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-bold text-slate-400">
+                    Clave API {fallbackProvider === 'openrouter' ? 'OpenRouter' : 'Groq'}
+                  </label>
+                  {fallbackProvider === 'openrouter' && (
+                    <a
+                      href="https://openrouter.ai/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 underline"
+                    >
+                      Obtener API Key Gratis ↗
+                    </a>
+                  )}
+                </div>
                 <div className="relative">
                   <input 
                     type={showFallbackKey ? "text" : "password"} 
                     value={fallbackApiKey} 
                     onChange={(e) => setFallbackApiKey(e.target.value)}
-                    placeholder="gsk_..."
+                    placeholder={fallbackProvider === 'openrouter' ? "sk-or-v1-..." : "gsk_..."}
                     className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-purple-300 focus:outline-none"
                   />
                   <button 
@@ -709,21 +749,26 @@ export function ConfiguracionPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
-              <button 
-                type="button" 
-                onClick={handleTestFallback}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 transition-colors"
-              >
-                Probar conexión
-              </button>
-              <button 
-                type="button" 
-                onClick={handleSave}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-md transition-colors"
-              >
-                Guardar
-              </button>
+            <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+              <div className="text-[11px] text-slate-400">
+                Modelos gratuitos recomendados: <code className="text-purple-300 font-mono">deepseek/deepseek-chat:free</code> o <code className="text-purple-300 font-mono">meta-llama/llama-3.3-70b-instruct:free</code>
+              </div>
+              <div className="flex items-center gap-2">
+                <button 
+                  type="button" 
+                  onClick={handleTestFallback}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-500/30 transition-colors"
+                >
+                  Probar conexión
+                </button>
+                <button 
+                  type="button" 
+                  onClick={handleSave}
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-md transition-colors"
+                >
+                  Guardar
+                </button>
+              </div>
             </div>
           </Card>
 

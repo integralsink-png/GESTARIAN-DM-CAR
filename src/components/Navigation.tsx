@@ -284,7 +284,7 @@ export function MobileFooter() {
                   align-items: center;
                   justify-content: center;
                   gap: 6px;
-                  border-radius: 22px;
+                  border-radius: 13px;
                   border-width: 1.5px;
                   border-style: solid;
                   overflow: hidden;
