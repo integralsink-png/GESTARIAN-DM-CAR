@@ -1512,12 +1512,21 @@ export function PresupuestosPage() {
                           animate="show"
                           exit="exit"
                           variants={getDropdownStaggerVariants(clientPresups.length, 1.5)}
-                          className="p-3 bg-bg-950/80 border-t border-bg-700/80 space-y-2.5"
+                          className="p-3 bg-bg-950/80 border-t border-bg-700/80 space-y-3"
                         >
-                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 text-center">Historial de presupuestos</p>
+                          <p className="text-base sm:text-lg font-black text-slate-300 uppercase tracking-wider px-1 text-center">Historial de presupuestos</p>
                           {clientPresups.map((p, index) => {
                             const veh = p.vehiculo_id ? vehiculos.find(x => x.id === p.vehiculo_id) : null;
-                            const estadoColor = p.estado === 'aceptado' ? 'green' : p.estado === 'rechazado' ? 'red' : 'yellow';
+                            
+                            // Estado por color de borde de 3px
+                            let borderClass = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                            if (p.estado === 'aceptado') {
+                              borderClass = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                            } else if (p.estado === 'enviado' || (p as any).enviado) {
+                              borderClass = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                            }
+
+                            const totalPresupuesto = (p.total ?? 0).toFixed(2);
 
                             return (
                               <motion.div
@@ -1527,115 +1536,93 @@ export function PresupuestosPage() {
                                   e.stopPropagation();
                                   editPresupuesto(p);
                                 }}
-                                className="rounded-xl border border-bg-700 bg-bg-900 p-3 hover:border-cyan-500/40 transition-all cursor-pointer flex flex-col gap-3 justify-center"
+                                className={`rounded-2xl ${borderClass} bg-bg-900/90 p-4 transition-all cursor-pointer flex flex-col gap-2.5 justify-center select-none`}
                               >
-                                {/* Línea 1: Expediente, Fecha, Estado y Acciones centradas */}
-                                <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-3">
-                                  <div className="flex items-center justify-center gap-3">
-                                    <span className="text-sm font-mono text-cyan-400 font-bold">
-                                      {getExpediente(p, cliente, clientes)}
-                                    </span>
-                                    <span className="text-xs text-slate-300 font-semibold">
-                                      {new Date(p.created_at).toLocaleDateString('es-ES')}
-                                    </span>
-                                    <Badge text={p.estado} color={estadoColor} />
+                                {/* Línea 1: Marca y Modelo a la izquierda, Matrícula a la derecha */}
+                                <div className="flex items-center justify-between gap-3">
+                                  <div className="font-semibold text-slate-300 text-sm sm:text-base uppercase truncate flex-1 min-w-0">
+                                    {veh ? (
+                                      <span>{veh.marca || ''} {veh.modelo || ''}</span>
+                                    ) : (
+                                      <span className="text-slate-500 italic">Sin vehículo asignado</span>
+                                    )}
                                   </div>
-                                  
-                                  <div className="flex items-center justify-center gap-3">
-                                    {(() => {
-                                      // Restricción: solo se puede dar cita una vez por presupuesto
-                                      const cita = citas.find(c => c.presupuesto_id === p.id);
-                                      
-                                      if (p.estado !== 'aceptado') {
-                                        return (
-                                          <button
-                                            onClick={async (e) => {
-                                              e.stopPropagation();
-                                              await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', p.id);
-                                              await loadPresupuestos();
-                                            }}
-                                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30 text-xs font-bold transition-all flex items-center justify-center shadow-[0_0_8px_rgba(16,185,129,0.2)] shrink-0"
-                                          >
-                                            ACEPTAR
-                                          </button>
-                                        );
-                                      }
+                                  {veh?.matricula && (
+                                    <div className="shrink-0 scale-100 sm:scale-105 origin-right">
+                                      <MatriculaBadge matricula={veh.matricula} size="md" />
+                                    </div>
+                                  )}
+                                </div>
 
-                                      if (cita) {
-                                        return (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              navigate('/citas');
-                                            }}
-                                            className="px-3 py-1.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 hover:bg-indigo-500/30 text-xs font-bold transition-all flex items-center justify-center shadow-[0_0_8px_rgba(99,102,241,0.2)] shrink-0"
-                                          >
-                                            CITADO
-                                          </button>
-                                        );
-                                      }
+                                {/* Línea 2: Número de Expediente y Fecha */}
+                                <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
+                                  <span className="text-lg sm:text-xl font-mono text-cyan-400 font-black tracking-wide">
+                                    {getExpediente(p, cliente, clientes)}
+                                  </span>
+                                  <span className="text-xs sm:text-sm text-slate-300 font-semibold">
+                                    {new Date(p.created_at).toLocaleDateString('es-ES')}
+                                  </span>
+                                </div>
 
-                                      const isCitado = citadoId === p.id;
-                                      return (
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setCitadoId(p.id);
-                                            setTimeout(() => {
-                                              setCitadoId(null);
-                                              navigate('/citas', {
-                                                state: { presupuestoId: p.id, clienteId: p.cliente_id, vehiculoId: p.vehiculo_id }
-                                              });
-                                            }, 500);
-                                          }}
-                                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center shrink-0 ${isCitado ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/40' : 'bg-violet-500/20 text-violet-400 border border-violet-500/40 hover:bg-violet-500/30 shadow-[0_0_8px_rgba(168,85,247,0.2)] animate-pulse'}`}
-                                        >
-                                          {isCitado ? 'CITADO' : <><Calendar className="w-3.5 h-3.5 mr-1" /> CITAR</>}
-                                        </button>
-                                      );
-                                    })()}
+                                {/* Línea 3: Importe total a la izquierda en recuadro sin relleno con línea celeste 1px + Iconos centrados */}
+                                <div className="flex items-center justify-between gap-3 mt-1 pt-2 border-t border-white/10" onClick={(e) => e.stopPropagation()}>
+                                  {/* Importe total a la izquierda */}
+                                  <div className="shrink-0 px-3 py-1 rounded-xl border border-cyan-400 bg-transparent text-cyan-400 font-black text-sm sm:text-base shadow-[0_0_8px_rgba(6,182,212,0.2)]">
+                                    {totalPresupuesto} €
+                                  </div>
 
-                                    {/* Botón Ver Presupuesto: Icono flotante P en hoja A4 (x2) sin envoltorio con animación */}
+                                  {/* Iconos centrados repartiéndose el espacio restante */}
+                                  <div className="flex-1 flex items-center justify-center gap-5 sm:gap-8 ml-2 sm:ml-4">
+                                    {/* Botón Ver Expediente: Carpeta amarilla con una E adentro */}
                                     <motion.button
-                                      whileHover={{ scale: 1.12 }}
-                                      whileTap={{ scale: 0.92 }}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        editPresupuesto(p);
-                                      }}
-                                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0"
-                                      title="Ver Presupuesto"
-                                      aria-label="Ver Presupuesto"
-                                    >
-                                      <PresupuestoIcon className="w-12 h-12" />
-                                    </motion.button>
-
-                                    {/* Botón Ver Expediente: Carpeta amarilla con una E adentro (x3) con animación */}
-                                    <motion.button
-                                      whileHover={{ scale: 1.12 }}
+                                      whileHover={{ scale: 1.15 }}
                                       whileTap={{ scale: 0.92 }}
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         navigate('/expedientes', { state: { search: cliente.nombre || veh?.matricula || '' } });
                                       }}
-                                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0"
+                                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
                                       title="Ver Expediente"
                                       aria-label="Ver Expediente"
                                     >
-                                      <ExpedienteFolderIcon className="w-12 h-12" />
+                                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                                    </motion.button>
+
+                                    {/* Botón Ver Presupuesto: Hoja A4 cyan con P adentro */}
+                                    <motion.button
+                                      whileHover={{ scale: 1.15 }}
+                                      whileTap={{ scale: 0.92 }}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        editPresupuesto(p);
+                                      }}
+                                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-cyan-400 hover:text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+                                      title="Ver Presupuesto"
+                                      aria-label="Ver Presupuesto"
+                                    >
+                                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                                    </motion.button>
+
+                                    {/* Botón Imágenes */}
+                                    <motion.button
+                                      whileHover={{ scale: 1.15 }}
+                                      whileTap={{ scale: 0.92 }}
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        const fotos = await fetchExpedienteFotos(cliente.id, p.vehiculo_id, [], { presupuestoId: p.id });
+                                        setExpedienteFotos(fotos);
+                                        setViewerMatricula(veh?.matricula || null);
+                                        setExpedienteViewerTitle(`Fotos Presupuesto ${p.numero || ''}`);
+                                        setShowExpedienteViewer(true);
+                                      }}
+                                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-violet-400 hover:text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
+                                      title="Ver Imágenes"
+                                      aria-label="Ver Imágenes"
+                                    >
+                                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
                                     </motion.button>
                                   </div>
                                 </div>
-
-                                {/* Línea 2: Marca y modelo, Matrícula */}
-                                {veh && (
-                                  <div className="flex items-center justify-between mt-1 border-t border-bg-700/50 pt-2">
-                                    <span className="text-xs text-slate-400 uppercase font-medium truncate pr-2">
-                                      {veh.marca} {veh.modelo}
-                                    </span>
-                                    <MatriculaBadge matricula={veh.matricula} />
-                                  </div>
-                                )}
                               </motion.div>
                             );
                           })}

@@ -155,24 +155,24 @@ export function ReparacionesPage() {
                   )}
                 </div>
 
-                {/* LÍNEA 3: Número de expediente a la izquierda, Iconos flotantes de acción a la derecha */}
+                {/* LÍNEA 3: Número de expediente flotante a la izquierda, Iconos de acción repartiéndose el espacio restante (x1.2) */}
                 <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-white/10">
-                  {/* Número de Expediente a la izquierda */}
+                  {/* Número de Expediente flotante (x1.5) sin recuadro */}
                   <div
                     onClick={(e) => {
                       e.stopPropagation()
                       navigate('/expedientes', { state: { search: v?.matricula || expNum } })
                     }}
-                    className="flex items-center gap-1.5 cursor-pointer hover:brightness-125 transition-all"
+                    className="cursor-pointer hover:brightness-125 transition-all shrink-0"
                     title="Ver Expediente"
                   >
-                    <span className="text-cyan-400 font-mono font-black text-base sm:text-lg tracking-wider bg-cyan-950/40 px-2.5 py-0.5 rounded-lg border border-cyan-500/30">
+                    <span className="text-lg sm:text-xl font-mono text-cyan-400 font-black tracking-wide">
                       {expNum}
                     </span>
                   </div>
 
-                  {/* Iconos flotantes sin texto: Expediente, Presupuesto, Imágenes */}
-                  <div className="flex items-center gap-3 sm:gap-4 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  {/* Iconos flotantes sin texto repartiéndose el espacio restante (tamaño x1.2) */}
+                  <div className="flex-1 flex items-center justify-around sm:justify-end sm:gap-6 ml-2 sm:ml-4" onClick={(e) => e.stopPropagation()}>
                     {/* 1. Icono flotante Expediente (carpeta con E dentro) */}
                     <button
                       onClick={() => navigate('/expedientes', { state: { search: v?.matricula || expNum } })}
@@ -180,7 +180,7 @@ export function ReparacionesPage() {
                       title="Expediente"
                       aria-label="Expediente"
                     >
-                      <ExpedienteFolderIcon className="w-8 h-8 sm:w-9 sm:h-9" />
+                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
                     </button>
 
                     {/* 2. Icono flotante Presupuesto (hoja A4 con P dentro) */}
@@ -190,7 +190,7 @@ export function ReparacionesPage() {
                       title="Presupuestos del cliente"
                       aria-label="Presupuestos"
                     >
-                      <PresupuestoIcon className="w-8 h-8 sm:w-9 sm:h-9" />
+                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
                     </button>
 
                     {/* 3. Icono flotante Imágenes (abre el visor único con fotos de la reparación) */}
@@ -210,7 +210,7 @@ export function ReparacionesPage() {
                       title="Ver Imágenes de la Reparación"
                       aria-label="Imágenes"
                     >
-                      <ImageIcon className="w-8 h-8 sm:w-9 sm:h-9 stroke-[1.5]" />
+                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
                     </button>
                   </div>
                 </div>

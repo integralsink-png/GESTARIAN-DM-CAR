@@ -1,15 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Cita, Cliente, Vehiculo, Presupuesto } from '../lib/types'
-import { PageHeader, Card, Badge, EmptyState, MatriculaBadge } from '../components/UI'
+import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { getExpediente } from '../lib/utils'
-import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
-
+import { ExpedienteFolderIcon, PresupuestoIcon } from '../components/CustomIcons'
 
 export function CitasPage() {
   const location = useLocation()
@@ -29,17 +27,17 @@ export function CitasPage() {
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
   const [showExpedienteViewer, setShowExpedienteViewer] = useState(false)
   const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
-  const [expandedCita, setExpandedCita] = useState<string | null>(null)
+
+  const [deleteModalCita, setDeleteModalCita] = useState<Cita | null>(null)
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTriggered = useRef(false)
 
   useEffect(() => {
     loadCitas()
     loadPresupuestos()
     loadClientes()
     loadVehiculos()
-    if (navState?.citaId) {
-      setExpandedCita(navState.citaId)
-    }
-  }, [navState?.citaId])
+  }, [])
 
   async function loadPresupuestos() {
     const { data } = await supabase.from('presupuestos').select('*')
@@ -99,28 +97,34 @@ export function CitasPage() {
     }
   }, [navState?.presupuestoId])
 
-  async function cambiarEstado(id: string, estado: 'pendiente' | 'confirmada' | 'completada' | 'cancelada') {
-    await supabase.from('citas').update({ estado }).eq('id', id)
-    loadCitas()
-  }
-
-  async function eliminarCita(id: string) {
-    if (!confirm('¿Eliminar esta cita? Esta acción no se puede deshacer.')) return
-    await supabase.from('citas').delete().eq('id', id)
-    loadCitas()
-  }
-
   function clienteNombre(id: string) {
     return clientes.find((c) => c.id === id)?.nombre ?? '—'
   }
 
+  const startLongPress = (cita: Cita) => {
+    longPressTriggered.current = false
+    if (longPressTimer.current) clearTimeout(longPressTimer.current)
+    longPressTimer.current = setTimeout(() => {
+      longPressTriggered.current = true
+      setDeleteModalCita(cita)
+    }, 3000)
+  }
 
+  const cancelLongPress = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }
 
-  const estadoColor = (e: string): 'yellow' | 'green' | 'red' | 'blue' => {
-    if (e === 'pendiente') return 'yellow'
-    if (e === 'confirmada') return 'blue'
-    if (e === 'completada') return 'green'
-    return 'red'
+  function getBorderColor(cita: Cita) {
+    if (cita.estado === 'confirmada' || cita.estado === 'completada') {
+      return 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+    }
+    if (cita.estado === 'citado' || (cita.fecha && cita.hora && cita.estado !== 'pendiente')) {
+      return 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+    }
+    return 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
   }
 
   return (
@@ -141,213 +145,222 @@ export function CitasPage() {
       ) : citas.length === 0 ? (
         <EmptyState icon={<Calendar className="w-12 h-12" />} title="No hay citas" subtitle="Las citas se crean desde presupuestos aceptados" />
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-3.5">
           {citas.map((cita) => {
-            const p = presupuestos.find(x => x.id === cita.presupuesto_id);
-            const isExpanded = expandedCita === cita.id;
+            const p = presupuestos.find((x) => x.id === cita.presupuesto_id)
+            const cli = clientes.find((c) => c.id === cita.cliente_id)
+            const v = cita.vehiculo_id ? vehiculos[cita.vehiculo_id] : null
+            const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
+            const presNum = p?.numero || 'S/N'
+            const borderClass = getBorderColor(cita)
 
             return (
-            <Card key={cita.id} className="overflow-hidden p-0">
-              <div 
-                className="p-4 cursor-pointer hover:bg-white/5 transition-colors"
-                onClick={() => setExpandedCita(isExpanded ? null : cita.id)}
+              <div
+                key={cita.id}
+                onMouseDown={() => startLongPress(cita)}
+                onMouseUp={cancelLongPress}
+                onMouseLeave={cancelLongPress}
+                onTouchStart={() => startLongPress(cita)}
+                onTouchEnd={cancelLongPress}
+                className={`relative p-4 sm:p-5 rounded-2xl border-[3px] bg-bg-800/90 transition-all select-none ${borderClass}`}
               >
-                {/* LÍNEA 1: CLIENTE y ESTADO CITA */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="font-bold text-white text-base truncate">{clienteNombre(cita.cliente_id)}</span>
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <Badge 
-                      text={cita.estado === 'pendiente' ? 'Pendiente' : cita.estado === 'confirmada' ? 'Confirmada' : cita.estado} 
-                      color={estadoColor(cita.estado)} 
-                      onClick={() => cambiarEstado(cita.id, cita.estado === 'pendiente' ? 'confirmada' : 'pendiente')}
-                    />
+                {/* LÍNEA 1: Nombre del titular (x1.5 tamaño, sin recuadro de estado) */}
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl sm:text-2xl font-black text-white capitalize tracking-wide truncate">
+                    {clienteNombre(cita.cliente_id).toLowerCase()}
+                  </h2>
+                </div>
+
+                {/* LÍNEA 2: Número de expediente flotante (x1.5), Fecha y Hora repartidas equitativamente */}
+                <div className="flex items-center justify-between gap-3 mt-2.5">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                    }}
+                    className="cursor-pointer hover:brightness-125 transition-all shrink-0"
+                    title="Ver Expediente"
+                  >
+                    <span className="text-xl sm:text-2xl font-mono text-cyan-400 font-black tracking-wider">
+                      {expNum}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-center flex-1 text-center font-bold text-sm sm:text-base text-slate-300">
+                    <span>
+                      {new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-end shrink-0 font-black text-sm sm:text-base text-amber-400">
+                    <span>
+                      {cita.hora ? cita.hora.substring(0, 5) : '09:00'}
+                    </span>
                   </div>
                 </div>
 
-                  {/* LÍNEA 2: EXPEDIENTE | FECHA | HORA */}
-                  <div className="flex items-center justify-between w-[95%] text-sm font-semibold mt-1">
-                    <span className="text-cyan-400 font-mono text-[15px] bg-cyan-900/30 px-1 rounded border border-cyan-500/20">
-                      {p ? getExpediente(p, clientes.find(c => c.id === cita.cliente_id), clientes) : 'S/N'}
-                    </span>
-                    <span className="text-slate-300">
-                      {new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                    </span>
-                    {cita.hora && (
-                      <span className="text-amber-400">
-                        {cita.hora.substring(0, 5)}
+                {/* LÍNEA 3: Marca y Modelo a la izquierda, Matrícula a la derecha */}
+                <div className="flex items-center justify-between gap-3 mt-2.5">
+                  <div className="font-semibold text-slate-300 text-sm sm:text-base uppercase truncate flex-1 min-w-0">
+                    {v ? (
+                      <span>
+                        {v.marca || ''} {v.modelo || ''}
                       </span>
+                    ) : (
+                      <span className="text-slate-500 italic">Sin datos vehículo</span>
                     )}
                   </div>
-                  
-                  {/* LÍNEA 3: MARCA Y MODELO | MATRÍCULA */}
-                  {(() => {
-                    const v = cita.vehiculo_id ? vehiculos[cita.vehiculo_id] : null;
-                    if (!v) return null;
-                    return (
-                      <div className="flex items-center justify-between mt-1 w-[95%]">
-                        <span className="text-xs text-slate-400 uppercase font-medium truncate pr-2">
-                          {v.marca} {v.modelo}
-                        </span>
-                        <MatriculaBadge matricula={v.matricula} />
-                      </div>
-                    );
-                  })()}
-              </div>
 
-              {/* EXPANDED AREA with unified 1.5s dropdown animation */}
-              <AnimatePresence initial={false}>
-                {isExpanded && (
-                  <motion.div
-                    key="citas-dropdown"
-                    initial="hidden"
-                    animate="show"
-                    exit="exit"
-                    variants={dropdownPanelVariants}
-                    className="overflow-hidden border-t border-white/10 bg-black/20"
+                  {v?.matricula && (
+                    <div className="shrink-0 scale-100 sm:scale-105 origin-right">
+                      <MatriculaBadge matricula={v.matricula} size="md" />
+                    </div>
+                  )}
+                </div>
+
+                {/* LÍNEA 4: Número de presupuesto (x2 tamaño) seguido de iconos flotantes centrados en el espacio restante */}
+                <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-white/10">
+                  {/* Número de Presupuesto flotante a la izquierda (x2 tamaño) */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/presupuestos', { state: { clienteId: cita.cliente_id, openForm: false } })
+                    }}
+                    className="cursor-pointer hover:brightness-125 transition-all shrink-0"
+                    title="Ver Presupuestos del Cliente"
                   >
-                    <motion.div
-                      initial="hidden"
-                      animate="show"
-                      exit="exit"
-                      variants={getDropdownStaggerVariants(4, 1.5)}
-                      className="p-4 flex flex-wrap gap-2 items-center justify-end"
+                    <span className="text-2xl sm:text-3xl font-mono text-cyan-400 font-black tracking-wider leading-none">
+                      {presNum}
+                    </span>
+                  </div>
+
+                  {/* Iconos flotantes centrados en el espacio restante */}
+                  <div className="flex-1 flex items-center justify-center gap-5 sm:gap-8 ml-2 sm:ml-4" onClick={(e) => e.stopPropagation()}>
+                    {/* 1. Icono flotante Expediente (carpeta con E dentro) */}
+                    <button
+                      onClick={() => navigate('/expedientes', { state: { search: v?.matricula || expNum } })}
+                      className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+                      title="Expediente"
+                      aria-label="Expediente"
                     >
-                      {/* Botón Imágenes */}
-                      <motion.button
-                        variants={dropdownItemVariants}
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          const fotos = await fetchExpedienteFotos(cita.cliente_id, cita.vehiculo_id, cita.fotos || []);
-                          setExpedienteFotos(fotos);
-                          setExpedienteViewerTitle(`Fotos Expediente Cita`);
-                          setShowExpedienteViewer(true);
-                        }}
-                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors relative bg-transparent hover:bg-white/5 text-amber-400"
-                        title="Imágenes del Expediente"
-                      >
-                        <ImageIcon className="w-[40px] h-[40px]" />
-                      </motion.button>
+                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                    </button>
 
-                      {/* Botón Ver Presupuesto */}
-                      {p && (
-                        <motion.button
-                          variants={dropdownItemVariants}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/presupuestos', { state: { clienteId: cita.cliente_id } });
-                          }}
-                          className="flex items-center justify-center h-[54px] w-[54px] rounded-lg bg-transparent hover:bg-white/5 text-cyan-400 transition-colors"
-                          title="Ver Presupuesto"
-                        >
-                          <svg className="w-[40px] h-[40px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                            {/* P letter inside */}
-                            <path d="M12 16v-4h2.5a1.5 1.5 0 0 1 0 3H12"></path>
-                          </svg>
-                        </motion.button>
-                      )}
+                    {/* 2. Icono flotante Presupuesto (hoja A4 con P dentro) */}
+                    <button
+                      onClick={() => navigate('/presupuestos', { state: { clienteId: cita.cliente_id, openForm: false } })}
+                      className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+                      title="Presupuestos del cliente"
+                      aria-label="Presupuestos"
+                    >
+                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                    </button>
 
-                      {/* Botón Enviar a Taller */}
-                      {cita.estado !== 'completada' && (
-                        <motion.button
-                          variants={dropdownItemVariants}
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            await cambiarEstado(cita.id, 'completada');
-                            
-                            // Crear reparación aquí para evitar duplicados por StrictMode o renderizados dobles
-                            const { data: existing } = await supabase.from('reparaciones').select('id').eq('cita_id', cita.id).maybeSingle();
-                            if (!existing) {
-                              await supabase.from('reparaciones').insert({
-                                cita_id: cita.id,
-                                cliente_id: cita.cliente_id,
-                                vehiculo_id: cita.vehiculo_id ?? null,
-                                estado: 'en_proceso',
-                              });
-                            }
-                            
-                            navigate('/reparaciones');
-                          }} 
-                          className="flex flex-col items-center justify-center gap-0.5 py-1 px-1 rounded-xl border text-[13px] font-bold bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-emerald-400 hover:border-emerald-500/60 transition-all active:scale-95 h-[54px] w-[80px]"
-                        >
-                          <span>A TALLER</span>
-                          <svg width="40" height="10" viewBox="0 0 40 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="mt-1.5">
-                            <line x1="2" y1="5" x2="38" y2="5"></line>
-                            <polyline points="34 1 38 5 34 9"></polyline>
-                          </svg>
-                        </motion.button>
-                      )}
-
-                      {/* Botón Eliminar */}
-                      <motion.button
-                        variants={dropdownItemVariants}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          eliminarCita(cita.id);
-                        }}
-                        className="flex items-center justify-center h-[54px] w-[54px] rounded-lg transition-colors bg-transparent hover:bg-red-500/10 text-red-400 ml-auto"
-                        title="Eliminar Cita"
-                      >
-                        <Trash2 className="w-[40px] h-[40px]" />
-                      </motion.button>
-                    </motion.div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </Card>
-          );})}
+                    {/* 3. Icono flotante Imágenes (abre el visor único con fotos del expediente) */}
+                    <button
+                      onClick={async () => {
+                        const fotos = await fetchExpedienteFotos(cita.cliente_id, cita.vehiculo_id, cita.fotos || [], {
+                          citaId: cita.id,
+                          presupuestoId: p?.id
+                        })
+                        setExpedienteFotos(fotos)
+                        setViewerMatricula(v?.matricula || null)
+                        setExpedienteViewerTitle(`Cita ${expNum}`)
+                        setShowExpedienteViewer(true)
+                      }}
+                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
+                      title="Ver Imágenes de la Cita"
+                      aria-label="Imágenes"
+                    >
+                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
-        {/* Modal: proponer fecha y hora */}
-        {showFechaModal && (
-          <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-start justify-center pt-[100px] px-4 overflow-y-auto" onClick={() => setShowFechaModal(false)}>
-            <Card className="w-full max-w-md p-6 shadow-2xl border border-bg-700">
-              <div onClick={(e) => e.stopPropagation()}>
-                <h2 className="text-lg font-semibold text-white mb-4">Programar cita</h2>
-                <p className="text-sm text-slate-500 mb-4">
-                  Cliente: <span className="text-white">{clientes.find((c) => c.id === navState?.clienteId)?.nombre ?? '—'}</span>
-                </p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Fecha propuesta</label>
-                    <input
-                      type="date"
-                      value={fechaPropuesta}
-                      onChange={(e) => setFechaPropuesta(e.target.value)}
-                      className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-slate-400 mb-1">Hora</label>
-                    <input
-                      type="time"
-                      value={horaPropuesta}
-                      onChange={(e) => setHoraPropuesta(e.target.value)}
-                      className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex gap-3 mt-6">
-                  <button 
-                    onClick={() => crearCitaDesdePresupuesto(fechaPropuesta, horaPropuesta)} 
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-cyan-400 border-bg-700 hover:bg-bg-700 hover:border-cyan-500/60 shadow-lg"
-                  >
-                    Asignar cita
-                  </button>
-                  <button 
-                    onClick={() => setShowFechaModal(false)}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-white shadow-lg"
-                  >
-                    Cancelar cita
-                  </button>
-                </div>
-              </div>
-            </Card>
+      {/* Modal flotante de confirmación tras pulsación larga de 3 segundos */}
+      {deleteModalCita && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-bg-900 border-2 border-red-500 rounded-2xl p-6 shadow-[0_0_30px_rgba(239,68,68,0.4)] text-center space-y-4">
+            <Trash2 className="w-12 h-12 text-red-500 mx-auto stroke-[1.5]" />
+            <h3 className="text-xl font-bold text-white">¿Eliminar cita?</h3>
+            <p className="text-sm text-slate-300">
+              Esta acción eliminará la cita de <strong>{clienteNombre(deleteModalCita.cliente_id)}</strong>.
+            </p>
+            <div className="flex items-center justify-center gap-3 pt-2">
+              <button
+                onClick={() => setDeleteModalCita(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-sm font-bold border border-slate-700 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const id = deleteModalCita.id
+                  setDeleteModalCita(null)
+                  await supabase.from('citas').delete().eq('id', id)
+                  loadCitas()
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-red-600 hover:bg-red-500 text-white text-sm font-bold shadow-lg shadow-red-600/30 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
           </div>
-        )}
+        </div>
+      )}
 
+      {/* Modal: proponer fecha y hora */}
+      {showFechaModal && (
+        <div className="fixed inset-0 bg-bg-950/80 z-50 flex items-start justify-center pt-[100px] px-4 overflow-y-auto" onClick={() => setShowFechaModal(false)}>
+          <div className="w-full max-w-md p-6 shadow-2xl border border-bg-700 bg-bg-900 rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-lg font-semibold text-white mb-4">Programar cita</h2>
+            <p className="text-sm text-slate-500 mb-4">
+              Cliente: <span className="text-white">{clientes.find((c) => c.id === navState?.clienteId)?.nombre ?? '—'}</span>
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Fecha propuesta</label>
+                <input
+                  type="date"
+                  value={fechaPropuesta}
+                  onChange={(e) => setFechaPropuesta(e.target.value)}
+                  className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Hora</label>
+                <input
+                  type="time"
+                  value={horaPropuesta}
+                  onChange={(e) => setHoraPropuesta(e.target.value)}
+                  className="w-full bg-bg-700 border border-bg-600 rounded-lg px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => crearCitaDesdePresupuesto(fechaPropuesta, horaPropuesta)} 
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-cyan-400 border-bg-700 hover:bg-bg-700 hover:border-cyan-500/60 shadow-lg cursor-pointer"
+              >
+                Asignar cita
+              </button>
+              <button 
+                onClick={() => setShowFechaModal(false)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border text-sm font-semibold transition-all bg-bg-800 text-slate-300 border-bg-700 hover:bg-bg-700 hover:text-white shadow-lg cursor-pointer"
+              >
+                Cancelar cita
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Visor Global de Imágenes */}
       <GlobalImageViewer
         isOpen={showExpedienteViewer || !!viewerMatricula}
         onClose={() => {
