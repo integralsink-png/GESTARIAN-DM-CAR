@@ -14,10 +14,9 @@ import type {
 import { sendPresupuestoByEmail, generatePresupuestoPDF, getLocalidadFromCP } from "../lib/pdfGenerator";
 import { fetchExpedienteFotos, saveExpedienteFoto } from "../lib/expedienteService";
 import { shareDocumentoViaWhatsApp } from "../services/documentShareService";
-import { getExpediente } from "../lib/utils";
+import { getExpediente, formatDateShort } from "../lib/utils";
 import {
   PageHeader,
-  Badge,
   EmptyState,
   MatriculaBadge,
 } from "../components/UI";
@@ -30,13 +29,11 @@ import {
   Check,
   X,
   FileText,
-  Calendar,
   ArrowLeft,
   Search,
-  Edit3,
   ImageIcon,
-  Folder,
   FolderOpen,
+  CheckCircle2,
 } from "lucide-react";
 import { PresupuestoIcon, ExpedienteFolderIcon } from "../components/CustomIcons";
 import { GlobalImageViewer } from "../components/GlobalImageViewer";
@@ -214,7 +211,7 @@ export function PresupuestosPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean; presupuestoId?: string } | null;
+  const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean; presupuestoId?: string; initialFotos?: string[] } | null;
   const clienteIdFromNav = navState?.clienteId;
   const vehiculoIdFromNav = navState?.vehiculoId;
   const openFormFromNav = navState?.openForm;
@@ -223,11 +220,12 @@ export function PresupuestosPage() {
   const [search, setSearch] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
+  const [allVehiculos, setAllVehiculos] = useState<Record<string, Vehiculo>>({});
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
   const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
   const [citas, setCitas] = useState<Cita[]>([]);
+  const [reparaciones, setReparaciones] = useState<any[]>([]);
   const [facturas, setFacturas] = useState<any[]>([]);
-  const [citadoId, setCitadoId] = useState<string | null>(null);
   const [config, setConfig] = useState<Configuracion | null>(null);
   const [showForm, setShowForm] = useState(openFormFromNav ?? false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
@@ -245,14 +243,17 @@ export function PresupuestosPage() {
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([]);
   const [showExpedienteViewer, setShowExpedienteViewer] = useState(false);
   const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente");
+  const [modalEnvioOpen, setModalEnvioOpen] = useState(false);
   const [showSentToast, setShowSentToast] = useState<string | null>(null);
-  const [showRedirectToast, setShowRedirectToast] = useState<{
-    presupuestoId: string;
-    vehiculoId?: string;
-    clienteId?: string;
-    expedienteId?: string;
-  } | null>(null);
   const [animarEnvioPostSave, setAnimarEnvioPostSave] = useState(false);
+
+  const handleVolver = () => {
+    if (navState) {
+      navigate(-1);
+    } else {
+      resetForm();
+    }
+  };
 
   useEffect(() => {
     if (clienteIdFromNav) {
@@ -355,6 +356,8 @@ export function PresupuestosPage() {
     loadClientes();
     loadPresupuestos();
     loadCitas();
+    loadReparaciones();
+    loadAllVehiculos();
     loadConfig();
     if (clienteIdFromNav) {
       setSelectedClienteId(clienteIdFromNav);
@@ -410,6 +413,11 @@ export function PresupuestosPage() {
         .then(({ data }) => {
           const vehs = data ?? [];
           setVehiculos(vehs);
+          setAllVehiculos((prev) => {
+            const next = { ...prev };
+            vehs.forEach((v: Vehiculo) => { next[v.id] = v; });
+            return next;
+          });
           if (vehiculoIdFromNav && vehs.some((v) => v.id === vehiculoIdFromNav)) {
             setSelectedVehiculoId(vehiculoIdFromNav);
           } else if (vehs.length === 1) {
@@ -465,6 +473,20 @@ export function PresupuestosPage() {
     }
   }, [presupuestos, presupuestoIdFromNav, editingId]);
 
+  async function loadReparaciones() {
+    const { data } = await supabase.from("reparaciones").select("*");
+    setReparaciones(data ?? []);
+  }
+
+  async function loadAllVehiculos() {
+    const { data } = await supabase.from("vehiculos").select("*");
+    const map: Record<string, Vehiculo> = {};
+    (data ?? []).forEach((v: Vehiculo) => {
+      map[v.id] = v;
+    });
+    setAllVehiculos(map);
+  }
+
   async function loadFacturas() {
     const { data } = await supabase.from("facturas").select("id, numero, vehiculo_id, cliente_id, reparacion_id, created_at");
     setFacturas(data ?? []);
@@ -475,6 +497,8 @@ export function PresupuestosPage() {
       loadClientes(),
       loadPresupuestos(),
       loadCitas(),
+      loadReparaciones(),
+      loadAllVehiculos(),
       loadFacturas(),
       loadConfig()
     ]);
@@ -638,7 +662,7 @@ export function PresupuestosPage() {
 
   function vehiculoData(id: string | null) {
     if (!id) return null;
-    return vehiculos.find((v) => v.id === id);
+    return allVehiculos[id] || vehiculos.find((v) => v.id === id) || null;
   }
 
   // Helper to mark form as edited
@@ -842,23 +866,9 @@ export function PresupuestosPage() {
               const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
               const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
 
-              // ── SECUENCIA LÓGICA DE ANIMACIÓN ÚNICA EN PANTALLA (COLOR AZUL) ──
-              // 1. Cliente (si no hay cliente seleccionado)
+              // ── SECUENCIA LÓGICA DE ANIMACIÓN EN CLIENTE Y VEHÍCULO ──
               const animarCliente = !hasCliente;
-              // 2. Vehículo (si hay cliente pero no vehículo y existen vehículos)
               const animarVehiculo = hasCliente && !hasVehiculo;
-              // 3. Descripción de concepto (tras seleccionar vehículo, si la descripción está vacía)
-              const animarDescripcion = hasCliente && hasVehiculo && !isSaved && !firstConcept.descripcion.trim();
-              // 4. Cantidad / Unidades (si hay descripción pero cantidad es 0)
-              const animarCantidad = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad === 0;
-              // 5. Precio / Importe (si hay descripción, cantidad > 0 pero precio es 0)
-              const animarPrecio = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad > 0 && firstConcept.precio === 0;
-              // 6. Añadir línea (cuando hay importe y solo 1 línea)
-              const animarAddLinea = hasCliente && hasVehiculo && hasImporte && !isSaved && conceptos.length === 1;
-              // 7. Guardar (cuando hay importe y el usuario ya completó el presupuesto)
-              const animarGuardar = hasCliente && hasVehiculo && hasImporte && !isSaved && (conceptos.length > 1 || firstConcept.descripcion.trim().length > 3);
-              // 8. Envío alternado asíncrono (cuando el presupuesto ya está guardado y aún no se ha enviado)
-              const animarEnvio = isSaved && !isSent;
 
               return (
                 <>
@@ -1224,18 +1234,7 @@ export function PresupuestosPage() {
                                 await loadPresupuestos()
                               }
                               playSuccessSound()
-                              setShowSentToast("ENVIADO!!")
-                              setTimeout(() => {
-                                setShowSentToast(null)
-                                if (currentP?.id) {
-                                  setShowRedirectToast({
-                                    presupuestoId: currentP.id,
-                                    vehiculoId: vId,
-                                    clienteId: cId,
-                                    expedienteId: numExpediente,
-                                  })
-                                }
-                              }, 2000)
+                              setModalEnvioOpen(true)
                             }}
                             className={`p-1 hover:scale-110 transition-transform active:scale-95 shrink-0 ${
                               animarEnvio ? "animated-send-email-alt" : ""
@@ -1321,18 +1320,7 @@ export function PresupuestosPage() {
                                     }
                                     await loadPresupuestos()
                                     playSuccessSound()
-                                    setShowSentToast("ENVIADO!!")
-                                    setTimeout(() => {
-                                      setShowSentToast(null)
-                                      if (currentP?.id) {
-                                        setShowRedirectToast({
-                                          presupuestoId: currentP.id,
-                                          vehiculoId: vId,
-                                          clienteId: cId,
-                                          expedienteId: numExpediente,
-                                        })
-                                      }
-                                    }, 2000)
+                                    setModalEnvioOpen(true)
                                   }
                                 }
                               } catch (e: any) {
@@ -1465,18 +1453,35 @@ export function PresupuestosPage() {
               const isExpanded = expandedClienteId === cliente.id;
               const nombreDisplay = cliente.nombre || 'Cliente sin nombre';
 
+              // Lógica de color de borde para la tarjeta general de cliente (3px):
+              // - Si hay algún presupuesto individual azul (enviado sin aceptar), PREVALECE AZUL.
+              // - Si no hay azul pero hay algún naranja (sin enviar/pendiente sin aceptar), PREVALECE NARANJA.
+              // - Si todos están aceptados, VERDE.
+              const hasAzul = clientPresups.some(p => p.estado !== 'aceptado' && !!(p.enviado_email_at || p.enviado_whatsapp_at || (p.estado as string) === 'enviado' || (p as any).enviado));
+              const hasNaranja = clientPresups.some(p => p.estado !== 'aceptado' && !p.enviado_email_at && !p.enviado_whatsapp_at && (p.estado as string) !== 'enviado' && !(p as any).enviado);
+              const allVerde = clientPresups.length > 0 && clientPresups.every(p => p.estado === 'aceptado');
+
+              let generalBorderColor = 'border-[3px] border-bg-700 bg-bg-800/90';
+              if (hasAzul) {
+                generalBorderColor = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] bg-bg-800';
+              } else if (hasNaranja) {
+                generalBorderColor = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.25)] bg-bg-800';
+              } else if (allVerde) {
+                generalBorderColor = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] bg-bg-800';
+              }
+
+              const cardClasses = isExpanded
+                ? `${generalBorderColor} ring-1 ring-white/20 z-10`
+                : expandedClienteId
+                ? `${generalBorderColor} opacity-70 brightness-[0.70]`
+                : `${generalBorderColor} hover:border-cyan-400/80`;
+
               return (
                 <motion.div
                   layout
                   key={cliente.id}
                   transition={{ layout: { duration: 0.28, ease: "easeInOut" } }}
-                  className={`rounded-2xl border transition-all duration-300 shadow-md ${
-                    isExpanded
-                      ? 'border-cyan-500/60 bg-bg-800 ring-1 ring-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.15)] z-10'
-                      : expandedClienteId
-                      ? 'border-bg-700/60 bg-bg-800/70 opacity-70 brightness-[0.70]'
-                      : 'border-bg-700 bg-bg-800/90 hover:border-bg-600'
-                  }`}
+                  className={`rounded-2xl transition-all duration-300 shadow-md ${cardClasses}`}
                 >
                   {/* Fila del cliente: solo el nombre completo del cliente */}
                   <div
@@ -1515,14 +1520,15 @@ export function PresupuestosPage() {
                           className="p-3 bg-bg-950/80 border-t border-bg-700/80 space-y-3"
                         >
                           <p className="text-base sm:text-lg font-black text-slate-300 uppercase tracking-wider px-1 text-center">Historial de presupuestos</p>
-                          {clientPresups.map((p, index) => {
-                            const veh = p.vehiculo_id ? vehiculos.find(x => x.id === p.vehiculo_id) : null;
+                          {clientPresups.map((p) => {
+                            const veh = p.vehiculo_id 
+                              ? (allVehiculos[p.vehiculo_id] || vehiculos.find(x => x.id === p.vehiculo_id))
+                              : Object.values(allVehiculos).find(v => v.cliente_id === cliente.id) || null;
                             
-                            // Estado por color de borde de 3px
                             let borderClass = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                             if (p.estado === 'aceptado') {
                               borderClass = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                            } else if (p.estado === 'enviado' || (p as any).enviado) {
+                            } else if ((p.estado as string) === 'enviado' || (p as any).enviado) {
                               borderClass = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
                             }
 
@@ -1538,13 +1544,13 @@ export function PresupuestosPage() {
                                 }}
                                 className={`rounded-2xl ${borderClass} bg-bg-900/90 p-4 transition-all cursor-pointer flex flex-col gap-2.5 justify-center select-none`}
                               >
-                                {/* Línea 1: Marca y Modelo a la izquierda, Matrícula a la derecha */}
+                                {/* Línea 1: Marca y Modelo a la izquierda, Matrícula a la derecha (preferencia matrícula) */}
                                 <div className="flex items-center justify-between gap-3">
                                   <div className="font-semibold text-slate-300 text-sm sm:text-base uppercase truncate flex-1 min-w-0">
                                     {veh ? (
                                       <span>{veh.marca || ''} {veh.modelo || ''}</span>
                                     ) : (
-                                      <span className="text-slate-500 italic">Sin vehículo asignado</span>
+                                      <span className="text-slate-500 italic">Sin datos vehículo</span>
                                     )}
                                   </div>
                                   {veh?.matricula && (
@@ -1554,25 +1560,17 @@ export function PresupuestosPage() {
                                   )}
                                 </div>
 
-                                {/* Línea 2: Número de Expediente y Fecha */}
-                                <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5">
-                                  <span className="text-lg sm:text-xl font-mono text-cyan-400 font-black tracking-wide">
-                                    {getExpediente(p, cliente, clientes)}
-                                  </span>
-                                  <span className="text-xs sm:text-sm text-slate-300 font-semibold">
-                                    {new Date(p.created_at).toLocaleDateString('es-ES')}
-                                  </span>
-                                </div>
-
-                                {/* Línea 3: Importe total a la izquierda en recuadro sin relleno con línea celeste 1px + Iconos centrados */}
-                                <div className="flex items-center justify-between gap-3 mt-1 pt-2 border-t border-white/10" onClick={(e) => e.stopPropagation()}>
-                                  {/* Importe total a la izquierda */}
-                                  <div className="shrink-0 px-3 py-1 rounded-xl border border-cyan-400 bg-transparent text-cyan-400 font-black text-sm sm:text-base shadow-[0_0_8px_rgba(6,182,212,0.2)]">
-                                    {totalPresupuesto} €
+                                {/* Línea 2: ID de Presupuesto a la izquierda (x1.2), 3 iconos centrados (x1.3) */}
+                                <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5" onClick={(e) => e.stopPropagation()}>
+                                  {/* Izquierda: Número de presupuesto */}
+                                  <div className="shrink-0">
+                                    <span className="text-xl sm:text-2xl font-mono text-cyan-400 font-black tracking-wide">
+                                      {p.numero}
+                                    </span>
                                   </div>
 
-                                  {/* Iconos centrados repartiéndose el espacio restante */}
-                                  <div className="flex-1 flex items-center justify-center gap-5 sm:gap-8 ml-2 sm:ml-4">
+                                  {/* Centro / Espacio restante: 3 iconos de acción en tamaño x1.3 */}
+                                  <div className="flex-1 flex items-center justify-center gap-6 sm:gap-10 ml-2 sm:ml-4">
                                     {/* Botón Ver Expediente: Carpeta amarilla con una E adentro */}
                                     <motion.button
                                       whileHover={{ scale: 1.15 }}
@@ -1585,7 +1583,7 @@ export function PresupuestosPage() {
                                       title="Ver Expediente"
                                       aria-label="Ver Expediente"
                                     >
-                                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                                      <ExpedienteFolderIcon className="w-12 h-12 sm:w-14 sm:h-14" />
                                     </motion.button>
 
                                     {/* Botón Ver Presupuesto: Hoja A4 cyan con P adentro */}
@@ -1600,7 +1598,7 @@ export function PresupuestosPage() {
                                       title="Ver Presupuesto"
                                       aria-label="Ver Presupuesto"
                                     >
-                                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                                      <PresupuestoIcon className="w-12 h-12 sm:w-14 sm:h-14" />
                                     </motion.button>
 
                                     {/* Botón Imágenes */}
@@ -1619,9 +1617,27 @@ export function PresupuestosPage() {
                                       title="Ver Imágenes"
                                       aria-label="Ver Imágenes"
                                     >
-                                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
+                                      <ImageIcon className="w-12 h-12 sm:w-14 sm:h-14 stroke-[1.5]" />
                                     </motion.button>
                                   </div>
+                                </div>
+
+                                {/* Línea 3: Número de expediente tamaño x1.2 en naranja, Fecha en negrita rosa claro en el centro, Importe total gris claro a la derecha */}
+                                <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/10">
+                                  {/* Izquierda: Número de expediente en naranja (mismo tamaño que ID presupuesto) */}
+                                  <span className="text-xl sm:text-2xl font-mono text-amber-500 font-black tracking-wide shrink-0">
+                                    {getExpediente(p, cliente, clientes)}
+                                  </span>
+
+                                  {/* Centro: Fecha en negrita rosa claro en formato dd/mm/aa */}
+                                  <span className="text-sm sm:text-base text-pink-300 font-black tracking-wide">
+                                    {formatDateShort(p.created_at)}
+                                  </span>
+
+                                  {/* Derecha: Importe total sin recuadro en gris claro */}
+                                  <span className="text-slate-300 text-sm sm:text-base font-black tracking-wide shrink-0">
+                                    {totalPresupuesto} €
+                                  </span>
                                 </div>
                               </motion.div>
                             );
@@ -1657,57 +1673,46 @@ export function PresupuestosPage() {
         }}
         title={expedienteViewerTitle}
       />
-      {showSentToast && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none p-4">
-          <div className="bg-emerald-600 text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.7)] border-4 border-white animate-bounce flex items-center gap-4">
-            <span className="text-3xl sm:text-4xl">✓</span>
-            <span>{showSentToast}</span>
-          </div>
-        </div>,
-        document.body
-      )}
-
-      {showRedirectToast && createPortal(
-        <div className="fixed top-6 left-0 right-0 z-[9999] flex items-center justify-center p-4">
-          <div className="bg-slate-900 border-2 border-cyan-400 text-white rounded-2xl shadow-2xl p-4 sm:p-5 max-w-md w-full flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <FolderOpen className="w-8 h-8 text-cyan-400 shrink-0" />
-              <div>
-                <p className="text-sm font-black text-white uppercase tracking-wide">
-                  Presupuesto Enviado con Éxito
-                </p>
-                <p className="text-xs text-slate-300">
-                  Continuar con el flujo de trabajo en el expediente
-                </p>
+      {/* Modal Informativo de Presupuesto Enviado Directo con botones grandes */}
+      {modalEnvioOpen && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="modal-envio-presupuesto"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
+              className="bg-slate-900 border-[3px] border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(16,185,129,0.3)] text-center text-white"
+            >
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <CheckCircle2 className="w-9 h-9" />
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => {
-                  const target = showRedirectToast;
-                  setShowRedirectToast(null);
-                  navigate('/expedientes', {
-                    state: {
-                      expandPresupuestoId: target.presupuestoId,
-                      expandVehiculoId: target.vehiculoId,
-                      clienteId: target.clienteId,
-                      search: target.expedienteId || ''
-                    }
-                  });
-                }}
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase rounded-xl tracking-wider transition-all shadow-md active:scale-95"
-              >
-                IR AL ROADMAP
-              </button>
-              <button
-                onClick={() => setShowRedirectToast(null)}
-                className="p-1.5 text-slate-400 hover:text-white rounded-lg transition-colors"
-                title="Cerrar"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
+                PRESUPUESTO ENVIADO CORRECTAMENTE
+              </h3>
+
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setModalEnvioOpen(false);
+                    handleVolver();
+                  }}
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[28px] sm:text-[32px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                >
+                  VOLVER
+                </button>
+                <button
+                  onClick={() => {
+                    setModalEnvioOpen(false);
+                  }}
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[28px] sm:text-[32px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                >
+                  ACEPTAR
+                </button>
+              </div>
+            </motion.div>
+          </AnimatePresence>
         </div>,
         document.body
       )}

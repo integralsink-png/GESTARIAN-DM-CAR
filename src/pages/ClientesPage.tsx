@@ -13,6 +13,7 @@ import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { FacturaIcon, NuevoPresupuestoA4Icon, ExpedienteFolderIcon, HistorialPresupuestoA4Icon, WhatsAppWithPhoneIcon, NuevoVehiculoPlusIcon } from '../components/CustomIcons'
 import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
+import { getExpediente } from '../lib/utils'
 
 export function ClientesPage() {
   const navigate = useNavigate()
@@ -909,49 +910,53 @@ export function ClientesPage() {
                     {subpanel === 'presupuestos' && (
                       <div className="p-4 bg-bg-800 rounded-xl border border-bg-700 space-y-3">
                         <div className="flex items-center justify-between">
-                          <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">Presupuestos del cliente</h4>
-                          <button
-                            onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
-                            className="p-2.5 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/30 flex items-center justify-center transition-all active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.3)]"
-                            title="Nuevo Presupuesto"
-                            aria-label="Nuevo Presupuesto"
-                          >
-                            <div className="flex items-center gap-1">
-                              <Plus className="w-5 h-5" />
-                              <NuevoPresupuestoA4Icon className="w-6 h-6" />
-                            </div>
-                          </button>
+                          <h4 className="text-xs font-bold text-cyan-400 uppercase tracking-widest">HISTORIAL DE PRESUPUESTOS</h4>
                         </div>
 
                         <div className="space-y-2">
                           {(presupuestosCliente[cliente.id] ?? []).length === 0 ? (
                             <div className="text-center py-6 text-slate-400 bg-bg-900/40 rounded-xl border border-bg-700/50">
                               <p className="text-sm font-semibold">Sin presupuestos registrados</p>
-                              <p className="text-xs text-slate-500 mt-1">Crea un presupuesto usando el botón superior</p>
                             </div>
                           ) : (
                             (presupuestosCliente[cliente.id] ?? []).map((p) => {
                               const v = (vehiculos[cliente.id] ?? []).find(veh => veh.id === p.vehiculo_id) || null
+                              const expNum = getExpediente(p, cliente, clientes)
+                              const isSent = !!(p.enviado_email_at || p.enviado_whatsapp_at || (p.estado as string) === 'enviado' || (p as any).enviado)
+                              
+                              let borderClass = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+                              if (p.estado === 'aceptado') {
+                                borderClass = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+                              } else if (isSent) {
+                                borderClass = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+                              }
+
                               return (
                                 <div
                                   key={p.id}
-                                  onClick={() => setViewPresupuesto({ presup: p, cliente, vehiculo: v })}
-                                  className="flex items-center justify-between bg-bg-900 p-3.5 rounded-xl border border-bg-700 text-xs hover:border-cyan-500/60 cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group shadow"
+                                  onClick={() => navigate('/presupuestos', { state: { presupuestoId: p.id, clienteId: cliente.id, openForm: true } })}
+                                  className={`bg-bg-900 p-3.5 rounded-xl text-xs cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] group shadow space-y-2 ${borderClass}`}
                                 >
-                                  <div className="space-y-1">
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-extrabold text-cyan-400 text-sm">{p.numero}</span>
-                                      {v?.matricula && <MatriculaBadge matricula={v.matricula} size="sm" />}
-                                    </div>
+                                  {/* Línea 1: Número de presupuesto a la izquierda (celeste) y matrícula a la derecha */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-extrabold text-cyan-400 text-sm font-mono tracking-wide">
+                                      {p.numero}
+                                    </span>
+                                    {v?.matricula && (
+                                      <div className="shrink-0">
+                                        <MatriculaBadge matricula={v.matricula} size="sm" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Línea 2: Número de expediente a la izquierda (naranja) e importe a la derecha */}
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-bold text-amber-500 text-sm font-mono tracking-wide">
+                                      {expNum}
+                                    </span>
                                     <div className="text-slate-400">
                                       Total: <strong className="text-white text-sm">{p.total?.toFixed(2) ?? '0.00'} €</strong>
                                     </div>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      text={p.estado}
-                                      color={p.estado === 'aceptado' ? 'green' : p.estado === 'rechazado' ? 'red' : 'yellow'}
-                                    />
                                   </div>
                                 </div>
                               )

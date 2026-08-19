@@ -48,9 +48,11 @@ export interface Presupuesto {
   total: number
   observaciones: string | null
   fotos?: string[]
+  aplicarIva?: boolean
   enviado_email_at?: string | null
   enviado_whatsapp_at?: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface Cita {
@@ -93,6 +95,7 @@ export interface Factura {
   enviado_email_at?: string | null
   enviado_whatsapp_at?: string | null
   created_at: string
+  updated_at?: string
 }
 
 export interface Cobro {

@@ -185,9 +185,15 @@ export function ReparacionesPage() {
 
                     {/* 2. Icono flotante Presupuesto (hoja A4 con P dentro) */}
                     <button
-                      onClick={() => navigate('/presupuestos', { state: { clienteId: rep.cliente_id, openForm: false } })}
+                      onClick={() => {
+                        if (p) {
+                          navigate('/presupuestos', { state: { presupuestoId: p.id } })
+                        } else {
+                          navigate('/presupuestos', { state: { clienteId: rep.cliente_id, openForm: false } })
+                        }
+                      }}
                       className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
-                      title="Presupuestos del cliente"
+                      title={p ? "Ver Presupuesto del Expediente" : "Presupuestos del cliente"}
                       aria-label="Presupuestos"
                     >
                       <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />

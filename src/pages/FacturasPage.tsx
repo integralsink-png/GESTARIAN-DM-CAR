@@ -6,7 +6,7 @@ import { supabase } from '../lib/supabase'
 import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Vehiculo } from '../lib/types'
 import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search, CheckCircle2, Plus } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
-import { Card, Badge, Modal, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
+import { Card, Badge, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
@@ -68,7 +68,7 @@ export function FacturasPage() {
   const [observaciones, setObservaciones] = useState(defaultFacturaObs);
   const [showCobroPanel, setShowCobroPanel] = useState(false);
   const [nuevoAbono, setNuevoAbono] = useState('');
-  const [globoEnvioState, setGloboEnvioState] = useState<'hidden' | 'animating' | 'expanded'>('hidden');
+  const [modalEnvioOpen, setModalEnvioOpen] = useState(false);
   const [isEditingDraft, setIsEditingDraft] = useState(false);
 
 
@@ -502,8 +502,7 @@ export function FacturasPage() {
   }
 
   function registrarFactura() {
-    setRegistered(true)
-    setTimeout(() => setRegistered(false), 2500)
+    showToast("FACTURA GUARDADA", 'success')
   }
 
   async function eliminarFactura(id: string) {
@@ -576,10 +575,7 @@ export function FacturasPage() {
     localStorage.setItem(`factura_${selectedFactura.id}_email_at`, nowIso)
     setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
     playSuccessChime()
-    setGloboEnvioState('animating')
-    setTimeout(() => {
-      setGloboEnvioState('expanded')
-    }, 1500)
+    setModalEnvioOpen(true)
   }
 
   function clienteNombre(id: string) {
@@ -590,14 +586,14 @@ export function FacturasPage() {
     return clientes.find((c) => c.id === id)
   }
 
-  const getEstadoVisual = (f: Factura): { text: string, color: 'yellow' | 'green' | 'red' | 'slate' | 'amber' } => {
+  const getEstadoVisual = (f: Factura): { text: string, color: 'yellow' | 'green' | 'red' | 'gray' } => {
     if (f.estado_cobro === 'pagada') return { text: 'ABONADA', color: 'green' }
     if (f.estado_cobro === 'parcial') return { text: 'COBRO PARCIAL', color: 'yellow' }
     
     const isEnviada = !!(f.enviado_email_at || f.enviado_whatsapp_at)
     if (isEnviada) return { text: 'IMPAGADA', color: 'red' }
     
-    return { text: 'PENDIENTE', color: 'amber' }
+    return { text: 'PENDIENTE', color: 'yellow' }
   }
 
   const saldoPendiente = selectedFactura ? selectedFactura.total - selectedFactura.total_abonado : 0
@@ -1309,10 +1305,7 @@ export function FacturasPage() {
                                   localStorage.setItem(`factura_${selectedFactura.id}_wa_at`, nowIso)
                                   setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
                                   playSuccessChime()
-                                  setGloboEnvioState('animating')
-                                  setTimeout(() => {
-                                    setGloboEnvioState('expanded')
-                                  }, 1500)
+                                  setModalEnvioOpen(true)
                                 }
                               } catch (e: any) {
                                 console.error('[WhatsApp Factura Error]', e)
@@ -1553,59 +1546,45 @@ export function FacturasPage() {
         title={expedienteViewerTitle}
       />
 
-      {/* Globo de Confirmación de Envío -> Transición a Modal Estático Expandido x2 con botones grandes */}
-      {globoEnvioState !== 'hidden' && createPortal(
+      {/* Modal Informativo de Envío Directo con botones grandes */}
+      {modalEnvioOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
           <AnimatePresence mode="wait">
-            {globoEnvioState === 'animating' ? (
-              <motion.div
-                key="animating-globo"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.25 }}
-                className="bg-emerald-600 border-4 border-white text-white font-black text-xl sm:text-2xl px-10 py-5 rounded-3xl shadow-[0_20px_50px_rgba(16,185,129,0.8)] flex items-center gap-4 tracking-wider uppercase animate-bounce text-center"
-              >
-                <CheckCircle2 className="w-8 h-8 sm:w-10 sm:h-10 text-white shrink-0" />
-                <span>FACTURA ENVIADA</span>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="expanded-globo"
-                initial={{ opacity: 0, scale: 0.85 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.28, ease: "easeOut" }}
-                className="bg-slate-900 border-[3px] border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(16,185,129,0.3)] text-center text-white"
-              >
-                <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
-                  <CheckCircle2 className="w-9 h-9" />
-                </div>
-                <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
-                  FACTURA ENVIADA CORRECTAMENTE
-                </h3>
+            <motion.div
+              key="expanded-globo"
+              initial={{ opacity: 0, scale: 0.85 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.28, ease: "easeOut" }}
+              className="bg-slate-900 border-[3px] border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(16,185,129,0.3)] text-center text-white"
+            >
+              <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+                <CheckCircle2 className="w-9 h-9" />
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
+                FACTURA ENVIADA CORRECTAMENTE
+              </h3>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    onClick={() => {
-                      setGloboEnvioState('hidden');
-                      handleVolver();
-                    }}
-                    className="py-4 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-base sm:text-lg border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
-                  >
-                    VOLVER
-                  </button>
-                  <button
-                    onClick={() => {
-                      setGloboEnvioState('hidden');
-                    }}
-                    className="py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-base sm:text-lg border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
-                  >
-                    ACEPTAR
-                  </button>
-                </div>
-              </motion.div>
-            )}
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => {
+                    setModalEnvioOpen(false);
+                    handleVolver();
+                  }}
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[28px] sm:text-[32px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                >
+                  VOLVER
+                </button>
+                <button
+                  onClick={() => {
+                    setModalEnvioOpen(false);
+                  }}
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[28px] sm:text-[32px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                >
+                  ACEPTAR
+                </button>
+              </div>
+            </motion.div>
           </AnimatePresence>
         </div>,
         document.body

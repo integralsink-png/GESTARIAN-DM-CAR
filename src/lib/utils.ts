@@ -30,3 +30,13 @@ export function getExpediente(presupuesto: Partial<Presupuesto> & { expediente_i
 
   return `${clienteNum}${pNum}`;
 }
+
+export function formatDateShort(dateStr: string | Date | undefined | null): string {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '';
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const aa = String(d.getFullYear()).slice(-2);
+  return `${dd}/${mm}/${aa}`;
+}
