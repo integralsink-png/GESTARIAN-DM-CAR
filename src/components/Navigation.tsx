@@ -1,5 +1,5 @@
 import { NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react'
+import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, ChevronRight, Plus, UserPlus } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { NAV_ITEMS, FOOTER_NAV } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
@@ -238,13 +238,13 @@ export function MobileFooter() {
             <X className="w-5 h-5" />
           </button>
 
-          {/* Bento grid — ocupa el 100% de la altura de la pantalla */}
-          <div className="relative z-10 w-full h-full p-4 pt-16 pb-24 flex flex-col justify-between max-w-lg mx-auto">
+          {/* Bento grid — expandido al máximo con 5px de aire respecto a la pantalla */}
+          <div className="relative z-10 w-full min-h-full p-[5px] flex items-center justify-center">
             <div
-              className="w-full h-full grid gap-3"
+              className="w-full h-full max-w-none grid"
               style={{
                 gridTemplateColumns: 'repeat(12, 1fr)',
-                gridTemplateRows: 'repeat(6, 1fr)',
+                gap: '5px',
               }}
             >
               <style>{`
@@ -283,19 +283,25 @@ export function MobileFooter() {
                   flex-direction: column;
                   align-items: center;
                   justify-content: center;
-                  gap: 6px;
-                  border-radius: 13px;
-                  border-width: 1.5px;
+                  gap: 3px;
+                  border-radius: 12px;
+                  border-width: 1px;
                   border-style: solid;
                   overflow: hidden;
                   cursor: pointer;
                   -webkit-tap-highlight-color: transparent;
                   transition: border-color 0.2s ease, box-shadow 0.2s ease;
-                  padding: 10px;
+                  padding: 6px;
+                  min-height: 58px;
                   animation-duration: 1.5s;
                   animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
                   animation-fill-mode: backwards;
                   backdrop-filter: blur(12px);
+                }
+                .bento-btn span {
+                  color: #e2e8f0;
+                  font-weight: 100;
+                  font-size: 0.85rem;
                 }
                 .bento-btn:active {
                   animation: bentoTap 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
@@ -542,6 +548,46 @@ export function MobileFooter() {
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span className="text-white font-bold text-sm truncate">{item.label}</span>
+                  </button>
+                )
+              })()}
+
+              {/* 13. NUEVO PRESUPUESTO */}
+              {(() => {
+                const color = '#06b6d4'
+                return (
+                  <button
+                    key="nuevo-presupuesto"
+                    className="bento-btn"
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.90s' }}
+                    onClick={() => {
+                      playSound('click')
+                      setMenuOpen(false)
+                      navigate('/presupuestos', { state: { openForm: true } })
+                    }}
+                  >
+                    <Plus className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
+                    <span className="text-white font-bold text-sm truncate">Nuevo Presupuesto</span>
+                  </button>
+                )
+              })()}
+
+              {/* 14. NUEVO CLIENTE */}
+              {(() => {
+                const color = '#10b981'
+                return (
+                  <button
+                    key="nuevo-cliente"
+                    className="bento-btn"
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.96s' }}
+                    onClick={() => {
+                      playSound('click')
+                      setMenuOpen(false)
+                      navigate('/clientes', { state: { openNewModal: true } })
+                    }}
+                  >
+                    <UserPlus className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
+                    <span className="text-white font-bold text-sm truncate">Nuevo Cliente</span>
                   </button>
                 )
               })()}

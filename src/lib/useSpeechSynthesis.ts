@@ -94,7 +94,13 @@ export function useSpeechSynthesis() {
 
     // Intentar reproducir con Voz Humana Castellana de Google
     try {
-      const shortText = cleanText.slice(0, 200)
+      // Google TTS tiene un límite de ~200 caracteres: los textos más largos
+      // se hablan con el motor Web Speech nativo (sin límite) para no cortarse.
+      if (cleanText.length > 200) {
+        speakWebSpeech(cleanText, onEnd)
+        return
+      }
+      const shortText = cleanText
       const encoded = encodeURIComponent(shortText)
       const ttsUrl = `https://translate.google.com/translate_tts?ie=UTF-8&tl=es-ES&client=tw-ob&q=${encoded}`
       

@@ -172,42 +172,98 @@ ${(facturas || []).map(f => {
   }
 }
 
+// ── NORMALIZADOR DE HABLA ANDALUZA ──
+const MAPAS_ANDALUZ: [RegExp, string][] = [
+  // Acortamientos típicos del andaluz
+  [/\bpo\b/gi, 'pues'],
+  [/\bpa\b/gi, 'para'],
+  [/\bto\b/gi, 'todo'], [/\bna\b/gi, 'nada'], [/\bmu\b/gi, 'muy'],
+  [/\bto[áa]v[ií]a\b/gi, 'todavía'], [/\btav[ií]a\b/gi, 'todavía'], [/\baluego\b/gi, 'luego'],
+  [/\bande\b/gi, 'donde'], [/\bas[ií]n\b/gi, 'así'],
+  [/\b(?:quillo|quilla|illo|pisha|mijo|mija|compare|compadre)\b/gi, ''],
+  // Verbos y participios con sílaba comida
+  [/\bhas[ií]o\b/gi, 'hecho'], [/\bhas[ae]\b/gi, 'hace'], [/\bhasen\b/gi, 'hacen'], [/\bhaser\b/gi, 'hacer'],
+  [/\bpintao\b/gi, 'pintado'], [/\barreglao\b/gi, 'arreglado'], [/\bcambiao\b/gi, 'cambiado'],
+  [/\bterminao\b/gi, 'terminado'], [/\bdao\b/gi, 'dado'], [/\bcurao\b/gi, 'curado'], [/\bparao\b/gi, 'parado'], [/\bperdao\b/gi, 'perdido'],
+  // Ceceo (c por s) y s aspirada/caída
+  [/\bdocientos\b/gi, 'doscientos'], [/\bdocientas\b/gi, 'doscientas'], [/\bdocientoc\b/gi, 'doscientos'],
+  [/\btrec\b/gi, 'tres'], [/\bseih\b/gi, 'seis'], [/\bdoh\b/gi, 'dos'], [/\bseic\b/gi, 'seis'], [/\bhaserle\b/gi, 'hacerle'],
+  [/\bgraciac\b/gi, 'gracias'], [/\bgracioh\b/gi, 'gracias'], [/\bloh\b/gi, 'los'], [/\blah\b/gi, 'las'],
+  [/\behto\b/gi, 'esto'], [/\behta\b/gi, 'esta'], [/\behtos\b/gi, 'estos'], [/\behtas\b/gi, 'estas'],
+  [/\bnojotr[oa]\b/gi, 'nosotros'], [/\bvojotr[oa]\b/gi, 'vosotros'],
+  // Palabras del taller con pronunciación andaluza
+  [/\bparagorpe\b/gi, 'paragolpes'], [/\bparagolpeh\b/gi, 'paragolpes'],
+  [/\baceiteh\b/gi, 'aceite'], [/\baceit\b/gi, 'aceite'], [/\bfrenoh\b/gi, 'frenos'], [/\bfiltroh\b/gi, 'filtros'],
+  [/\bmatricla\b/gi, 'matrícula'], [/\bmatr[íi]cula\b/gi, 'matrícula'], [/\bveiculo\b/gi, 'vehículo'],
+  // Ceceo genérico: "c" final de palabra -> "s" (cocheC -> cocheS). Mín. 4 letras + c para NO tocar matrículas tipo "ABC"
+  [/\b([a-záéíóúñü]{4,})c\b/gi, '$1s'],
+]
+
+export function normalizeAndaluz(text: string): string {
+  let out = text
+  for (const [re, to] of MAPAS_ANDALUZ) out = out.replace(re, to)
+  return out.replace(/\s{2,}/g, ' ').trim()
+}
+
+// ── GUARDIA ANTI-IDIOMAS: detecta respuestas fuera del español ──
+const RE_CARACTERES_NO_LATINOS = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\u0400-\u04ff]/
+const PALABRAS_INGLESAS = new Set(['the','and','you','your','please','thank','what','how','this','that','with','have','will','would','should','could','need','make','here','there','from','for','are','was','were','can','about','into','after','before','more','than','just','also','these','those','because','when','where','which','while','their','they','them','then','some','such','only','very','each','may','must','shall','not','but','has','had','been','being','does','did','all','any','one','two','three'])
+
+function esTextoNoEspanol(texto: string): boolean {
+  if (!texto) return false
+  if (RE_CARACTERES_NO_LATINOS.test(texto)) return true
+  const palabras = texto.toLowerCase().split(/[^a-záéíóúñü]+/i).filter(w => w.length > 3)
+  if (palabras.length < 4) return false
+  const inglesas = palabras.filter(w => PALABRAS_INGLESAS.has(w)).length
+  return inglesas / palabras.length > 0.4
+}
+
+async function ejecutarConGuardia(
+  engine: (u: string) => Promise<MetisResponse>,
+  textoLimpio: string
+): Promise<MetisResponse | null> {
+  try {
+    const resp = await engine(textoLimpio)
+    if (!esTextoNoEspanol(resp.text)) return resp
+    // La IA respondió en un idioma no español: un único reintento pidiendo español
+    try {
+      const resp2 = await engine(`${textoLimpio}\n[IMPORTANTE: La respuesta anterior no estaba en español de España. Responde de nuevo ÚNICAMENTE en español de España.]`)
+      return esTextoNoEspanol(resp2.text) ? resp : resp2
+    } catch (e) { return resp }
+  } catch (e: any) {
+    console.error('Error en motor IA:', e)
+    return null
+  }
+}
+
+
 // MAIN ENTRY POINT
 export async function processMetisMessage(
   userText: string,
   context?: MetisContext
 ): Promise<MetisResponse> {
-  // 1. Prefer Google Gemini API key if configured
+  const textoLimpio = normalizeAndaluz(userText)
+
+  // 1. Google Gemini API key if configured
   const geminiKey = localStorage.getItem('gestarian_gemini_api_key')?.trim()
   if (geminiKey) {
-    try {
-      return await processWithGemini(geminiKey, userText, context)
-    } catch (e: any) {
-      console.error('Error con Gemini API:', e)
-    }
+    const r = await ejecutarConGuardia((u) => processWithGemini(geminiKey, u, context), textoLimpio)
+    if (r) return r
   }
 
-  // 2. Prefer Hugging Face Inference API if configured
+  // 2. Hugging Face Inference API if configured
   const hfKey = localStorage.getItem('gestarian_hf_api_key')?.trim()
   if (hfKey) {
-    try {
-      return await processWithHuggingFace(hfKey, userText, context)
-    } catch (e: any) {
-      console.error('Error con Hugging Face Inference API:', e)
-    }
+    const r = await ejecutarConGuardia((u) => processWithHuggingFace(hfKey, u, context), textoLimpio)
+    if (r) return r
   }
 
-  // 3. Groq (Llama 3) if API key present
-  const groqKey = localStorage.getItem('gestarian_groq_api_key')?.trim()
-  if (groqKey) {
-    try {
-      return await processWithGroq(groqKey, userText, context)
-    } catch (e: any) {
-      console.error('Error con Groq API:', e)
-    }
-  }
+  // 🕳️ HUECO RESERVADO PARA NUEVA IA ALTERNATIVA
+  // Antes aquí estaba Groq (llama-3.3-70b-versatile), fuera de servicio.
+  // Para añadir otra IA: usa la función processWithGroq como plantilla
+  // (cambia URL/clave/modelo) y añade aquí su bloque igual que Gemini/HF.
 
-  return processWithBasicEngine(userText, context)
+  return processWithBasicEngine(textoLimpio, context)
 }
 
 // ── GEMINI INFERENCE ENGINE ──
@@ -216,6 +272,10 @@ async function processWithGemini(apiKey: string, userText: string, context?: Met
 
   const systemInstruction = `Eres METIS, el cerebro de inteligencia artificial y asistente experto de GESTARIAN para el taller piloto DM CAR.
 Tienes acceso directo y en tiempo real a toda la base de datos operativa del taller (clientes, vehículos, presupuestos, facturas, cobros, citas e histórico de reparaciones).
+
+REGLAS DE IDIOMA (INFRANQUEABLES):
+- Responde SIEMPRE en Español de España (castellano). NUNCA en inglés, chino ni ningún otro idioma, aunque el usuario hable en otro idioma o con errores de transcripción de voz.
+- El usuario puede hablar ANDALUZ: sílabas omitidas ("pa" por "para", "po" por "pues", "to" por "todo"), ceceo (dice "c" en vez de "s") y participios recortados ("hasio" por "hecho"). Interpreta la intención según el contexto del taller y responde SIEMPRE en español normativo y profesional, sin imitar el andaluz.
 
 PERSONALIDAD Y VOZ:
 - Hablas un Español de España impecable, natural, fluido y castizo (como alguien culto y directo de Valladolid o Madrid). Nada de tono robótico, nada de "¡Hola! ¿En qué puedo ayudarte hoy?". Ve directo al grano, con seguridad técnica y amabilidad profesional de taller.
@@ -433,7 +493,10 @@ async function processWithHuggingFace(apiKey: string, userText: string, context?
 }
 
 // ── GROQ ADVANCED ENGINE (Llama 3) ──
-async function processWithGroq(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
+// Mantenida como PLANTILLA para futuras IAs alternativas (ver HUECO RESERVADO
+// en processMetisMessage). Se exporta para que el compilador no la marque como
+// código muerto; cuando se reutilice, puede volver a ser local.
+export async function processWithGroq(apiKey: string, userText: string, context?: MetisContext): Promise<MetisResponse> {
   const openai = new OpenAI({
     apiKey: apiKey,
     baseURL: "https://api.groq.com/openai/v1",

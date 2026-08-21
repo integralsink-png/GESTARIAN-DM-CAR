@@ -31,6 +31,7 @@ import {
   FileText,
   ArrowLeft,
   Search,
+  UserPlus,
   ImageIcon,
   FolderOpen,
   CheckCircle2,
@@ -100,11 +101,10 @@ function ConceptoMobileCard({
           onChange={(e) =>
             onChange({ ...concepto, descripcion: e.target.value })
           }
-          className={`flex-1 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-3 py-2 text-sm focus:border-blue-700 focus:outline-none min-w-0 font-medium transition-all ${
-            animarDescripcion
+          className={`flex-1 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-3 py-2 text-sm focus:border-blue-700 focus:outline-none min-w-0 font-medium transition-all ${animarDescripcion
               ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
               : "border-gray-300"
-          }`}
+            }`}
         />
         <button
           onClick={onDelete}
@@ -129,11 +129,10 @@ function ConceptoMobileCard({
                 cantidad: parseFloat(e.target.value) || 0,
               })
             }
-            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
-              animarCantidad
+            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCantidad
                 ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                 : "border-gray-300"
-            }`}
+              }`}
           />
         </div>
         <div className="flex-1">
@@ -148,11 +147,10 @@ function ConceptoMobileCard({
             onChange={(e) =>
               onChange({ ...concepto, precio: parseFloat(e.target.value) || 0 })
             }
-            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
-              animarPrecio
+            className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${animarPrecio
                 ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                 : "border-gray-300"
-            }`}
+              }`}
           />
         </div>
         <div className="flex-shrink-0">
@@ -230,6 +228,8 @@ export function PresupuestosPage() {
   const [showForm, setShowForm] = useState(openFormFromNav ?? false);
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [selectedClienteId, setSelectedClienteId] = useState("");
+  const [clienteSearchText, setClienteSearchText] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [selectedVehiculoId, setSelectedVehiculoId] = useState("");
   const [conceptos, setConceptos] = useState<Concepto[]>([
     { descripcion: "", cantidad: 1, precio: 0 },
@@ -526,7 +526,7 @@ export function PresupuestosPage() {
     const quarter = Math.floor(now.getMonth() / 3) + 1;
     const currentYearSuffix = now.getFullYear().toString().slice(-2);
     const prefix = `P${quarter}T${currentYearSuffix}`;
-    
+
     // Buscar la máxima secuencia de presupuestos del año en curso
     // Se contemplan ambos formatos: P261234 (antiguo) y P3T260001 (nuevo)
     let maxSeq = 0;
@@ -561,7 +561,7 @@ export function PresupuestosPage() {
     });
 
     const numero = `${prefix}${String(maxSeq + 1).padStart(4, '0')}`;
-    
+
     const cliente = clientes.find(c => c.id === selectedClienteId);
     let clienteNum = '';
     if (cliente) {
@@ -588,19 +588,19 @@ export function PresupuestosPage() {
         .eq("id", editingId)
         .select()
         .maybeSingle();
-        
+
       if (error) {
         console.error("Error actualizando presupuesto:", error);
         showToast("Error al guardar presupuesto: " + error.message, "error");
         return;
       }
       playSuccessSound();
-      setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+      setShowSentToast("Presupuesto guardado, puede enviarlo al cliente por Email o Watsapp.");
       setAnimarEnvioPostSave(false);
       setTimeout(() => {
         setShowSentToast(null);
         setAnimarEnvioPostSave(true);
-      }, 2000);
+      }, 5000);
       if (updatedPres?.id) setEditingId(updatedPres.id);
     } else {
       const { data: newPres, error } = await supabase.from("presupuestos").insert({
@@ -614,19 +614,19 @@ export function PresupuestosPage() {
         fotos: navState?.initialFotos || [],
         estado: "pendiente",
       }).select().maybeSingle();
-      
+
       if (error) {
         console.error("Error creando presupuesto:", error);
         showToast("Error al guardar presupuesto: " + error.message, "error");
         return;
       }
       playSuccessSound();
-      setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+      setShowSentToast("Presupuesto guardado, puede enviarlo al cliente por Email o Watsapp.");
       setAnimarEnvioPostSave(false);
       setTimeout(() => {
         setShowSentToast(null);
         setAnimarEnvioPostSave(true);
-      }, 2000);
+      }, 5000);
       if (newPres?.id) {
         setEditingId(newPres.id);
       }
@@ -877,22 +877,78 @@ export function PresupuestosPage() {
                       <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
                         Cliente
                       </p>
-                      <select
-                        value={selectedClienteId}
-                        onChange={(e) => handleChangeCliente(e.target.value)}
-                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
-                          animarCliente
-                            ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                            : "border-gray-300"
-                        }`}
+                      {/* Selector de cliente clásico (ancho completo, mismo formato) */}
+                      <div className="mb-2">
+                        <select
+                          value={selectedClienteId}
+                          onChange={(e) => handleChangeCliente(e.target.value)}
+                          className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
+                              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                              : "border-gray-300"
+                            }`}
+                          style={{ fontSize: '0.80rem' }}
+                        >
+                          <option value="" className="text-xs" style={{ fontSize: '90%' }}>Seleccionar cliente...</option>
+                          {clientes.map((c) => (
+                            <option key={c.id} value={c.id} className="text-xs" style={{ fontSize: '90%' }}>
+                              {c.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="relative mb-2">
+                        <input
+                          type="text"
+                          value={clienteSearchText}
+                          onChange={(e) => {
+                            setClienteSearchText(e.target.value);
+                            setShowClientDropdown(true);
+                            if (!e.target.value) {
+                              handleChangeCliente("");
+                            }
+                          }}
+                          onFocus={() => setShowClientDropdown(true)}
+                          placeholder="Buscar cliente (escribe para filtrar)..."
+                          className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
+                              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                              : "border-gray-300"
+                            }`}
+                          style={{ fontSize: '0.80rem' }}
+                        />
+                        {showClientDropdown && clienteSearchText && (
+                          <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-xl shadow-lg">
+                            {clientes
+                              .filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase())))
+                              .map(c => (
+                                <div
+                                  key={c.id}
+                                  onClick={() => {
+                                    handleChangeCliente(c.id);
+                                    setClienteSearchText(c.nombre);
+                                    setShowClientDropdown(false);
+                                  }}
+                                  className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-semibold text-blue-900 flex justify-between items-center"
+                                  style={{ fontSize: '0.80rem' }}
+                                >
+                                  <span>{c.nombre}</span>
+                                  {c.dni && <span className="text-[10px] text-gray-500">{c.dni}</span>}
+                                </div>
+                              ))}
+                            {clientes.filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase()))).length === 0 && (
+                              <div className="px-3 py-2 text-xs text-gray-500 text-center" style={{ fontSize: '0.80rem' }}>No se encontraron clientes</div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/clientes', { state: { openNewModal: true } })}
+                        className="w-full py-1.5 px-3 bg-emerald-500/10 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 mb-2 shadow-sm"
+                        style={{ fontSize: '0.80rem' }}
                       >
-                        <option value="">Seleccionar cliente...</option>
-                        {clientes.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.nombre}
-                          </option>
-                        ))}
-                      </select>
+                        <UserPlus className="w-4 h-4" /> Nuevo cliente
+                      </button>
                       {selectedClienteId &&
                         (() => {
                           const c = clienteData(selectedClienteId);
@@ -914,18 +970,17 @@ export function PresupuestosPage() {
                       <select
                         value={selectedVehiculoId}
                         onChange={(e) => handleChangeVehiculo(e.target.value)}
-                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
-                          animarVehiculo
+                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarVehiculo
                             ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                             : "border-gray-300"
-                        }`}
+                          }`}
                         disabled={!selectedClienteId}
                       >
                         <option value="">
-                          {!selectedClienteId 
-                            ? "Seleccione cliente primero..." 
-                            : vehiculos.length > 1 
-                              ? "Selecciona vehículo..." 
+                          {!selectedClienteId
+                            ? "Seleccione cliente primero..."
+                            : vehiculos.length > 1
+                              ? "Selecciona vehículo..."
                               : "Sin vehículo"}
                         </option>
                         {vehiculos.map((v) => (
@@ -997,11 +1052,10 @@ export function PresupuestosPage() {
                                   next[i] = { ...c, descripcion: e.target.value };
                                   handleChangeConcepto(next);
                                 }}
-                                className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${
-                                  isFirst && animarDescripcion
+                                className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${isFirst && animarDescripcion
                                     ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                                     : "border-gray-300"
-                                }`}
+                                  }`}
                               />
                             </td>
                             <td className="py-1 text-center">
@@ -1018,11 +1072,10 @@ export function PresupuestosPage() {
                                   };
                                   handleChangeConcepto(next);
                                 }}
-                                className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
-                                  isFirst && animarCantidad
+                                className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarCantidad
                                     ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                                     : "border-gray-300"
-                                }`}
+                                  }`}
                               />
                             </td>
                             <td className="py-1 text-right">
@@ -1039,11 +1092,10 @@ export function PresupuestosPage() {
                                   };
                                   handleChangeConcepto(next);
                                 }}
-                                className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
-                                  isFirst && animarPrecio
+                                className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarPrecio
                                     ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
                                     : "border-gray-300"
-                                }`}
+                                  }`}
                               />
                             </td>
                             <td className="py-1 text-right">
@@ -1101,11 +1153,10 @@ export function PresupuestosPage() {
                           { descripcion: "", cantidad: 1, precio: 0 },
                         ])
                       }
-                      className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${
-                        animarAddLinea
+                      className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${animarAddLinea
                           ? "border-blue-600 animated-contour-border-blue shadow-[0_0_16px_rgba(37,99,235,0.7)]"
                           : "border-blue-300 hover:border-blue-400"
-                      }`}
+                        }`}
                       title="Añadir nueva línea"
                     >
                       <Plus className="w-4 h-4 text-blue-600 font-black" />
@@ -1180,7 +1231,7 @@ export function PresupuestosPage() {
                 const pId = editingId || currentP?.id
                 const vId = selectedVehiculoId || currentP?.vehiculo_id
                 const cId = selectedClienteId || currentP?.cliente_id
-                
+
                 // Un presupuesto solo se bloquea si su expediente ha llegado a FACTURA -> GENERAR FACTURA -> BORRADOR -> CONFIRMAR
                 const tieneFacturaConfirmada = (() => {
                   if (!pId) return false;
@@ -1236,9 +1287,8 @@ export function PresupuestosPage() {
                               playSuccessSound()
                               setModalEnvioOpen(true)
                             }}
-                            className={`p-1 hover:scale-110 transition-transform active:scale-95 shrink-0 ${
-                              animarEnvio ? "animated-send-email-alt" : ""
-                            }`}
+                            className={`p-1 hover:scale-110 transition-transform active:scale-95 shrink-0 ${animarEnvio ? "animated-send-email-alt" : ""
+                              }`}
                             title="ENVIAR POR EMAIL"
                             aria-label="ENVIAR POR EMAIL"
                           >
@@ -1308,7 +1358,7 @@ export function PresupuestosPage() {
                                   pdfBlob,
                                   cliente,
                                   matricula: veh?.matricula,
-                                  })
+                                })
 
                                 if (res.success) {
                                   if (currentP?.id) {
@@ -1328,9 +1378,8 @@ export function PresupuestosPage() {
                                 alert('No se ha podido preparar el documento para WhatsApp: ' + e.message)
                               }
                             }}
-                            className={`hover:scale-110 transition-transform active:scale-95 shrink-0 ${
-                              animarEnvio ? "animated-send-wa-alt" : ""
-                            }`}
+                            className={`hover:scale-110 transition-transform active:scale-95 shrink-0 ${animarEnvio ? "animated-send-wa-alt" : ""
+                              }`}
                             title="ENVIAR POR WHATSAPP"
                             aria-label="ENVIAR POR WHATSAPP"
                           >
@@ -1372,30 +1421,32 @@ export function PresupuestosPage() {
                         </div>
                       )}
 
-                      {/* LÍNEA 2: VOLVER (IZQUIERDA) | GUARDAR (DERECHA) */}
-                      <div className="flex items-center justify-between pt-2 px-2">
-                        {/* VOLVER A LA IZQUIERDA (Gris 80%) */}
+                      {/* LÍNEA 2: VOLVER Y GUARDAR CENTRADOS SIMÉTRICAMENTE (Tamaño x0.80, contorno verde) */}
+                      <div className="flex items-center justify-center gap-6 pt-2 px-2">
+                        {/* BOTÓN VOLVER */}
                         <button
                           onClick={resetForm}
-                          className="px-5 py-2.5 rounded-xl bg-gray-500/80 hover:bg-gray-500 text-white border border-gray-400/60 font-bold text-xs tracking-wider uppercase shadow-md transition-all active:scale-95"
+                          className="px-4 py-2 rounded-xl bg-white !bg-white text-emerald-600 !text-emerald-600 border-2 border-emerald-500 hover:bg-emerald-50 font-black tracking-wider uppercase shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
+                          style={{ fontSize: '0.80rem' }}
                         >
-                          VOLVER
+                          <ArrowLeft className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                          <span>VOLVER</span>
                         </button>
 
-                        {/* GUARDAR A LA DERECHA (Relleno blanco, texto verde y contorno verde whatsapp con animación de crecimiento) */}
+                        {/* BOTÓN GUARDAR */}
                         <button
                           onClick={handleSave}
                           disabled={tieneFacturaConfirmada}
-                          className={`px-6 py-2.5 rounded-xl font-black text-xs tracking-wider uppercase shadow-md transition-all active:scale-95 flex items-center gap-2 bg-white !bg-white text-[#25D366] !text-[#25D366] border-2 border-[#25D366] ${
-                            tieneFacturaConfirmada 
+                          className={`px-4 py-2 rounded-xl font-black tracking-wider uppercase shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5 bg-white !bg-white text-[#25D366] !text-[#25D366] border-2 border-[#25D366] ${tieneFacturaConfirmada
                               ? 'bg-gray-100 !bg-gray-100 text-gray-400 !text-gray-400 border-gray-300 cursor-not-allowed opacity-60'
                               : animarGuardar
                                 ? 'animated-guardar-whatsapp'
                                 : 'hover:bg-green-50'
-                          }`}
+                            }`}
+                          style={{ fontSize: '0.80rem' }}
                           title={tieneFacturaConfirmada ? "Presupuesto cerrado por factura confirmada" : "GUARDAR PRESUPUESTO"}
                         >
-                          <Check className="w-4 h-4 text-[#25D366] stroke-[3]" />
+                          <Check className="w-3.5 h-3.5 text-[#25D366] stroke-[3]" />
                           <span className="text-[#25D366] font-black">GUARDAR</span>
                         </button>
                       </div>
@@ -1473,8 +1524,8 @@ export function PresupuestosPage() {
               const cardClasses = isExpanded
                 ? `${generalBorderColor} ring-1 ring-white/20 z-10`
                 : expandedClienteId
-                ? `${generalBorderColor} opacity-70 brightness-[0.70]`
-                : `${generalBorderColor} hover:border-cyan-400/80`;
+                  ? `${generalBorderColor} opacity-70 brightness-[0.70]`
+                  : `${generalBorderColor} hover:border-cyan-400/80`;
 
               return (
                 <motion.div
@@ -1521,10 +1572,10 @@ export function PresupuestosPage() {
                         >
                           <p className="text-base sm:text-lg font-black text-slate-300 uppercase tracking-wider px-1 text-center">Historial de presupuestos</p>
                           {clientPresups.map((p) => {
-                            const veh = p.vehiculo_id 
+                            const veh = p.vehiculo_id
                               ? (allVehiculos[p.vehiculo_id] || vehiculos.find(x => x.id === p.vehiculo_id))
                               : Object.values(allVehiculos).find(v => v.cliente_id === cliente.id) || null;
-                            
+
                             let borderClass = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
                             if (p.estado === 'aceptado') {
                               borderClass = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
@@ -1653,6 +1704,21 @@ export function PresupuestosPage() {
         </motion.div>
       )}
 
+      {showSentToast && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-emerald-500 text-white px-6 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-4 font-bold w-[90%] sm:w-auto max-w-md text-center animate-bounce">
+          <p className="text-sm sm:text-base leading-relaxed">{showSentToast}</p>
+          <button
+            onClick={() => {
+              setShowSentToast(null);
+              setAnimarEnvioPostSave(true);
+            }}
+            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-black transition-all active:scale-95 shadow-lg border border-emerald-400 uppercase tracking-wider cursor-pointer"
+          >
+            Aceptar
+          </button>
+        </div>
+      )}
+
       <GlobalImageViewer
         isOpen={showExpedienteViewer || !!viewerMatricula}
         onClose={() => {
@@ -1673,6 +1739,32 @@ export function PresupuestosPage() {
         }}
         title={expedienteViewerTitle}
       />
+      {/* Modal Informativo de Presupuesto Guardado (5 segundos, centrado sin animación, con sonido y botón aceptar) */}
+      {showSentToast && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-slate-900 border-[3px] border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(16,185,129,0.3)] text-center text-white">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+              <CheckCircle2 className="w-9 h-9" />
+            </div>
+            <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white mb-6">
+              {showSentToast}
+            </h3>
+            <div className="flex justify-center">
+              <button
+                onClick={() => {
+                  setShowSentToast(null);
+                  setAnimarEnvioPostSave(true);
+                }}
+                className="py-3 px-8 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+              >
+                ACEPTAR
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Modal Informativo de Presupuesto Enviado Directo con botones grandes */}
       {modalEnvioOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">

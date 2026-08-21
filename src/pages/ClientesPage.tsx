@@ -29,6 +29,11 @@ export function ClientesPage() {
   const infoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (location.state?.openNewModal) {
+      setShowNuevoClienteModal(true)
+    }
+  }, [location.state?.openNewModal])
+  useEffect(() => {
     if (location.state?.fromNuevoExpediente) {
       setShowNuevoExpedienteInfo(true)
       if (infoTimerRef.current) clearTimeout(infoTimerRef.current)

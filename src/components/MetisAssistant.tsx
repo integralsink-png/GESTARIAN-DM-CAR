@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Power } from 'lucide-react'
+import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Power, Settings } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../lib/theme'
-import { useVoice } from '../lib/useVoice'
+import { useVoice, getMicSettingsUrl } from '../lib/useVoice'
 import { useSpeechSynthesis } from '../lib/useSpeechSynthesis'
 import { processMetisMessage, MetisContext, MetisActionResult } from '../lib/metisAiEngine'
 
@@ -36,7 +36,7 @@ export function MetisAssistant() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const { listening, transcript, interim, supported, start, stop, reset } = useVoice()
+  const { listening, transcript, interim, supported, start, stop, reset, error, permissionDenied, pending, requestPermission } = useVoice()
   const { speak, stop: stopSpeech } = useSpeechSynthesis()
 
   // Auto-scroll to bottom of chat
@@ -190,7 +190,6 @@ export function MetisAssistant() {
   }, [input, activeContext, playSound, voiceInputActive, conversationalMode, speak, open, reset, start])
 
   const toggleMic = useCallback(() => {
-    if (!supported) return
     playSound('click')
     if (listening) {
       stop()
@@ -206,7 +205,24 @@ export function MetisAssistant() {
       setConversationalMode(true) // Activar modo manos libres continuo
       start()
     }
-  }, [supported, listening, playSound, stop, reset, stopSpeech, start, transcript, handleSendMessage])
+  }, [listening, playSound, stop, reset, stopSpeech, start, transcript, handleSendMessage])
+
+  // El micrófono no se ha activado por falta de permiso: primero se vuelve a pedir
+  // el permiso (mostrará la pregunta del navegador y el usuario pulsa "Permitir");
+  // si sigue bloqueado, se abre la pantalla de ajustes del sistema/navegador.
+  const handleOpenMicSettings = useCallback(async () => {
+    playSound('click')
+    // Abrimos los ajustes de forma síncrona para que el navegador no bloquee la ventana
+    const url = getMicSettingsUrl()
+    const win = url ? window.open(url, '_blank') : null
+    // Y reintentamos pedir permiso: si el usuario ya lo ha concedido, arrancamos directamente
+    const perm = await requestPermission()
+    if (perm === 'granted') {
+      if (win) { try { win.close() } catch { /* ignorar */ } }
+      reset()
+      start()
+    }
+  }, [playSound, requestPermission, reset, start])
 
   // Auto-finish listening when transcript stops changing after a pause
   useEffect(() => {
@@ -228,13 +244,13 @@ export function MetisAssistant() {
 
   // Handle native end of speech (for Android where it closes aggressively)
   useEffect(() => {
-    if (!listening && voiceInputActive) {
+    if (!listening && !pending && voiceInputActive) {
       setVoiceInputActive(false)
       if (transcript.trim()) {
         handleSendMessage(transcript, true)
       }
     }
-  }, [listening, voiceInputActive, transcript, handleSendMessage])
+  }, [listening, pending, voiceInputActive, transcript, handleSendMessage])
 
   return (
     <>
@@ -400,6 +416,42 @@ export function MetisAssistant() {
                   </div>
                   {interim && <p className="text-xs text-white/50 italic mb-1">{interim}</p>}
                   {transcript && <p className="text-sm font-medium text-white/90">{transcript}</p>}
+                </div>
+              </div>
+            )}
+
+            {/* Error de micrófono visible para el usuario */}
+            {error && !listening && (
+              <div className="flex justify-start">
+                <div className="bg-red-950/80 border border-red-500/40 rounded-2xl px-4 py-3 w-full space-y-3">
+                  <div className="flex items-start gap-2">
+                    <MicOff className="w-4 h-4 mt-0.5 text-red-400 shrink-0" />
+                    <p className="text-sm text-red-200 whitespace-pre-line">{error}</p>
+                  </div>
+
+                  {permissionDenied ? (
+                    <>
+                      <button
+                        onClick={handleOpenMicSettings}
+                        className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-100 text-xs font-bold hover:bg-red-500/30 transition-colors"
+                      >
+                        <Settings className="w-3.5 h-3.5" />
+                        Activar micrófono (abrir ajustes)
+                      </button>
+                      <p className="text-[11px] text-red-300/70 leading-relaxed">
+                        Se abrirán los ajustes del sistema/navegador. Activa el micrófono y permite el acceso a tu navegador.
+                        Si sigue fallando, pulsa el candado de la barra de direcciones → Permisos → Micrófono → Permitir.
+                      </p>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => { reset(); start() }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-bg-800 border border-bg-700 text-white/80 text-xs font-semibold hover:text-white hover:border-cyan-500/40 transition-colors"
+                    >
+                      <Mic className="w-3.5 h-3.5" />
+                      Reintentar
+                    </button>
+                  )}
                 </div>
               </div>
             )}

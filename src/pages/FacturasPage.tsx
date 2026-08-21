@@ -4,11 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Vehiculo } from '../lib/types'
-import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search, CheckCircle2, Plus } from 'lucide-react'
-import { getExpediente } from '../lib/utils'
+import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search, CheckCircle2, Plus, FolderOpen } from 'lucide-react'
+import { ExpedienteFolderIcon } from '../components/CustomIcons'
 import { Card, Badge, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
+import { getExpediente } from '../lib/utils'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
 import { playSuccessChime } from '../lib/sound'
@@ -1026,10 +1027,33 @@ export function FacturasPage() {
                   {config?.telefono && <p className="text-xs text-gray-500">Tel: {config.telefono}</p>}
                 </div>
               </div>
-              <div className="text-right">
-                <h3 className="text-lg md:text-2xl font-bold uppercase tracking-wide">Factura</h3>
-                <p className="text-sm text-gray-600 mt-1">{selectedFactura.numero}</p>
-                <p className="text-xs text-gray-500">{new Date(selectedFactura.fecha).toLocaleDateString('es-ES')}</p>
+              <div className="flex items-center gap-3">
+                {/* Botón Ver Expediente */}
+                {(() => {
+                  const clienteObj = clienteData(selectedFactura.cliente_id)
+                  const vehObj = vehiculos.find(v => v.id === selectedFactura.vehiculo_id)
+                  return (
+                    <motion.button
+                      whileHover={{ scale: 1.15 }}
+                      whileTap={{ scale: 0.92 }}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate('/expedientes', { state: { search: clienteObj?.nombre || vehObj?.matricula || '' } })
+                      }}
+                      className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+                      title="Ver Expediente"
+                      aria-label="Ver Expediente"
+                    >
+                      <ExpedienteFolderIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+                    </motion.button>
+                  )
+                })()}
+
+                <div className="text-right">
+                  <h3 className="text-lg md:text-2xl font-bold uppercase tracking-wide">Factura</h3>
+                  <p className="text-sm text-gray-600 mt-1">{selectedFactura.numero}</p>
+                  <p className="text-xs text-gray-500">{new Date(selectedFactura.fecha).toLocaleDateString('es-ES')}</p>
+                </div>
               </div>
             </div>
 
@@ -1238,9 +1262,9 @@ export function FacturasPage() {
                   <div className="space-y-6">
                     {/* DOS LÍNEAS DE ACCIONES CENTRADAS */}
                     <div className="space-y-4">
-                      {/* LÍNEA 1: EMAIL | IMÁGENES | IMPRIMIR | WHATSAPP */}
-                      <div className="flex items-center justify-center gap-3 sm:gap-5">
-                        {/* 1. EMAIL (Flotante sin recuadro) */}
+                      {/* LÍNEA 1: EMAIL | IMÁGENES | EXPEDIENTE (EN EL CENTRO) | IMPRIMIR | WHATSAPP */}
+                      <div className="flex items-center justify-center gap-2 sm:gap-3 flex-nowrap">
+                        {/* 1. EMAIL */}
                         {!emailSentAt && (
                           <button
                             onClick={enviarEmail}
@@ -1248,14 +1272,14 @@ export function FacturasPage() {
                             title="ENVIAR POR EMAIL"
                             aria-label="ENVIAR POR EMAIL"
                           >
-                            <svg className="w-16 h-16 sm:w-20 sm:h-20 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <svg className="w-14 h-14 sm:w-16 sm:h-16 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                               <polyline points="22,6 12,13 2,6" />
                             </svg>
                           </button>
                         )}
 
-                        {/* 2. IMÁGENES (Muestra TODAS las fotos del expediente) */}
+                        {/* 2. IMÁGENES */}
                         <button
                           onClick={async () => {
                             const cId = selectedFactura?.cliente_id
@@ -1266,21 +1290,39 @@ export function FacturasPage() {
                             setExpedienteViewerTitle(`Expediente Factura ${selectedFactura?.numero || ''}`)
                             setShowExpedienteViewer(true)
                           }}
-                          className="w-16 h-16 rounded-2xl bg-slate-800 text-amber-400 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/85 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
                           title="IMÁGENES DEL EXPEDIENTE"
                           aria-label="IMÁGENES DEL EXPEDIENTE"
                         >
-                          <ImageIcon className="w-8 h-8 text-amber-400" />
+                          <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" />
                         </button>
 
-                        {/* 3. IMPRIMIR */}
+                        {/* 3. EXPEDIENTE EN EL CENTRO */}
+                        <button
+                          onClick={() => {
+                            navigate('/expedientes', {
+                              state: {
+                                expandFacturaId: selectedFactura?.id,
+                                expandVehiculoId: selectedFactura?.vehiculo_id,
+                                clienteId: selectedFactura?.cliente_id
+                              }
+                            });
+                          }}
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/85 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+                          title="VER EXPEDIENTE COMPLETO / ROADMAP"
+                          aria-label="EXPEDIENTE"
+                        >
+                          <FolderOpen className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400 fill-amber-400/30" />
+                        </button>
+
+                        {/* 4. IMPRIMIR */}
                         <button
                           onClick={() => window.print()}
-                          className="w-16 h-16 rounded-2xl bg-slate-800 text-slate-300 border border-slate-700 hover:bg-slate-700 flex items-center justify-center shadow transition-all active:scale-95 shrink-0"
+                          className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/85 hover:bg-gray-500 text-white border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
                           title="IMPRIMIR"
                           aria-label="IMPRIMIR"
                         >
-                          <Printer className="w-8 h-8 text-slate-300" />
+                          <Printer className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                         </button>
 
                         {/* 4. WHATSAPP (Bocadillo verde) */}
@@ -1316,7 +1358,7 @@ export function FacturasPage() {
                             title="ENVIAR POR WHATSAPP"
                             aria-label="ENVIAR POR WHATSAPP"
                           >
-                            <div className="relative w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center">
+                            <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
                               <svg className="w-full h-full drop-shadow-md" viewBox="0 0 48 48" fill="none">
                                 <path
                                   d="M24 4C12.95 4 4 12.95 4 24C4 27.84 5.08 31.43 6.96 34.5L4 44L13.82 41.13C16.76 42.97 20.26 44 24 44C35.05 44 44 35.05 44 24C44 12.95 35.05 4 24 4Z"
@@ -1571,7 +1613,7 @@ export function FacturasPage() {
                     setModalEnvioOpen(false);
                     handleVolver();
                   }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[28px] sm:text-[32px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[22px] sm:text-[26px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
                 >
                   VOLVER
                 </button>
@@ -1579,7 +1621,7 @@ export function FacturasPage() {
                   onClick={() => {
                     setModalEnvioOpen(false);
                   }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[28px] sm:text-[32px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[22px] sm:text-[26px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
                 >
                   ACEPTAR
                 </button>

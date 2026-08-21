@@ -22,11 +22,14 @@ interface SpeechRecognitionLike {
   lang: string
   continuous: boolean
   interimResults: boolean
+  maxAlternatives: number
   start: () => void
   stop: () => void
+  abort: () => void
+  onstart: (() => void) | null
   onresult: ((e: SpeechRecognitionEvent) => void) | null
   onend: (() => void) | null
-  onerror: (() => void) | null
+  onerror: ((e: any) => void) | null
 }
 
 function getRecognition(): SpeechRecognitionLike | null {
@@ -34,11 +37,69 @@ function getRecognition(): SpeechRecognitionLike | null {
   return SR ? new SR() : null
 }
 
+export type MicPermission = 'granted' | 'denied' | 'unknown'
+
+function describeRecognitionError(code: string): string {
+  switch (code) {
+    case 'not-allowed':
+    case 'service-not-allowed':
+      return 'No tengo permiso para usar el micrófono: el navegador lo ha bloqueado. Pulsa el botón "Activar micrófono" para abrir los ajustes y permitirlo.'
+    case 'audio-capture':
+      return 'No se ha encontrado ningún micrófono. Comprueba que tienes uno conectado, activado y sin cubrir.'
+    case 'network':
+      return 'El reconocimiento de voz necesita conexión a internet. Revisa tu red e inténtalo de nuevo.'
+    case 'no-speech':
+      return 'No he detectado ninguna voz. Acércate al micrófono y vuelve a intentarlo.'
+    case 'aborted':
+      return 'Reconocimiento de voz cancelado.'
+    default:
+      return `El micrófono ha fallado (${code}). Usa Google Chrome, Edge o Safari y comprueba que la página se sirve por HTTPS.`
+  }
+}
+
+/**
+ * Detección real de soporte de getUserMedia en el navegador.
+ * Se usa typeof en vez de una referencia directa para que el compilador no
+ * marque la condición como "siempre true" y para que falle limpio en
+ * navegadores antiguos/WebViews sin mediaDevices.
+ */
+function canRequestMicPermission(): boolean {
+  return typeof navigator !== 'undefined' &&
+    typeof navigator.mediaDevices?.getUserMedia === 'function'
+}
+
+/**
+ * Devuelve la URL de ajustes más adecuada para activar el micrófono según
+ * el sistema operativo / navegador. Se usa cuando el permiso está bloqueado
+ * para llevar al usuario directo a la pantalla donde puede activarlo.
+ * Devuelve '' cuando no existe un enlace directo (p. ej. iOS).
+ */
+export function getMicSettingsUrl(): string {
+  if (typeof navigator === 'undefined') return 'chrome://settings/content/microphone'
+  const ua = navigator.userAgent
+  if (/Windows/i.test(ua)) return 'ms-settings:privacy-microphone'
+  if (/Macintosh|Mac OS X/i.test(ua)) return 'x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone'
+  if (/Android/i.test(ua)) return 'chrome://settings/content/microphone'
+  if (/iPhone|iPad|iPod/i.test(ua)) return ''
+  if (/Edg\//i.test(ua)) return 'edge://settings/content/microphone'
+  if (/Firefox/i.test(ua)) return 'about:preferences#privacy'
+  return 'chrome://settings/content/microphone'
+}
+
 export function useVoice() {
   const [listening, setListening] = useState(false)
   const [transcript, setTranscript] = useState('')
   const [interim, setInterim] = useState('')
   const [supported, setSupported] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [permissionDenied, setPermissionDenied] = useState(false)
+  // true mientras se está pidiendo el permiso de micrófono (pregunta del navegador en pantalla)
+  const [pending, setPending] = useState(false)
+  const pendingRef = useRef(false)
+  const setPendingState = useCallback((v: boolean) => {
+    pendingRef.current = v
+    setPending(v)
+  }, [])
   const recRef = useRef<SpeechRecognitionLike | null>(null)
   const finalRef = useRef('')
 
@@ -47,7 +108,10 @@ export function useVoice() {
     if (!SR) { setSupported(false) }
   }, [])
 
-  const initRecognition = useCallback(() => {
+  const initRecognition = useCallback((): SpeechRecognitionLike | null => {
+    // Reutilizamos la misma instancia para evitar condiciones de carrera
+    if (recRef.current) return recRef.current
+
     const r = getRecognition()
     if (!r) { setSupported(false); return null }
     r.lang = 'es-ES'
@@ -55,22 +119,26 @@ export function useVoice() {
     const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
     r.continuous = !isMobile
     r.interimResults = true
+    r.maxAlternatives = 1
+
+    r.onstart = () => setListening(true)
 
     r.onresult = (e: SpeechRecognitionEvent) => {
       let interimTranscript = ''
       let finalTranscript = finalRef.current
 
       for (let i = e.resultIndex; i < e.results.length; i++) {
-        const text = e.results[i][0].transcript
-        if (e.results[i].isFinal) {
+        const result = e.results[i]
+        const text = result[0]?.transcript || ''
+        if (result.isFinal) {
           finalTranscript = `${finalTranscript}${finalTranscript ? ' ' : ''}${text}`.trim()
+          finalRef.current = finalTranscript
         } else {
           interimTranscript += text
         }
       }
 
-      finalRef.current = finalTranscript
-      setTranscript(`${finalTranscript}${interimTranscript ? ` ${interimTranscript}` : ''}`.trim())
+      setTranscript(`${finalTranscript}${interimTranscript ? ' ' + interimTranscript : ''}`.trim())
       setInterim(interimTranscript.trim())
     }
     r.onend = () => {
@@ -79,40 +147,97 @@ export function useVoice() {
       setTranscript(finalRef.current)
     }
     r.onerror = (e: any) => {
-      console.warn('SpeechRecognition error:', e)
       setListening(false)
       setInterim('')
+      const code = e?.error || 'unknown'
+      if (code === 'not-allowed' || code === 'service-not-allowed') {
+        setPermissionDenied(true)
+      }
+      setError(describeRecognitionError(code))
     }
     recRef.current = r
     return r
   }, [])
 
-  const start = useCallback(() => {
+  /**
+   * Pide permiso de micrófono de forma explícita mediante la API nativa del
+   * navegador (getUserMedia). Así aparece la pregunta "¿Permitir usar el
+   * micrófono?" con los botones Permitir/Bloquear. Si ya está concedido,
+   * vuelve al instante sin molestar.
+   */
+  const requestPermission = useCallback(async (): Promise<MicPermission> => {
+    if (!canRequestMicPermission()) {
+      setError('Este navegador no permite pedir permiso de micrófono desde la página. Usa Google Chrome, Edge o Safari por HTTPS.')
+      setPermissionDenied(false)
+      return 'unknown'
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Solo nos interesaba el permiso: soltamos el micrófono para que lo use el reconocedor de voz
+      stream.getTracks().forEach(t => t.stop())
+      setPermissionDenied(false)
+      setError(null)
+      return 'granted'
+    } catch (err: any) {
+      const name = err?.name || ''
+      if (/NotAllowedError|PermissionDeniedError/i.test(name)) {
+        setPermissionDenied(true)
+        setError('No tengo permiso para usar el micrófono: el navegador lo ha bloqueado. Pulsa el botón "Activar micrófono" para abrir los ajustes y permitirlo.')
+        return 'denied'
+      }
+      if (/NotFoundError|DevicesNotFoundError/i.test(name)) {
+        setError('No se ha encontrado ningún micrófono. Comprueba que tienes uno conectado, activado y sin cubrir.')
+        return 'unknown'
+      }
+      if (/NotReadableError|TrackStartError/i.test(name)) {
+        setError('El micrófono está bloqueado o siendo usado por otra aplicación. Ciérralo y vuelve a intentarlo, o revisa los ajustes de privacidad del sistema.')
+        return 'unknown'
+      }
+      setError('No se ha podido acceder al micrófono. Pulsa el botón "Activar micrófono" para abrir los ajustes.')
+      return 'unknown'
+    }
+  }, [])
+
+  const start = useCallback(async () => {
     finalRef.current = ''
     setTranscript('')
     setInterim('')
-
-    try {
-      if (recRef.current) {
-        recRef.current.stop()
-      }
-    } catch {}
+    setError(null)
+    setPermissionDenied(false)
 
     const r = initRecognition()
     if (!r) {
-      alert("El reconocimiento de voz no está soportado en este navegador. Prueba con Google Chrome o Safari.")
+      setError('El reconocimiento de voz no está soportado en este navegador. Usa Google Chrome, Edge o Safari.')
       return
     }
 
-    setListening(true)
+    // Antes de activar el reconocedor aseguramos el permiso de forma explícita:
+    // así el navegador muestra la pregunta y el usuario pulsa "Permitir".
+    // Si el permiso está denegado, getUserMedia falla al instante sin pregunta
+    // y mostramos el mensaje con el botón que abre los ajustes.
+    setPendingState(true)
     try {
-      // Directamente arrancar desde el evento táctil del usuario
-      r.start()
-    } catch (err: any) {
-      console.warn('Cannot start recognition:', err)
-      setListening(false)
+      if (canRequestMicPermission()) {
+        const perm = await requestPermission()
+        if (perm !== 'granted') return
+      }
+
+      try {
+        r.start()
+        setListening(true)
+      } catch (err: any) {
+        setListening(false)
+        setError(
+          err?.name === 'InvalidStateError'
+            ? 'El micrófono ya estaba activo. Espera un segundo y vuelve a pulsar.'
+            : describeRecognitionError(err?.message || 'unknown')
+        )
+      }
+    } finally {
+      setPendingState(false)
     }
-  }, [initRecognition])
+  }, [initRecognition, requestPermission, setPendingState])
 
   const stop = useCallback(() => {
     if (!recRef.current) return
@@ -124,9 +249,10 @@ export function useVoice() {
     finalRef.current = ''
     setTranscript('')
     setInterim('')
+    setError(null)
   }, [])
 
-  return { listening, transcript, interim, supported, start, stop, reset }
+  return { listening, transcript, interim, supported, error, permissionDenied, pending, start, stop, reset, requestPermission }
 }
 
 const WORD_NUMBERS: Record<string, number> = {

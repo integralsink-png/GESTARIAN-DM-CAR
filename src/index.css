@@ -920,3 +920,22 @@ select:focus {
   }
 }
 
+/* ── Animación Flash para Roadmap (Dos flashes rápidos) ── */
+@keyframes roadmap-flash {
+  0%, 100% { border-color: rgba(255, 255, 255, 0); }
+  50% { border-color: rgba(255, 255, 255, 1); }
+}
+.roadmap-flash {
+  animation: roadmap-flash 0.4s ease-in-out 2;
+}
+
+
+/* ── Animación Flash para Roadmap (Dos flashes rápidos) ── */
+@keyframes roadmap-flash {
+  0%, 100% { border-color: rgba(255, 255, 255, 0); }
+  50% { border-color: rgba(255, 255, 255, 1); }
+}
+.roadmap-flash {
+  animation: roadmap-flash 0.4s ease-in-out 2;
+}
+
