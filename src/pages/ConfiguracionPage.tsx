@@ -403,11 +403,10 @@ export function ConfiguracionPage() {
                     onChange={(e) => setAiModel(e.target.value)}
                     className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
                   >
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
+                    <option value="gemini-3.7-flash">Gemini 3.7 Flash ⭐ (Recomendado)</option>
                     <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado)</option>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
                     <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                     <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
@@ -494,11 +493,10 @@ export function ConfiguracionPage() {
                     onChange={(e) => setDocOcrModel(e.target.value)}
                     className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
                   >
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
+                    <option value="gemini-3.7-flash">Gemini 3.7 Flash ⭐ (Recomendado)</option>
                     <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (Recomendado)</option>
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
                     <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
                     <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                     <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
