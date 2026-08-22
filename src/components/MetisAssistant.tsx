@@ -36,7 +36,7 @@ export function MetisAssistant() {
 
   const scrollRef = useRef<HTMLDivElement>(null)
 
-  const { listening, transcript, interim, supported, start, stop, reset, error, permissionDenied, pending, requestPermission } = useVoice()
+  const { listening, transcript, interim, supported, start, stop, reset, dispose, error, permissionDenied, pending, requestPermission } = useVoice()
   const { speak, stop: stopSpeech } = useSpeechSynthesis()
 
   // Auto-scroll to bottom of chat
@@ -150,6 +150,21 @@ export function MetisAssistant() {
 
   const [conversationalMode, setConversationalMode] = useState(false)
 
+  // Al cerrar el panel (o desmontar el componente) apagar el micrófono por completo:
+  // así nunca se queda el reconocedor "conectado" corriendo en segundo plano ni el
+  // estado de voz pillado en "escuchando".
+  useEffect(() => {
+    if (!open) {
+      dispose()
+      setVoiceInputActive(false)
+      setConversationalMode(false)
+    }
+  }, [open, dispose])
+
+  useEffect(() => {
+    return () => dispose()
+  }, [dispose])
+
   // Process completed voice transcript when user stops speaking or transcript freezes
   const handleSendMessage = useCallback(async (textToSend?: string, isVoice = false) => {
     const text = (textToSend || input).trim()
@@ -191,8 +206,11 @@ export function MetisAssistant() {
 
   const toggleMic = useCallback(() => {
     playSound('click')
+    // Mientras el navegador muestra la pregunta del permiso no tocar nada
+    if (pending) return
     if (listening) {
       stop()
+      dispose()
       setVoiceInputActive(false)
       setConversationalMode(false)
       if (transcript.trim()) {
@@ -205,7 +223,7 @@ export function MetisAssistant() {
       setConversationalMode(true) // Activar modo manos libres continuo
       start()
     }
-  }, [listening, playSound, stop, reset, stopSpeech, start, transcript, handleSendMessage])
+  }, [listening, pending, playSound, stop, dispose, reset, stopSpeech, start, transcript, handleSendMessage])
 
   // El micrófono no se ha activado por falta de permiso: primero se vuelve a pedir
   // el permiso (mostrará la pregunta del navegador y el usuario pulsa "Permitir");
@@ -286,9 +304,9 @@ export function MetisAssistant() {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-green-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-ping" />
-                  {listening ? 'Escuchando tu voz...' : 'Compañero Activo'}
+                <p className={`text-xs flex items-center gap-1 ${listening ? 'text-red-400' : 'text-white/50'}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${listening ? 'bg-red-400 animate-pulse' : 'bg-white/30'}`} />
+                  {listening ? 'Escuchando tu voz...' : 'METIS disponible'}
                 </p>
               </div>
             </div>
@@ -484,6 +502,19 @@ export function MetisAssistant() {
                   {q}
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Indicador de voz activa + transcripción en vivo (feedback de que el micrófono OYE) */}
+          {voiceInputActive && (
+            <div className="px-4 pt-2 flex items-center gap-2 text-[11px]">
+              <span className={`w-2 h-2 rounded-full ${listening ? 'bg-red-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+              <span className={listening ? 'text-red-300' : 'text-amber-300'}>
+                {listening ? 'Escuchando... di tu orden a METIS.' : 'Conectando el micrófono...'}
+              </span>
+              {(interim || transcript) && (
+                <span className="text-white/50 italic truncate flex-1 text-right">“{interim || transcript}”</span>
+              )}
             </div>
           )}
 

@@ -1,779 +1,1783 @@
-1 [1]: import { useState, useEffect, useRef } from 'react'
-2 [1]: import { useLocation, useNavigate } from 'react-router-dom'
-3 [1]: import { supabase } from '../lib/supabase'
-4 [1]: import type { Cliente, Vehiculo, Presupuesto, Concepto, Configuracion } from '../lib/types'
-5 [1]: import { PageHeader, Card, Button, Badge, EmptyState, MetisRowButton } from '../components/UI'
-6 [1]: import { Plus, Trash2, List, Printer, Check, X, FileText, ImageIcon, Mic, MicOff, Camera, Eye, Calendar, Mail, MessageCircle } from 'lucide-react'
-7 [1]: import { ImageViewer } from '../components/ImageViewer'
-8 [1]: import { useVoice, parseVoiceToConceptos } from '../lib/useVoice'
-9 [1]: import { openCameraWithPlate } from '../lib/navigation'
-10 [1]: 
-11 [1]: const IVA_RATE = 0.21
-12 [1]: 
-13 [2]: function ConceptoMobileCard({
-14 [2]: concepto,
-15 [2]: onChange,
-16 [2]: onDelete,
-17 [2]: }: {
-18 [2]: concepto: Concepto
-19 [2]: onChange: (c: Concepto) => void
-20 [2]: onDelete: () => void
-21 [2]: }) {
-22 [2]: const { listening, transcript, interim, supported, start, stop, reset } = useVoice()
-23 [2]: const [editingVoice, setEditingVoice] = useState(false)
-24 [2]: 
-25 [3]: function finishVoiceEdit() {
-26 [3]: stop()
-27 [3]: const text = (transcript + ' ' + interim).trim()
-28 [4]: if (text) {
-29 [4]: const parsed = parseVoiceToConceptos(text)
-30 [5]: if (parsed.length > 0) {
-31 [5]: const p = parsed[0]
-32 [5]: onChange({ ...concepto, descripcion: p.descripcion, cantidad: p.cantidad || concepto.cantidad, precio: p.precio || concepto.precio })
-33 [5]: } else {
-34 [5]: onChange({ ...concepto, descripcion: text })
-35 [4]: }
-36 [3]: }
-37 [3]: reset()
-38 [3]: setEditingVoice(false)
-39 [2]: }
-40 [2]: 
-41 [3]: function startVoiceEdit() {
-42 [3]: if (!supported) return
-43 [3]: reset()
-44 [3]: setEditingVoice(true)
-45 [3]: start()
-46 [2]: }
-47 [2]: 
-48 [2]: return (
-49 [2]: <div className="bg-white/90 rounded-lg p-3 border border-gray-300 space-y-2">
-50 [2]: <div className="flex items-start gap-2">
-51 [2]: <input
-52 [2]: type="text"
-53 [2]: placeholder="Descripción del trabajo..."
-54 [2]: value={concepto.descripcion}
-55 [2]: onChange={(e) => onChange({ ...concepto, descripcion: e.target.value })}
-56 [2]: className="flex-1 border border-gray-300 rounded px-2 py-1.5 text-sm focus:border-gray-800 focus:outline-none min-w-0"
-57 [2]: />
-58 [2]: <button
-59 [2]: onClick={onDelete}
-60 [2]: className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500"
-61 [2]: >
-62 [2]: <Trash2 className="w-4 h-4" />
-63 [2]: </button>
-64 [2]: </div>
-65 [2]: <div className="flex items-center gap-2">
-66 [2]: <div className="flex-1">
-67 [2]: <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">Cantidad</label>
-68 [2]: <input
-69 [2]: type="number"
-70 [2]: value={concepto.cantidad === 0 ? '' : concepto.cantidad}
-71 [2]: placeholder="0"
-72 [2]: inputMode="decimal"
-73 [2]: onChange={(e) => onChange({ ...concepto, cantidad: parseFloat(e.target.value) || 0 })}
-74 [2]: className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center focus:border-gray-800 focus:outline-none"
-75 [2]: />
-76 [2]: </div>
-77 [2]: <div className="flex-1">
-78 [2]: <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">Precio €</label>
-79 [2]: <input
-80 [2]: type="number"
-81 [2]: value={concepto.precio === 0 ? '' : concepto.precio}
-82 [2]: placeholder="0"
-83 [2]: inputMode="decimal"
-84 [2]: onChange={(e) => onChange({ ...concepto, precio: parseFloat(e.target.value) || 0 })}
-85 [2]: className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm text-center focus:border-gray-800 focus:outline-none"
-86 [2]: />
-87 [2]: </div>
-88 [2]: <div className="flex-shrink-0">
-89 [2]: <label className="text-[10px] text-gray-500 uppercase font-semibold block mb-0.5">Importe</label>
-90 [2]: <p className="text-sm font-bold py-1.5">{(concepto.cantidad * concepto.precio).toFixed(2)} €</p>
-91 [2]: </div>
-92 [2]: </div>
-93 [3]: {supported && !editingVoice && (
-94 [3]: <button
-95 [3]: onClick={startVoiceEdit}
-96 [3]: className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-gray-100 text-gray-600 text-xs font-semibold hover:bg-gray-200"
-97 [3]: >
-98 [3]: <Mic className="w-3.5 h-3.5" /> Editar con voz
-99 [3]: </button>
-100 [2]: )}
-101 [3]: {editingVoice && (
-102 [3]: <div className="space-y-2">
-103 [3]: <div className="flex items-center justify-center gap-2 py-2 bg-cyan-50 rounded-lg">
-104 [3]: <Mic className="w-4 h-4 text-cyan-600 animate-pulse" />
-105 [3]: <span className="text-xs text-cyan-700">
-106 [3]: {listening ? 'Escuchando...' : 'Procesando...'}
-107 [3]: </span>
-108 [3]: <span className="text-xs text-gray-500 truncate max-w-[140px]">{transcript || interim}</span>
-109 [3]: </div>
-110 [3]: <div className="flex gap-2">
-111 [3]: <button
-112 [3]: onClick={finishVoiceEdit}
-113 [3]: className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-semibold"
-114 [3]: >
-115 [3]: <Check className="w-3.5 h-3.5" /> Aplicar
-116 [3]: </button>
-117 [3]: <button
-118 [3]: onClick={() => { stop(); reset(); setEditingVoice(false) }}
-119 [3]: className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 text-gray-600 text-xs font-semibold"
-120 [3]: >
-121 [3]: <X className="w-3.5 h-3.5" /> Cancelar
-122 [3]: </button>
-123 [3]: </div>
-124 [3]: </div>
-125 [2]: )}
-126 [2]: </div>
-127 [2]: )
-128 [1]: }
-129 [1]: 
-130 [2]: export function PresupuestosPage() {
-131 [2]: const location = useLocation()
-132 [2]: const navigate = useNavigate()
-133 [2]: const clienteIdFromNav = (location.state as { clienteId?: string })?.clienteId
-134 [2]: 
-135 [2]: const [clientes, setClientes] = useState<Cliente[]>([])
-136 [2]: const [vehiculos, setVehiculos] = useState<Vehiculo[]>([])
-137 [2]: const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([])
-138 [2]: const [config, setConfig] = useState<Configuracion | null>(null)
-139 [2]: const [showForm, setShowForm] = useState(false)
-140 [2]: const [selectedClienteId, setSelectedClienteId] = useState('')
-141 [2]: const [selectedVehiculoId, setSelectedVehiculoId] = useState('')
-142 [2]: const [conceptos, setConceptos] = useState<Concepto[]>([{ descripcion: '', cantidad: 1, precio: 0 }])
-143 [2]: const [observaciones, setObservaciones] = useState('')
-144 [2]: const [editingId, setEditingId] = useState<string | null>(null)
-145 [2]: const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
-146 [2]: const [wasEdited, setWasEdited] = useState(false) // Tracks if changes were made since opening
-147 [2]: const { listening, transcript, interim, supported, start, stop, reset } = useVoice()
-148 [2]: const [showVoicePanel, setShowVoicePanel] = useState(false)
-149 [2]: const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-150 [2]: const [metisHablando, setMetisHablando] = useState(false)
-151 [2]: 
-152 [2]: // Función para que METIS hable
-153 [3]: const speak = (text: string) => {
-154 [3]: if (!('speechSynthesis' in window)) return
-155 [3]: window.speechSynthesis.cancel()
-156 [3]: const utterance = new SpeechSynthesisUtterance(text)
-157 [3]: utterance.lang = 'es-ES'
-158 [3]: utterance.rate = 1.1
-159 [3]: // Buscar voz femenina en español si está disponible
-160 [3]: const voices = window.speechSynthesis.getVoices()
-161 [3]: const esVoices = voices.filter(v => v.lang.startsWith('es'))
-162 [3]: const femaleVoice = esVoices.find(v => v.name.toLowerCase().includes('monica') || v.name.toLowerCase().includes('paulina') || v.name.toLowerCase().includes('female'))
-163 [3]: if (femaleVoice) utterance.voice = femaleVoice
-164 [3]: else if (esVoices.length > 0) utterance.voice = esVoices[0]
-165 [3]: 
-166 [3]: utterance.onstart = () => setMetisHablando(true)
-167 [3]: utterance.onend = () => setMetisHablando(false)
-168 [3]: utterance.onerror = () => setMetisHablando(false)
-169 [3]: window.speechSynthesis.speak(utterance)
-170 [2]: }
-171 [2]: 
-172 [2]: // Pre-cargar voces
-173 [3]: useEffect(() => {
-174 [4]: if ('speechSynthesis' in window) {
-175 [4]: window.speechSynthesis.getVoices()
-176 [3]: }
-177 [2]: }, [])
-178 [2]: 
-179 [3]: useEffect(() => {
-180 [3]: loadClientes()
-181 [3]: loadPresupuestos()
-182 [3]: loadConfig()
-183 [4]: if (clienteIdFromNav) {
-184 [4]: setSelectedClienteId(clienteIdFromNav)
-185 [4]: setShowForm(true)
-186 [3]: }
-187 [4]: function handleDictado(e: Event) {
-188 [4]: const conceptosNuevos = (e as CustomEvent<Concepto[]>).detail
-189 [4]: if (!conceptosNuevos.length) return
-190 [4]: setShowForm(true)
-191 [5]: setConceptos((prev) => {
-192 [5]: const vacias = prev.filter((c) => !c.descripcion.trim())
-193 [5]: const llenas = prev.filter((c) => c.descripcion.trim())
-194 [5]: return [...llenas, ...conceptosNuevos, ...vacias]
-195 [4]: })
-196 [3]: }
-197 [3]: window.addEventListener('metis-dictado-presupuesto', handleDictado)
-198 [4]: function handleOpenDocument(e: Event) {
-199 [4]: const { id, tipo } = (e as CustomEvent).detail
-200 [5]: if (tipo === 'presupuesto' && id) {
-201 [6]: supabase.from('presupuestos').select('*').eq('id', id).maybeSingle().then(({ data }) => {
-202 [7]: if (data) {
-203 [7]: setEditingId(data.id)
-204 [7]: setSelectedClienteId(data.cliente_id)
-205 [7]: setSelectedVehiculoId(data.vehiculo_id ?? '')
-206 [7]: setConceptos(data.conceptos?.length ? data.conceptos : [{ descripcion: '', cantidad: 1, precio: 0 }])
-207 [7]: setObservaciones(data.observaciones ?? '')
-208 [7]: setWasEdited(false)
-209 [7]: setShowForm(true)
-210 [6]: }
-211 [5]: })
-212 [4]: }
-213 [3]: }
-214 [3]: window.addEventListener('gestarian-open-document', handleOpenDocument)
-215 [4]: return () => {
-216 [4]: window.removeEventListener('metis-dictado-presupuesto', handleDictado)
-217 [4]: window.removeEventListener('gestarian-open-document', handleOpenDocument)
-218 [3]: }
-219 [2]: }, [])
-220 [2]: 
-221 [3]: useEffect(() => {
-222 [4]: if (selectedClienteId) {
-223 [5]: supabase.from('vehiculos').select('*').eq('cliente_id', selectedClienteId).then(({ data }) => {
-224 [5]: const vehs = data ?? []
-225 [5]: setVehiculos(vehs)
-226 [6]: if (vehs.length === 1) {
-227 [6]: setSelectedVehiculoId(vehs[0].id)
-228 [6]: } else {
-229 [6]: setSelectedVehiculoId('')
-230 [5]: }
-231 [4]: })
-232 [4]: } else {
-233 [4]: setVehiculos([])
-234 [4]: setSelectedVehiculoId('')
-235 [3]: }
-236 [2]: }, [selectedClienteId])
-237 [2]: 
-238 [3]: async function loadClientes() {
-239 [3]: const { data } = await supabase.from('clientes').select('*').order('nombre')
-240 [3]: setClientes(data ?? [])
-241 [2]: }
-242 [2]: 
-243 [3]: async function loadPresupuestos() {
-244 [3]: const { data } = await supabase.from('presupuestos').select('*').order('created_at', { ascending: false })
-245 [3]: setPresupuestos(data ?? [])
-246 [2]: }
-247 [2]: 
-248 [3]: async function loadConfig() {
-249 [3]: const { data } = await supabase.from('configuracion').select('*').eq('id', 1).maybeSingle()
-250 [3]: setConfig(data)
-251 [2]: }
-252 [2]: 
-253 [2]: const subtotal = conceptos.reduce((sum, c) => sum + c.cantidad * c.precio, 0)
-254 [2]: const iva = subtotal * IVA_RATE
-255 [2]: const total = subtotal + iva
-256 [2]: 
-257 [3]: async function handleSave() {
-258 [3]: if (!selectedClienteId) return
-259 [3]: const cleanConceptos = conceptos.filter((c) => c.descripcion.trim())
-260 [3]: const count = presupuestos.length + 1
-261 [3]: const numero = `PRES-${String(count).padStart(4, '0')}`
-262 [3]: 
-263 [4]: if (editingId) {
-264 [5]: await supabase.from('presupuestos').update({
-265 [5]: cliente_id: selectedClienteId,
-266 [5]: vehiculo_id: selectedVehiculoId || null,
-267 [5]: conceptos: cleanConceptos,
-268 [5]: total: total,
-269 [5]: observaciones: observaciones || null,
-270 [4]: }).eq('id', editingId)
-271 [4]: } else {
-272 [5]: await supabase.from('presupuestos').insert({
-273 [5]: numero,
-274 [5]: cliente_id: selectedClienteId,
-275 [5]: vehiculo_id: selectedVehiculoId || null,
-276 [5]: conceptos: cleanConceptos,
-277 [5]: total,
-278 [5]: observaciones: observaciones || null,
-279 [5]: estado: 'pendiente',
-280 [4]: })
-281 [4]: resetForm()
-282 [4]: await loadPresupuestos()
-283 [3]: }
-284 [3]: 
-285 [4]: async function deletePresupuesto(id: string) {
-286 [4]: if (!confirm('¿Estás seguro de que deseas eliminar este presupuesto?')) return
-287 [4]: await supabase.from('presupuestos').delete().eq('id', id)
-288 [4]: await loadPresupuestos()
-289 [3]: }
-290 [3]: 
-291 [4]: function resetForm() {
-292 [4]: setShowForm(false)
-293 [4]: setConceptos([{ descripcion: '', cantidad: 1, precio: 0 }])
-294 [4]: setObservaciones('')
-295 [4]: setSelectedClienteId('')
-296 [4]: setSelectedVehiculoId('')
-297 [4]: setEditingId(null)
-298 [4]: setWasEdited(false)
-299 [3]: }
-300 [3]: 
-301 [4]: async function cicloEstado(p: Presupuesto) {
-302 [4]: const estados: ('pendiente' | 'aceptado' | 'rechazado')[] = ['pendiente', 'aceptado', 'rechazado']
-303 [4]: const nextIdx = (estados.indexOf(p.estado) + 1) % estados.length
-304 [4]: await supabase.from('presupuestos').update({ estado: estados[nextIdx] }).eq('id', p.id)
-305 [4]: loadPresupuestos()
-306 [3]: }
-307 [3]: 
-308 [4]: function editPresupuesto(p: Presupuesto) {
-309 [4]: setEditingId(p.id)
-310 [4]: setSelectedClienteId(p.cliente_id)
-311 [4]: setSelectedVehiculoId(p.vehiculo_id ?? '')
-312 [4]: setConceptos(p.conceptos?.length ? p.conceptos : [{ descripcion: '', cantidad: 1, precio: 0 }])
-313 [4]: setObservaciones(p.observaciones ?? '')
-314 [4]: setWasEdited(false)
-315 [4]: setShowForm(true)
-316 [3]: }
-317 [3]: 
-318 [4]: function clienteData(id: string) {
-319 [4]: return clientes.find((c) => c.id === id)
-320 [3]: }
-321 [3]: 
-322 [4]: function vehiculoData(id: string | null) {
-323 [4]: if (!id) return null
-324 [4]: return vehiculos.find((v) => v.id === id)
-325 [3]: }
-326 [3]: 
-327 [4]: function toggleVoice() {
-328 [4]: if (!supported) return
-329 [5]: if (listening) {
-330 [5]: stop()
-331 [5]: } else {
-332 [5]: reset()
-333 [5]: setShowVoicePanel(true)
-334 [5]: start()
-335 [4]: }
-336 [3]: }
-337 [3]: 
-338 [4]: function finishVoice() {
-339 [4]: stop()
-340 [4]: const nuevos = parseVoiceToConceptos(transcript + ' ' + interim)
-341 [5]: if (nuevos.length > 0) {
-342 [6]: setConceptos((prev) => {
-343 [6]: const vacias = prev.filter((c) => !c.descripcion.trim())
-344 [6]: const llenas = prev.filter((c) => c.descripcion.trim())
-345 [6]: return [...llenas, ...nuevos, ...vacias]
-346 [5]: })
-347 [4]: }
-348 [4]: reset()
-349 [4]: setShowVoicePanel(false)
-350 [3]: }
-351 [3]: 
-352 [3]: // Helper to mark form as edited
-353 [3]: const handleChangeConcepto = (next: Concepto[]) => { setConceptos(next); setWasEdited(true) }
-354 [3]: const handleChangeObservaciones = (val: string) => { setObservaciones(val); setWasEdited(true) }
-355 [3]: const handleChangeCliente = (val: string) => { setSelectedClienteId(val); setWasEdited(true) }
-356 [3]: const handleChangeVehiculo = (val: string) => { setSelectedVehiculoId(val); setWasEdited(true) }
-357 [3]: 
-358 [3]: // METIS Conversacional Logic
-359 [4]: useEffect(() => {
-360 [5]: if (listening && transcript) {
-361 [5]: if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current)
-362 [6]: voiceTimerRef.current = setTimeout(() => {
-363 [6]: const text = transcript.toLowerCase()
-364 [6]: reset() // Clear transcript so it doesn't re-trigger
-365 [6]: 
-366 [6]: // Check intents
-367 [7]: if (text.includes('borra') || text.includes('elimina') || text.includes('quita')) {
-368 [7]: // Intent: Remove concept
-369 [7]: // A very simple heuristic: find a concept that matches a word in the transcript
-370 [7]: const palabras = text.replace(/borra|elimina|quita/g, '').trim().split(/\s+/)
-371 [8]: if (palabras.length > 0) {
-372 [8]: let found = false
-373 [9]: setConceptos(prev => {
-374 [10]: const next = prev.filter(c => {
-375 [10]: if (!c.descripcion) return true
-376 [10]: const match = palabras.some(p => p.length > 3 && c.descripcion.toLowerCase().includes(p))
-377 [10]: if (match) found = true
-378 [10]: return !match
-379 [9]: })
-380 [9]: setWasEdited(true)
-381 [9]: return next.length ? next : [{ descripcion: '', cantidad: 1, precio: 0 }]
-382 [8]: })
-383 [8]: if (found) speak("Concepto eliminado del presupuesto.")
-384 [8]: else speak("No he encontrado ese concepto para borrarlo.")
-385 [7]: }
-386 [7]: } else {
-387 [7]: // Default Intent: Add new concept
-388 [7]: const nuevos = parseVoiceToConceptos(text)
-389 [8]: if (nuevos.length > 0) {
-390 [8]: handleChangeConcepto([
-391 [8]: ...conceptos.filter((c) => c.descripcion.trim()),
-392 [8]: ...nuevos,
-393 [8]: ...conceptos.filter((c) => !c.descripcion.trim())
-394 [8]: ])
-395 [8]: const desc = nuevos[0].descripcion
-396 [8]: speak(`He añadido ${desc} al presupuesto.`)
-397 [8]: } else {
-398 [8]: speak("No te he entendido bien. Prueba a decir el concepto y el precio.")
-399 [7]: }
-400 [6]: }
-401 [5]: }, 2500)
-402 [4]: }
-403 [4]: return () => { if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current) }
-404 [3]: }, [transcript, listening, reset])
-405 [3]: 
-406 [3]: return (
-407 [3]: <div>
-408 [3]: <PageHeader title="Presupuestos" subtitle="Generar y gestionar presupuestos">
-409 [3]: <div className="flex gap-2">
-410 [3]: <Button onClick={() => { resetForm(); setShowForm(true) }}>
-411 [3]: <span className="flex items-center gap-2"><Plus className="w-4 h-4" /> Nuevo</span>
-412 [3]: </Button>
-413 [3]: </div>
-414 [3]: </PageHeader>
-415 [3]: 
-416 [3]: {/* Hoja A4 del presupuesto */}
-417 [4]: {showForm && (
-418 [4]: <div className="mb-6">
-419 [4]: <div className="gestarian-paper rounded-lg shadow-2xl mx-auto max-w-[210mm] p-8 sm:p-12 print:shadow-none print:max-w-none">
-420 [4]: {/* Cabecera: logo + datos empresa + número */}
-421 [4]: <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-gray-800">
-422 [4]: <div className="flex items-center gap-3">
-423 [5]: {config?.logo_bn ? (
-424 [5]: <img src={config.logo_bn} alt="Logo" className="w-16 h-16 rounded-lg object-cover bg-gray-100 p-1" />
-425 [5]: ) : (
-426 [5]: <div className="w-16 h-16 rounded-lg bg-gray-800 flex items-center justify-center text-white font-bold text-lg">
-427 [5]: {config?.nombre_empresa?.charAt(0) ?? 'D'}
-428 [5]: </div>
-429 [4]: )}
-430 [4]: <div>
-431 [4]: <h2 className="text-xl font-bold">{config?.nombre_empresa ?? 'DM CAR'}</h2>
-432 [4]: <p className="text-xs gestarian-paper-muted">{config?.cif ?? 'B-12345678'}</p>
-433 [4]: <p className="text-xs gestarian-paper-muted">{config?.direccion ?? ''}</p>
-434 [4]: {config?.telefono && <p className="text-xs gestarian-paper-muted">Tel: {config.telefono}</p>}
-435 [4]: </div>
-436 [4]: </div>
-437 [4]: <div className="text-right">
-438 [4]: <h3 className="text-2xl font-bold uppercase tracking-wide">Presupuesto</h3>
-439 [4]: <p className="text-sm gestarian-paper-muted mt-1">
-440 [4]: {editingId ? presupuestos.find(p => p.id === editingId)?.numero : `PRES-${String(presupuestos.length + 1).padStart(4, '0')}`}
-441 [4]: </p>
-442 [4]: <p className="text-xs gestarian-paper-muted">{new Date().toLocaleDateString('es-ES')}</p>
-443 [4]: </div>
-444 [4]: </div>
-445 [4]: 
-446 [4]: {/* Datos cliente + vehículo */}
-447 [4]: <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-448 [4]: <div>
-449 [4]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">Cliente</p>
-450 [4]: <select
-451 [4]: value={selectedClienteId}
-452 [4]: onChange={(e) => handleChangeCliente(e.target.value)}
-453 [4]: className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2 focus:border-gray-800 focus:outline-none"
-454 [4]: >
-455 [4]: <option value="">Seleccionar cliente...</option>
-456 [4]: {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-457 [4]: </select>
-458 [6]: {selectedClienteId && (() => {
-459 [6]: const c = clienteData(selectedClienteId)
-460 [6]: return c ? (
-461 [6]: <div className="text-xs gestarian-paper-muted space-y-0.5">
-462 [6]: {c.dni && <p>DNI: {c.dni}</p>}
-463 [6]: {c.direccion && <p>{c.direccion}</p>}
-464 [6]: {c.telefono && <p>Tel: {c.telefono}</p>}
-465 [6]: {c.email && <p>{c.email}</p>}
-466 [6]: </div>
-467 [6]: ) : null
-468 [4]: })()}
-469 [4]: </div>
-470 [4]: <div>
-471 [4]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">Vehículo</p>
-472 [4]: <select
-473 [4]: value={selectedVehiculoId}
-474 [4]: onChange={(e) => handleChangeVehiculo(e.target.value)}
-475 [4]: className="w-full border border-gray-300 rounded px-3 py-2 text-sm mb-2 focus:border-gray-800 focus:outline-none"
-476 [4]: disabled={!selectedClienteId}
-477 [4]: >
-478 [4]: <option value="">Sin vehículo</option>
-479 [4]: {vehiculos.map((v) => <option key={v.id} value={v.id}>{v.matricula} — {v.marca} {v.modelo ?? ''}</option>)}
-480 [4]: </select>
-481 [6]: {selectedVehiculoId && (() => {
-482 [6]: const v = vehiculoData(selectedVehiculoId)
-483 [6]: return v ? (
-484 [6]: <div className="text-xs gestarian-paper-muted space-y-0.5">
-485 [6]: <p>Matrícula: {v.matricula}</p>
-486 [6]: {v.marca && <p>{v.marca} {v.modelo ?? ''}</p>}
-487 [6]: {v.anio && <p>Año: {v.anio}</p>}
-488 [6]: {v.vin && <p>VIN: {v.vin}</p>}
-489 [6]: </div>
-490 [6]: ) : null
-491 [4]: })()}
-492 [4]: </div>
-493 [4]: </div>
-494 [4]: 
-495 [4]: {/* Tabla conceptos — desktop */}
-496 [4]: <table className="w-full text-sm mb-4 hidden sm:table">
-497 [4]: <thead>
-498 [4]: <tr className="border-b-2 border-gray-800 text-left text-xs uppercase gestarian-paper-muted">
-499 [4]: <th className="py-2 w-1/2">Descripción</th>
-500 [4]: <th className="py-2 text-center w-16">Cant.</th>
-501 [4]: <th className="py-2 text-right w-24">Precio</th>
-502 [4]: <th className="py-2 text-right w-28">Importe</th>
-503 [4]: <th className="py-2 w-8"></th>
-504 [4]: </tr>
-505 [4]: </thead>
-506 [4]: <tbody>
-507 [5]: {conceptos.map((c, i) => (
-508 [5]: <tr key={i} className="border-b border-gray-200">
-509 [5]: <td className="py-1.5">
-510 [5]: <input
-511 [5]: type="text"
-512 [5]: placeholder="Descripción del trabajo..."
-513 [5]: value={c.descripcion}
-514 [7]: onChange={(e) => {
-515 [7]: const next = [...conceptos]
-516 [7]: next[i] = { ...c, descripcion: e.target.value }
-517 [7]: handleChangeConcepto(next)
-518 [5]: }}
-519 [5]: className="w-full bg-transparent border-0 px-1 py-1 text-sm focus:outline-none focus:bg-gray-100 rounded"
-520 [5]: />
-521 [5]: </td>
-522 [5]: <td className="py-1.5 text-center">
-523 [5]: <input
-524 [5]: type="number"
-525 [5]: value={c.cantidad === 0 ? '' : c.cantidad}
-526 [5]: placeholder="0"
-527 [5]: onFocus={(e) => e.target.select()}
-528 [7]: onChange={(e) => {
-529 [7]: const next = [...conceptos]
-530 [7]: next[i] = { ...c, cantidad: parseFloat(e.target.value) || 0 }
-531 [7]: handleChangeConcepto(next)
-532 [5]: }}
-533 [5]: className="w-14 bg-transparent border-0 px-1 py-1 text-sm text-center focus:outline-none focus:bg-gray-100 rounded"
-534 [5]: />
-535 [5]: </td>
-536 [5]: <td className="py-1.5 text-right">
-537 [5]: <input
-538 [5]: type="number"
-539 [5]: value={c.precio === 0 ? '' : c.precio}
-540 [5]: placeholder="0"
-541 [5]: onFocus={(e) => e.target.select()}
-542 [7]: onChange={(e) => {
-543 [7]: const next = [...conceptos]
-544 [7]: next[i] = { ...c, precio: parseFloat(e.target.value) || 0 }
-545 [7]: handleChangeConcepto(next)
-546 [5]: }}
-547 [5]: className="w-20 bg-transparent border-0 px-1 py-1 text-sm text-right focus:outline-none focus:bg-gray-100 rounded"
-548 [5]: />
-549 [5]: </td>
-550 [5]: <td className="py-1.5 text-right font-medium">{(c.cantidad * c.precio).toFixed(2)} €</td>
-551 [5]: <td className="py-1.5 text-center">
-552 [5]: <button
-553 [5]: onClick={() => handleChangeConcepto(conceptos.filter((_, idx) => idx !== i))}
-554 [5]: className="text-gray-400 hover:text-red-500"
-555 [5]: >
-556 [5]: <Trash2 className="w-3.5 h-3.5" />
-557 [5]: </button>
-558 [5]: </td>
-559 [5]: </tr>
-560 [4]: ))}
-561 [4]: </tbody>
-562 [4]: </table>
-563 [4]: 
-564 [4]: {/* Tarjetas conceptos — móvil */}
-565 [4]: <div className="sm:hidden mb-4 space-y-3">
-566 [5]: {conceptos.map((c, i) => (
-567 [5]: <ConceptoMobileCard
-568 [5]: key={i}
-569 [5]: concepto={c}
-570 [7]: onChange={(updated) => {
-571 [7]: const next = [...conceptos]
-572 [7]: next[i] = updated
-573 [7]: handleChangeConcepto(next)
-574 [5]: }}
-575 [5]: onDelete={() => handleChangeConcepto(conceptos.filter((_, idx) => idx !== i))}
-576 [5]: />
-577 [4]: ))}
-578 [4]: </div>
-579 [4]: 
-580 [4]: <button
-581 [4]: onClick={() => handleChangeConcepto([...conceptos, { descripcion: '', cantidad: 1, precio: 0 }])}
-582 [4]: className="flex items-center gap-1 text-sm gestarian-paper-muted hover:text-gray-800 mb-4"
-583 [4]: >
-584 [4]: <Plus className="w-4 h-4" /> Añadir línea
-585 [4]: </button>
-586 [4]: 
-587 [4]: {/* El Panel de dictado clásico se ha eliminado a favor del Icono Flotante METIS */}
-588 [4]: 
-589 [4]: {/* Totales */}
-590 [4]: <div className="flex justify-end mb-6">
-591 [4]: <div className="w-64 space-y-1.5 text-sm">
-592 [4]: <div className="flex justify-between">
-593 [4]: <span className="gestarian-paper-muted">Base imponible</span>
-594 [4]: <span className="font-medium">{subtotal.toFixed(2)} €</span>
-595 [4]: </div>
-596 [4]: <div className="flex justify-between">
-597 [4]: <span className="gestarian-paper-muted">IVA (21%)</span>
-598 [4]: <span className="font-medium">{iva.toFixed(2)} €</span>
-599 [4]: </div>
-600 [4]: <div className="flex justify-between font-bold text-base border-t-2 border-gray-800 pt-1.5">
-601 [4]: <span>TOTAL</span>
-602 [4]: <span>{total.toFixed(2)} €</span>
-603 [4]: </div>
-604 [4]: </div>
-605 [4]: </div>
-606 [4]: 
-607 [4]: {/* Observaciones */}
-608 [4]: <div className="mb-6">
-609 [4]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">Observaciones</p>
-610 [4]: <textarea
-611 [4]: value={observaciones}
-612 [4]: onChange={(e) => handleChangeObservaciones(e.target.value)}
-613 [4]: placeholder="Notas internas..."
-614 [4]: rows={2}
-615 [4]: className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-gray-800 focus:outline-none"
-616 [4]: />
-617 [4]: </div>
-618 [4]: 
-619 [4]: {/* Botones de acción */}
-620 [4]: <div className="flex flex-wrap gap-3 border-t-2 border-gray-800 pt-4 items-center">
-621 [4]: <button onClick={handleSave} className="gestarian-paper-btn-primary gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all">
-622 [4]: <span className="flex items-center gap-2"><Check className="w-4 h-4" /> {editingId ? 'Actualizar' : 'Guardar'}</span>
-623 [4]: </button>
-624 [5]: {editingId && wasEdited && (
-625 [5]: <>
-626 [5]: <button onClick={() => window.open(`https://wa.me/?text=Adjunto%20su%20presupuesto`, '_blank')} className="gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all flex items-center gap-2 bg-[#25D366]/10 text-[#25D366] border border-[#25D366]/30 hover:bg-[#25D366]/20">
-627 [5]: <MessageCircle className="w-4 h-4" /> WhatsApp
-628 [5]: </button>
-629 [5]: <button onClick={() => window.open(`mailto:?subject=Presupuesto&body=Adjunto%20su%20presupuesto`, '_blank')} className="gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all flex items-center gap-2 bg-blue-500/10 text-blue-500 border border-blue-500/30 hover:bg-blue-500/20">
-630 [5]: <Mail className="w-4 h-4" /> Email
-631 [5]: </button>
-632 [5]: </>
-633 [4]: )}
-634 [5]: {selectedVehiculoId && (
-635 [5]: <button
-636 [7]: onClick={() => {
-637 [7]: const v = vehiculoData(selectedVehiculoId)
-638 [7]: if (v) setViewerMatricula(v.matricula)
-639 [5]: }}
-640 [5]: className="gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all flex items-center gap-2 text-cyan-700 border border-cyan-400 hover:bg-cyan-50"
-641 [5]: >
-642 [5]: <ImageIcon className="w-4 h-4" /> Imágenes
-643 [5]: </button>
-644 [4]: )}
-645 [4]: <button onClick={() => window.print()} className="gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all ml-auto">
-646 [4]: <span className="flex items-center gap-2"><Printer className="w-4 h-4" /> Imprimir</span>
-647 [4]: </button>
-648 [4]: <button onClick={resetForm} className="gestarian-paper-btn font-semibold rounded-lg px-4 py-2.5 text-sm transition-all">
-649 [4]: <span className="flex items-center gap-2"><X className="w-4 h-4" /> Cancelar</span>
-650 [4]: </button>
-651 [4]: </div>
-652 [4]: 
-653 [4]: {/* METIS AI Floating Conversational Icon */}
-654 [4]: <div className="fixed bottom-24 right-4 sm:bottom-8 sm:right-8 z-50">
-655 [4]: <div className="relative group">
-656 [5]: {(listening || transcript || interim) && (
-657 [5]: <div className="absolute bottom-full right-0 mb-4 bg-white shadow-xl rounded-2xl p-4 w-64 border border-cyan-100 transform origin-bottom-right transition-all">
-658 [5]: <div className="text-xs font-semibold text-cyan-700 mb-1 flex justify-between items-center">
-659 [5]: <span>METIS AI {metisHablando ? '(Hablando)' : '(Escuchando)'}</span>
-660 [5]: {listening && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>}
-661 [5]: </div>
-662 [5]: <div className="text-sm text-gray-700 min-h-[2.5rem]">
-663 [5]: {transcript && <span className="text-gray-900">{transcript} </span>}
-664 [5]: {interim && <span className="text-gray-400 italic">{interim}</span>}
-665 [5]: {!transcript && !interim && !metisHablando && <span className="text-gray-400">¿Qué modificamos del presupuesto? (Ej: "Añade aceite 50 euros")</span>}
-666 [5]: </div>
-667 [5]: </div>
-668 [4]: )}
-669 [4]: <button
-670 [4]: onClick={toggleVoice}
-671 [6]: className={`w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 border-2 ${
-672 [6]: listening
-673 [6]: ? 'bg-red-500 border-red-400 text-white animate-pulse'
-674 [6]: : 'bg-cyan-500 border-cyan-400 text-white hover:scale-110 hover:shadow-cyan-500/50'
-675 [4]: }`}
-676 [4]: title="Hablar con METIS AI"
-677 [4]: >
-678 [4]: {listening ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
-679 [4]: </button>
-680 [4]: </div>
-681 [4]: </div>
-682 [4]: </div>
-683 [4]: </div>
-684 [3]: )}
-685 [3]: 
-686 [3]: {/* Lista de presupuestos recientes */}
-687 [4]: {!showForm && (
-688 [4]: <div className="space-y-2">
-689 [5]: {presupuestos.length === 0 ? (
-690 [5]: <EmptyState icon={<FileText className="w-12 h-12" />} title="No hay presupuestos" subtitle="Crea el primer presupuesto" />
-691 [5]: ) : (
-692 [6]: presupuestos.slice(0, 10).map((p) => {
-693 [6]: const c = clienteData(p.cliente_id)
-694 [6]: return (
-695 [6]: <Card
-696 [6]: key={p.id}
-697 [6]: className="p-4 border-bg-600 cursor-pointer hover:border-bg-500 transition-colors"
-698 [6]: onClick={() => editPresupuesto(p)}
-699 [6]: >
-700 [6]: <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-701 [6]: <div>
-702 [6]: <div className="flex items-center gap-2">
-703 [6]: <span className="font-medium text-white">{p.numero}</span>
-704 [6]: <span className="text-lg font-bold text-white bg-bg-800 px-2 py-0.5 rounded-lg border border-bg-700">{p.total.toFixed(2)} €</span>
-705 [6]: </div>
-706 [6]: <p className="text-sm text-slate-400 mt-1">
-707 [6]: {c?.nombre ?? '—'}
-708 [8]: {p.vehiculo_id && (() => {
-709 [8]: const v = vehiculos.find((x) => x.id === p.vehiculo_id)
-710 [8]: return v ? ` · ${v.matricula}` : ''
-711 [6]: })()}
-712 [6]: </p>
-713 [6]: </div>
-714 [6]: 
-715 [6]: <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-716 [6]: {/* ESTADO Interactivo */}
-717 [6]: <button
-718 [6]: onClick={(e) => { e.stopPropagation(); cicloEstado(p) }}
-719 [8]: className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
-720 [8]: p.estado === 'aceptado' ? 'bg-green-500/20 text-green-400 border-green-500/40 hover:bg-green-500/30' :
-721 [8]: p.estado === 'rechazado' ? 'bg-red-500/20 text-red-400 border-red-500/40 hover:bg-red-500/30' :
-722 [8]: 'bg-blue-500/20 text-blue-400 border-blue-500/40 hover:bg-blue-500/30'
-723 [6]: }`}
-724 [6]: >
-725 [6]: {p.estado.toUpperCase()}
-726 [6]: </button>
-727 [6]: 
-728 [6]: {/* GENERAR CITA (Solo si Aceptado) */}
-729 [7]: {p.estado === 'aceptado' && (
-730 [7]: <button
-731 [7]: onClick={(e) => { e.stopPropagation(); navigate('/citas', { state: { presupuestoId: p.id, clienteId: p.cliente_id, vehiculoId: p.vehiculo_id } }) }}
-732 [7]: className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold border border-emerald-500"
-733 [7]: >
-734 [7]: <Calendar className="w-3.5 h-3.5" /> GENERAR CITA
-735 [7]: </button>
-736 [6]: )}
-737 [6]: 
-738 [6]: {/* VER Presupuesto */}
-739 [6]: <button
-740 [6]: onClick={(e) => { e.stopPropagation(); editPresupuesto(p) }}
-741 [6]: className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-bg-700 hover:bg-bg-600 text-white text-xs font-semibold border border-bg-600"
-742 [6]: >
-743 [6]: <Eye className="w-3.5 h-3.5" /> VER
-744 [6]: </button>
-745 [6]: 
-746 [6]: {/* ELIMINAR Presupuesto */}
-747 [6]: <button
-748 [6]: onClick={(e) => { e.stopPropagation(); deletePresupuesto(p.id) }}
-749 [6]: className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-bg-700 hover:bg-bg-600 text-red-400 text-xs font-semibold border border-bg-600"
-750 [6]: >
-751 [6]: <Trash2 className="w-3.5 h-3.5" />
-752 [6]: </button>
-753 [6]: 
-754 [6]: <div onClick={(e) => e.stopPropagation()}>
-755 [6]: <MetisRowButton
-756 [6]: tipo="presupuesto"
-757 [6]: id={p.id}
-758 [6]: numero={p.numero}
-759 [6]: matricula={p.vehiculo_id ? vehiculos.find((x) => x.id === p.vehiculo_id)?.matricula : undefined}
-760 [6]: cliente_nombre={c?.nombre}
-761 [6]: data={p}
-762 [6]: />
-763 [6]: </div>
-764 [6]: </div>
-765 [6]: </div>
-766 [6]: </Card>
-767 [6]: )
-768 [5]: })
-769 [4]: )}
-770 [4]: </div>
-771 [3]: )}
-772 [3]: 
-773 [3]: 
-774 [3]: 
-775 [3]: <ImageViewer open={!!viewerMatricula} matricula={viewerMatricula ?? ''} onClose={() => setViewerMatricula(null)} />
-776 [3]: </div>
-777 [3]: )
-778 [2]: }
-779 [2]: 
+1 [0]: import { useState, useEffect, useRef } from "react";
+2 [0]: import { createPortal } from "react-dom";
+3 [0]: import { useLocation, useNavigate } from "react-router-dom";
+4 [0]: import { motion, AnimatePresence } from "framer-motion";
+5 [0]: import { supabase } from "../lib/supabase";
+6 [1]: import type {
+7 [1]: Cliente,
+8 [1]: Vehiculo,
+9 [1]: Presupuesto,
+10 [1]: Concepto,
+11 [1]: Configuracion,
+12 [1]: Cita,
+13 [0]: } from "../lib/types";
+14 [0]: import { sendPresupuestoByEmail, generatePresupuestoPDF, getLocalidadFromCP } from "../lib/pdfGenerator";
+15 [0]: import { fetchExpedienteFotos, saveExpedienteFoto } from "../lib/expedienteService";
+16 [0]: import { shareDocumentoViaWhatsApp } from "../services/documentShareService";
+17 [0]: import { getExpediente, formatDateShort } from "../lib/utils";
+18 [1]: import {
+19 [1]: PageHeader,
+20 [1]: EmptyState,
+21 [1]: MatriculaBadge,
+22 [0]: } from "../components/UI";
+23 [0]: import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from "../lib/dropdownAnimations";
+24 [1]: import {
+25 [1]: Plus,
+26 [1]: Trash2,
+27 [1]: Mic,
+28 [1]: Printer,
+29 [1]: Check,
+30 [1]: X,
+31 [1]: FileText,
+32 [1]: ArrowLeft,
+33 [1]: Search,
+34 [1]: UserPlus,
+35 [1]: ImageIcon,
+36 [1]: FolderOpen,
+37 [1]: CheckCircle2,
+38 [0]: } from "lucide-react";
+39 [0]: import { PresupuestoIcon, ExpedienteFolderIcon } from "../components/CustomIcons";
+40 [0]: import { GlobalImageViewer } from "../components/GlobalImageViewer";
+41 [0]: import { useVoice, parseVoiceToConceptos } from "../lib/useVoice";
+42 [0]: import { useToast } from "../lib/ToastContext";
+43 [0]: 
+44 [0]: const IVA_RATE = 0.21;
+45 [0]: 
+46 [1]: function ConceptoMobileCard({
+47 [1]: concepto,
+48 [1]: onChange,
+49 [1]: onDelete,
+50 [1]: animarDescripcion,
+51 [1]: animarCantidad,
+52 [1]: animarPrecio,
+53 [1]: }: {
+54 [1]: concepto: Concepto;
+55 [1]: onChange: (c: Concepto) => void;
+56 [1]: onDelete: () => void;
+57 [1]: animarDescripcion?: boolean;
+58 [1]: animarCantidad?: boolean;
+59 [1]: animarPrecio?: boolean;
+60 [1]: }) {
+61 [1]: const { listening, transcript, interim, supported, start, stop, reset } =
+62 [1]: useVoice();
+63 [1]: const [editingVoice, setEditingVoice] = useState(false);
+64 [1]: 
+65 [2]: function finishVoiceEdit() {
+66 [2]: stop();
+67 [2]: const text = (transcript + " " + interim).trim();
+68 [3]: if (text) {
+69 [3]: const parsed = parseVoiceToConceptos(text);
+70 [4]: if (parsed.length > 0) {
+71 [4]: const p = parsed[0];
+72 [5]: onChange({
+73 [5]: ...concepto,
+74 [5]: descripcion: p.descripcion,
+75 [5]: cantidad: p.cantidad || concepto.cantidad,
+76 [5]: precio: p.precio || concepto.precio,
+77 [4]: });
+78 [4]: } else {
+79 [4]: onChange({ ...concepto, descripcion: text });
+80 [3]: }
+81 [2]: }
+82 [2]: reset();
+83 [2]: setEditingVoice(false);
+84 [1]: }
+85 [1]: 
+86 [2]: function startVoiceEdit() {
+87 [2]: if (!supported) return;
+88 [2]: reset();
+89 [2]: setEditingVoice(true);
+90 [2]: start();
+91 [1]: }
+92 [1]: 
+93 [1]: return (
+94 [1]: <div className="bg-white rounded-2xl p-3 border border-gray-300 shadow-sm space-y-2">
+95 [1]: {/* Fila descripción */}
+96 [1]: <div className="flex items-center gap-2">
+97 [1]: <input
+98 [1]: type="text"
+99 [1]: placeholder="Descripción del trabajo..."
+100 [1]: value={concepto.descripcion}
+101 [2]: onChange={(e) =>
+102 [2]: onChange({ ...concepto, descripcion: e.target.value })
+103 [1]: }
+104 [3]: className={`flex-1 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-3 py-2 text-sm focus:border-blue-700 focus:outline-none min-w-0 font-medium transition-all ${
+105 [3]: animarDescripcion
+106 [3]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+107 [3]: : "border-gray-300"
+108 [1]: }`}
+109 [1]: />
+110 [1]: <button
+111 [1]: onClick={onDelete}
+112 [1]: className="flex-shrink-0 w-8 h-8 flex items-center justify-center text-gray-400 hover:text-red-500"
+113 [1]: >
+114 [1]: <Trash2 className="w-4 h-4" />
+115 [1]: </button>
+116 [1]: </div>
+117 [1]: <div className="flex items-center gap-2">
+118 [1]: <div className="flex-1">
+119 [1]: <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
+120 [1]: Cantidad
+121 [1]: </label>
+122 [1]: <input
+123 [1]: type="number"
+124 [1]: value={concepto.cantidad === 0 ? "" : concepto.cantidad}
+125 [1]: placeholder="0"
+126 [1]: inputMode="decimal"
+127 [2]: onChange={(e) =>
+128 [3]: onChange({
+129 [3]: ...concepto,
+130 [3]: cantidad: parseFloat(e.target.value) || 0,
+131 [2]: })
+132 [1]: }
+133 [3]: className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
+134 [3]: animarCantidad
+135 [3]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+136 [3]: : "border-gray-300"
+137 [1]: }`}
+138 [1]: />
+139 [1]: </div>
+140 [1]: <div className="flex-1">
+141 [1]: <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
+142 [1]: Precio €
+143 [1]: </label>
+144 [1]: <input
+145 [1]: type="number"
+146 [1]: value={concepto.precio === 0 ? "" : concepto.precio}
+147 [1]: placeholder="0"
+148 [1]: inputMode="decimal"
+149 [2]: onChange={(e) =>
+150 [2]: onChange({ ...concepto, precio: parseFloat(e.target.value) || 0 })
+151 [1]: }
+152 [3]: className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border rounded-xl px-2 py-1.5 text-sm text-center focus:border-blue-700 focus:outline-none font-bold transition-all ${
+153 [3]: animarPrecio
+154 [3]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+155 [3]: : "border-gray-300"
+156 [1]: }`}
+157 [1]: />
+158 [1]: </div>
+159 [1]: <div className="flex-shrink-0">
+160 [1]: <label className="text-[10px] text-black !text-black uppercase font-bold block mb-0.5">
+161 [1]: Importe
+162 [1]: </label>
+163 [1]: <div className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white !bg-white text-black !text-black font-black text-sm text-center shadow-inner">
+164 [1]: {(concepto.cantidad * concepto.precio).toFixed(2)} €
+165 [1]: </div>
+166 [1]: </div>
+167 [1]: </div>
+168 [2]: {supported && !editingVoice && (
+169 [2]: <button
+170 [2]: onClick={startVoiceEdit}
+171 [2]: className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-white hover:bg-blue-50 text-blue-600 border border-blue-400 text-xs font-black uppercase tracking-wider shadow-sm transition-all active:scale-95"
+172 [2]: >
+173 [2]: <Mic className="w-4 h-4 text-blue-600" /> <span>EDITAR CON VOZ</span>
+174 [2]: </button>
+175 [1]: )}
+176 [2]: {editingVoice && (
+177 [2]: <div className="space-y-2">
+178 [2]: <div className="flex items-center justify-center gap-2 py-2 bg-cyan-50 rounded-lg">
+179 [2]: <Mic className="w-4 h-4 text-cyan-600 animate-pulse" />
+180 [2]: <span className="text-xs text-cyan-700">
+181 [2]: {listening ? "Escuchando..." : "Procesando..."}
+182 [2]: </span>
+183 [2]: <span className="text-xs text-gray-500 truncate max-w-[140px]">
+184 [2]: {transcript || interim}
+185 [2]: </span>
+186 [2]: </div>
+187 [2]: <div className="flex gap-2">
+188 [2]: <button
+189 [2]: onClick={finishVoiceEdit}
+190 [2]: className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-cyan-600 text-white text-xs font-semibold"
+191 [2]: >
+192 [2]: <Check className="w-3.5 h-3.5" /> Aplicar
+193 [2]: </button>
+194 [2]: <button
+195 [4]: onClick={() => {
+196 [4]: stop();
+197 [4]: reset();
+198 [4]: setEditingVoice(false);
+199 [2]: }}
+200 [2]: className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-200 text-gray-600 text-xs font-semibold"
+201 [2]: >
+202 [2]: <X className="w-3.5 h-3.5" /> Cancelar
+203 [2]: </button>
+204 [2]: </div>
+205 [2]: </div>
+206 [1]: )}
+207 [1]: </div>
+208 [1]: );
+209 [0]: }
+210 [0]: 
+211 [1]: export function PresupuestosPage() {
+212 [1]: const location = useLocation();
+213 [1]: const navigate = useNavigate();
+214 [1]: const { showToast } = useToast();
+215 [1]: const navState = location.state as { clienteId?: string; vehiculoId?: string; openForm?: boolean; presupuestoId?: string; initialFotos?: string[] } | null;
+216 [1]: const clienteIdFromNav = navState?.clienteId;
+217 [1]: const vehiculoIdFromNav = navState?.vehiculoId;
+218 [1]: const openFormFromNav = navState?.openForm;
+219 [1]: const presupuestoIdFromNav = navState?.presupuestoId;
+220 [1]: 
+221 [1]: const [search, setSearch] = useState("");
+222 [1]: const [showSearchInput, setShowSearchInput] = useState(false);
+223 [1]: const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
+224 [1]: const [allVehiculos, setAllVehiculos] = useState<Record<string, Vehiculo>>({});
+225 [1]: const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
+226 [1]: const [presupuestos, setPresupuestos] = useState<Presupuesto[]>([]);
+227 [1]: const [citas, setCitas] = useState<Cita[]>([]);
+228 [1]: const [reparaciones, setReparaciones] = useState<any[]>([]);
+229 [1]: const [facturas, setFacturas] = useState<any[]>([]);
+230 [1]: const [config, setConfig] = useState<Configuracion | null>(null);
+231 [1]: const [showForm, setShowForm] = useState(openFormFromNav ?? false);
+232 [1]: const [clientes, setClientes] = useState<Cliente[]>([]);
+233 [1]: const [selectedClienteId, setSelectedClienteId] = useState("");
+234 [1]: const [clienteSearchText, setClienteSearchText] = useState("");
+235 [1]: const [showClientDropdown, setShowClientDropdown] = useState(false);
+236 [1]: const [selectedVehiculoId, setSelectedVehiculoId] = useState("");
+237 [1]: const [conceptos, setConceptos] = useState<Concepto[]>([
+238 [1]: { descripcion: "", cantidad: 1, precio: 0 },
+239 [1]: ]);
+240 [1]: const defaultPresupuestoObs = "Puede acceder al seguimiento de su reparación en tiempo real online a través de nuestra aplicación donde también podrá descargar documentos.\nEl presente documento puede verse alterado por incidencias o nuevas circunstancias no contempladas en primera valoración\n\n";
+241 [1]: 
+242 [1]: const [observaciones, setObservaciones] = useState(defaultPresupuestoObs);
+243 [1]: const [aplicarIva, setAplicarIva] = useState(true);
+244 [1]: const [editingId, setEditingId] = useState<string | null>(null);
+245 [1]: const [viewerMatricula, setViewerMatricula] = useState<string | null>(null);
+246 [1]: const [expedienteFotos, setExpedienteFotos] = useState<string[]>([]);
+247 [1]: const [showExpedienteViewer, setShowExpedienteViewer] = useState(false);
+248 [1]: const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente");
+249 [1]: const [modalEnvioOpen, setModalEnvioOpen] = useState(false);
+250 [1]: const [showSentToast, setShowSentToast] = useState<string | null>(null);
+251 [1]: const [animarEnvioPostSave, setAnimarEnvioPostSave] = useState(false);
+252 [1]: 
+253 [2]: const handleVolver = () => {
+254 [3]: if (navState) {
+255 [3]: navigate(-1);
+256 [3]: } else {
+257 [3]: resetForm();
+258 [2]: }
+259 [1]: };
+260 [1]: 
+261 [2]: useEffect(() => {
+262 [3]: if (clienteIdFromNav) {
+263 [3]: setSelectedClienteId(clienteIdFromNav);
+264 [3]: setExpandedClienteId(clienteIdFromNav);
+265 [2]: }
+266 [2]: if (vehiculoIdFromNav) setSelectedVehiculoId(vehiculoIdFromNav);
+267 [2]: if (openFormFromNav && !presupuestoIdFromNav) setShowForm(true);
+268 [3]: useEffect(() => {
+269 [4]: if (selectedClienteId) {
+270 [4]: const c = clientes.find(x => x.id === selectedClienteId);
+271 [4]: if (c) setClienteSearchText(c.nombre);
+272 [4]: } else {
+273 [4]: setClienteSearchText("");
+274 [3]: }
+275 [2]: }, [selectedClienteId, clientes]);
+276 [2]: 
+277 [3]: if (presupuestoIdFromNav) {
+278 [3]: supabase
+279 [3]: .from("presupuestos")
+280 [3]: .select("*")
+281 [3]: .eq("id", presupuestoIdFromNav)
+282 [3]: .maybeSingle()
+283 [4]: .then(({ data }) => {
+284 [5]: if (data) {
+285 [5]: setEditingId(data.id);
+286 [5]: setSelectedClienteId(data.cliente_id);
+287 [5]: setSelectedVehiculoId(data.vehiculo_id ?? "");
+288 [5]: setConceptos(
+289 [5]: data.conceptos?.length
+290 [5]: ? data.conceptos
+291 [5]: : [{ descripcion: "", cantidad: 1, precio: 0 }],
+292 [5]: );
+293 [5]: setObservaciones(data.observaciones ?? "");
+294 [5]: setShowForm(true);
+295 [4]: }
+296 [3]: });
+297 [2]: }
+298 [1]: }, [clienteIdFromNav, vehiculoIdFromNav, openFormFromNav, presupuestoIdFromNav]);
+299 [1]: 
+300 [2]: useEffect(() => {
+301 [2]: window.dispatchEvent(new CustomEvent('gestarian-toggle-footer', { detail: { hide: showForm } }));
+302 [3]: return () => {
+303 [3]: window.dispatchEvent(new CustomEvent('gestarian-toggle-footer', { detail: { hide: false } }));
+304 [2]: };
+305 [1]: }, [showForm]);
+306 [1]: 
+307 [2]: async function openExpedienteViewer(cliId?: string | null, vehId?: string | null, entityFotos: string[] = [], title: string = "Fotos del Expediente") {
+308 [2]: const fotos = await fetchExpedienteFotos(cliId, vehId, entityFotos)
+309 [2]: setExpedienteFotos(fotos)
+310 [2]: setExpedienteViewerTitle(title)
+311 [2]: setShowExpedienteViewer(true)
+312 [1]: }
+313 [1]: const { listening, transcript, reset } = useVoice();
+314 [1]: const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+315 [1]: 
+316 [2]: const playSuccessSound = () => {
+317 [3]: try {
+318 [3]: const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+319 [3]: if (!AudioContext) return;
+320 [3]: const ctx = new AudioContext();
+321 [3]: const osc = ctx.createOscillator();
+322 [3]: const gain = ctx.createGain();
+323 [3]: osc.type = "sine";
+324 [3]: osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+325 [3]: osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15);
+326 [3]: gain.gain.setValueAtTime(0.15, ctx.currentTime);
+327 [3]: gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+328 [3]: osc.connect(gain);
+329 [3]: gain.connect(ctx.destination);
+330 [3]: osc.start();
+331 [3]: osc.stop(ctx.currentTime + 0.3);
+332 [3]: } catch (e) {
+333 [3]: console.error(e);
+334 [2]: }
+335 [1]: };
+336 [1]: 
+337 [1]: // Función para que METIS hable
+338 [2]: const speak = (text: string) => {
+339 [2]: if (!("speechSynthesis" in window)) return;
+340 [2]: window.speechSynthesis.cancel();
+341 [2]: const utterance = new SpeechSynthesisUtterance(text);
+342 [2]: utterance.lang = "es-ES";
+343 [2]: utterance.rate = 1.1;
+344 [2]: // Buscar voz femenina en español si está disponible
+345 [2]: const voices = window.speechSynthesis.getVoices();
+346 [2]: const esVoices = voices.filter((v) => v.lang.startsWith("es"));
+347 [2]: const femaleVoice = esVoices.find(
+348 [2]: (v) =>
+349 [2]: v.name.toLowerCase().includes("monica") ||
+350 [2]: v.name.toLowerCase().includes("paulina") ||
+351 [2]: v.name.toLowerCase().includes("female"),
+352 [2]: );
+353 [2]: if (femaleVoice) utterance.voice = femaleVoice;
+354 [2]: else if (esVoices.length > 0) utterance.voice = esVoices[0];
+355 [2]: 
+356 [2]: window.speechSynthesis.speak(utterance);
+357 [1]: };
+358 [1]: 
+359 [1]: // Pre-cargar voces
+360 [2]: useEffect(() => {
+361 [3]: if ("speechSynthesis" in window) {
+362 [3]: window.speechSynthesis.getVoices();
+363 [2]: }
+364 [1]: }, []);
+365 [1]: 
+366 [2]: useEffect(() => {
+367 [2]: loadClientes();
+368 [2]: loadPresupuestos();
+369 [2]: loadCitas();
+370 [2]: loadReparaciones();
+371 [2]: loadAllVehiculos();
+372 [2]: loadConfig();
+373 [3]: if (clienteIdFromNav) {
+374 [3]: setSelectedClienteId(clienteIdFromNav);
+375 [2]: }
+376 [3]: function handleDictado(e: Event) {
+377 [3]: const conceptosNuevos = (e as CustomEvent<Concepto[]>).detail;
+378 [3]: if (!conceptosNuevos.length) return;
+379 [3]: setShowForm(true);
+380 [4]: setConceptos((prev) => {
+381 [4]: const vacias = prev.filter((c) => !c.descripcion.trim());
+382 [4]: const llenas = prev.filter((c) => c.descripcion.trim());
+383 [4]: return [...llenas, ...conceptosNuevos, ...vacias];
+384 [3]: });
+385 [2]: }
+386 [2]: window.addEventListener("metis-dictado-presupuesto", handleDictado);
+387 [3]: function handleOpenDocument(e: Event) {
+388 [3]: const { id, tipo } = (e as CustomEvent).detail;
+389 [4]: if (tipo === "presupuesto" && id) {
+390 [4]: supabase
+391 [4]: .from("presupuestos")
+392 [4]: .select("*")
+393 [4]: .eq("id", id)
+394 [4]: .maybeSingle()
+395 [5]: .then(({ data }) => {
+396 [6]: if (data) {
+397 [6]: setEditingId(data.id);
+398 [6]: setSelectedClienteId(data.cliente_id);
+399 [6]: setSelectedVehiculoId(data.vehiculo_id ?? "");
+400 [6]: setConceptos(
+401 [6]: data.conceptos?.length
+402 [6]: ? data.conceptos
+403 [6]: : [{ descripcion: "", cantidad: 1, precio: 0 }],
+404 [6]: );
+405 [6]: setObservaciones(data.observaciones ?? "");
+406 [6]: setShowForm(true);
+407 [5]: }
+408 [4]: });
+409 [3]: }
+410 [2]: }
+411 [2]: window.addEventListener("gestarian-open-document", handleOpenDocument);
+412 [3]: return () => {
+413 [3]: window.removeEventListener("metis-dictado-presupuesto", handleDictado);
+414 [3]: window.removeEventListener("gestarian-open-document", handleOpenDocument);
+415 [2]: };
+416 [1]: }, []);
+417 [1]: 
+418 [2]: useEffect(() => {
+419 [3]: if (selectedClienteId) {
+420 [3]: supabase
+421 [3]: .from("vehiculos")
+422 [3]: .select("*")
+423 [3]: .eq("cliente_id", selectedClienteId)
+424 [4]: .then(({ data }) => {
+425 [4]: const vehs = data ?? [];
+426 [4]: setVehiculos(vehs);
+427 [5]: setAllVehiculos((prev) => {
+428 [5]: const next = { ...prev };
+429 [5]: vehs.forEach((v: Vehiculo) => { next[v.id] = v; });
+430 [5]: return next;
+431 [4]: });
+432 [5]: if (vehiculoIdFromNav && vehs.some((v) => v.id === vehiculoIdFromNav)) {
+433 [5]: setSelectedVehiculoId(vehiculoIdFromNav);
+434 [5]: } else if (vehs.length === 1) {
+435 [5]: setSelectedVehiculoId(vehs[0].id);
+436 [5]: } else {
+437 [5]: setSelectedVehiculoId((prev) => (vehs.some((v) => v.id === prev) ? prev : ""));
+438 [4]: }
+439 [3]: });
+440 [3]: } else {
+441 [3]: setVehiculos([]);
+442 [3]: setSelectedVehiculoId("");
+443 [2]: }
+444 [1]: }, [selectedClienteId, vehiculoIdFromNav]);
+445 [1]: 
+446 [1]: 
+447 [1]: 
+448 [2]: async function loadClientes() {
+449 [2]: const { data } = await supabase
+450 [2]: .from("clientes")
+451 [2]: .select("*")
+452 [2]: .order("nombre");
+453 [2]: setClientes(data ?? []);
+454 [1]: }
+455 [1]: 
+456 [2]: async function loadPresupuestos() {
+457 [2]: const { data } = await supabase
+458 [2]: .from("presupuestos")
+459 [2]: .select("*")
+460 [2]: .order("created_at", { ascending: false });
+461 [3]: setPresupuestos((data ?? []).map(p => ({
+462 [3]: ...p,
+463 [3]: enviado_email_at: (p as any).enviado_email_at || localStorage.getItem(`presupuesto_${p.id}_email_at`),
+464 [3]: enviado_whatsapp_at: (p as any).enviado_whatsapp_at || localStorage.getItem(`presupuesto_${p.id}_wa_at`)
+465 [2]: })));
+466 [1]: }
+467 [1]: 
+468 [2]: useEffect(() => {
+469 [2]: loadData();
+470 [1]: }, []);
+471 [1]: 
+472 [2]: async function loadCitas() {
+473 [2]: const { data } = await supabase.from("citas").select("*");
+474 [2]: setCitas(data ?? []);
+475 [1]: }
+476 [1]: 
+477 [1]: // Efecto para abrir el presupuesto automáticamente si viene desde navegación
+478 [2]: useEffect(() => {
+479 [3]: if (presupuestoIdFromNav && presupuestos.length > 0 && !editingId) {
+480 [3]: const p = presupuestos.find(p => p.id === presupuestoIdFromNav);
+481 [4]: if (p) {
+482 [4]: editPresupuesto(p);
+483 [3]: }
+484 [2]: }
+485 [1]: }, [presupuestos, presupuestoIdFromNav, editingId]);
+486 [1]: 
+487 [2]: async function loadReparaciones() {
+488 [2]: const { data } = await supabase.from("reparaciones").select("*");
+489 [2]: setReparaciones(data ?? []);
+490 [1]: }
+491 [1]: 
+492 [2]: async function loadAllVehiculos() {
+493 [2]: const { data } = await supabase.from("vehiculos").select("*");
+494 [2]: const map: Record<string, Vehiculo> = {};
+495 [3]: (data ?? []).forEach((v: Vehiculo) => {
+496 [3]: map[v.id] = v;
+497 [2]: });
+498 [2]: setAllVehiculos(map);
+499 [1]: }
+500 [1]: 
+501 [2]: async function loadFacturas() {
+502 [2]: const { data } = await supabase.from("facturas").select("id, numero, vehiculo_id, cliente_id, reparacion_id, created_at");
+503 [2]: setFacturas(data ?? []);
+504 [1]: }
+505 [1]: 
+506 [2]: async function loadData() {
+507 [2]: await Promise.all([
+508 [2]: loadClientes(),
+509 [2]: loadPresupuestos(),
+510 [2]: loadCitas(),
+511 [2]: loadReparaciones(),
+512 [2]: loadAllVehiculos(),
+513 [2]: loadFacturas(),
+514 [2]: loadConfig()
+515 [2]: ]);
+516 [1]: }
+517 [1]: 
+518 [2]: async function loadConfig() {
+519 [2]: const { data } = await supabase
+520 [2]: .from("configuracion")
+521 [2]: .select("*")
+522 [2]: .eq("id", 1)
+523 [2]: .maybeSingle();
+524 [2]: setConfig(data);
+525 [1]: }
+526 [1]: 
+527 [1]: const subtotal = conceptos.reduce((sum, c) => sum + c.cantidad * c.precio, 0);
+528 [1]: const iva = subtotal * IVA_RATE;
+529 [1]: const total = subtotal + iva;
+530 [1]: 
+531 [2]: async function handleSave() {
+532 [2]: if (!selectedClienteId) return;
+533 [2]: const cleanConceptos = conceptos.filter((c) => c.descripcion.trim());
+534 [2]: 
+535 [2]: // Generar formato P3T260001 (P + [Trimestre]T + 2 dígitos del año + 4 dígitos de secuencia)
+536 [2]: const now = new Date();
+537 [2]: const quarter = Math.floor(now.getMonth() / 3) + 1;
+538 [2]: const currentYearSuffix = now.getFullYear().toString().slice(-2);
+539 [2]: const prefix = `P${quarter}T${currentYearSuffix}`;
+540 [2]: 
+541 [2]: // Buscar la máxima secuencia de presupuestos del año en curso
+542 [2]: // Se contemplan ambos formatos: P261234 (antiguo) y P3T260001 (nuevo)
+543 [2]: let maxSeq = 0;
+544 [2]: let maxExpSeq = 0;
+545 [2]: 
+546 [3]: presupuestos.forEach((p) => {
+547 [3]: let seq = 0;
+548 [4]: if (p.numero && p.numero.includes(`T${currentYearSuffix}`)) {
+549 [4]: const numPart = p.numero.substring(5);
+550 [4]: seq = parseInt(numPart, 10);
+551 [4]: } else if (p.numero && p.numero.startsWith(`P${currentYearSuffix}`)) {
+552 [4]: const numPart = p.numero.substring(3);
+553 [4]: seq = parseInt(numPart, 10);
+554 [3]: }
+555 [4]: if (!isNaN(seq) && seq > maxSeq) {
+556 [4]: maxSeq = seq;
+557 [3]: }
+558 [3]: 
+559 [3]: // Buscar también la secuencia máxima de expedientes
+560 [4]: if (p.expediente_id) {
+561 [4]: const expNumPart = p.expediente_id.substring(p.expediente_id.length - 4);
+562 [4]: const expSeq = parseInt(expNumPart, 10);
+563 [5]: if (!isNaN(expSeq) && expSeq > maxExpSeq) {
+564 [5]: maxExpSeq = expSeq;
+565 [4]: }
+566 [4]: } else {
+567 [4]: // Fallback a la secuencia del presupuesto si no tiene expediente_id
+568 [5]: if (!isNaN(seq) && seq > maxExpSeq) {
+569 [5]: maxExpSeq = seq;
+570 [4]: }
+571 [3]: }
+572 [2]: });
+573 [2]: 
+574 [2]: const numero = `${prefix}${String(maxSeq + 1).padStart(4, '0')}`;
+575 [2]: 
+576 [2]: const cliente = clientes.find(c => c.id === selectedClienteId);
+577 [2]: let clienteNum = '';
+578 [3]: if (cliente) {
+579 [4]: if (cliente.numero) {
+580 [4]: clienteNum = cliente.numero.toString();
+581 [4]: } else {
+582 [4]: const sorted = [...clientes].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+583 [4]: const idx = sorted.findIndex(c => c.id === cliente.id);
+584 [4]: if (idx !== -1) clienteNum = (idx + 1).toString();
+585 [3]: }
+586 [2]: }
+587 [2]: const expediente_id = `${clienteNum}E${currentYearSuffix}${String(maxExpSeq + 1).padStart(4, '0')}`;
+588 [2]: 
+589 [3]: if (editingId) {
+590 [3]: const { data: updatedPres, error } = await supabase
+591 [3]: .from("presupuestos")
+592 [4]: .update({
+593 [4]: cliente_id: selectedClienteId,
+594 [4]: vehiculo_id: selectedVehiculoId || null,
+595 [4]: conceptos: cleanConceptos,
+596 [4]: total: total,
+597 [4]: observaciones: observaciones || null,
+598 [3]: })
+599 [3]: .eq("id", editingId)
+600 [3]: .select()
+601 [3]: .maybeSingle();
+602 [3]: 
+603 [4]: if (error) {
+604 [4]: console.error("Error actualizando presupuesto:", error);
+605 [4]: showToast("Error al guardar presupuesto: " + error.message, "error");
+606 [4]: return;
+607 [3]: }
+608 [3]: playSuccessSound();
+609 [3]: setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+610 [3]: setAnimarEnvioPostSave(false);
+611 [4]: setTimeout(() => {
+612 [4]: setShowSentToast(null);
+613 [4]: setAnimarEnvioPostSave(true);
+614 [3]: }, 2000);
+615 [3]: if (updatedPres?.id) setEditingId(updatedPres.id);
+616 [3]: } else {
+617 [4]: const { data: newPres, error } = await supabase.from("presupuestos").insert({
+618 [4]: numero,
+619 [4]: expediente_id,
+620 [4]: cliente_id: selectedClienteId,
+621 [4]: vehiculo_id: selectedVehiculoId || null,
+622 [4]: conceptos: cleanConceptos,
+623 [4]: total,
+624 [4]: observaciones: observaciones || null,
+625 [4]: fotos: navState?.initialFotos || [],
+626 [4]: estado: "pendiente",
+627 [3]: }).select().maybeSingle();
+628 [3]: 
+629 [4]: if (error) {
+630 [4]: console.error("Error creando presupuesto:", error);
+631 [4]: showToast("Error al guardar presupuesto: " + error.message, "error");
+632 [4]: return;
+633 [3]: }
+634 [3]: playSuccessSound();
+635 [3]: setShowSentToast("GUARDADO, YA PUEDES ENVIARLO");
+636 [3]: setAnimarEnvioPostSave(false);
+637 [4]: setTimeout(() => {
+638 [4]: setShowSentToast(null);
+639 [4]: setAnimarEnvioPostSave(true);
+640 [3]: }, 2000);
+641 [4]: if (newPres?.id) {
+642 [4]: setEditingId(newPres.id);
+643 [3]: }
+644 [2]: }
+645 [2]: await loadPresupuestos();
+646 [1]: }
+647 [1]: 
+648 [2]: function resetForm() {
+649 [2]: setShowForm(false);
+650 [2]: setConceptos([{ descripcion: "", cantidad: 1, precio: 0 }]);
+651 [2]: setObservaciones(defaultPresupuestoObs);
+652 [2]: setSelectedClienteId("");
+653 [2]: setSelectedVehiculoId("");
+654 [2]: setEditingId(null);
+655 [1]: }
+656 [1]: 
+657 [2]: function editPresupuesto(p: Presupuesto) {
+658 [2]: setEditingId(p.id);
+659 [2]: setSelectedClienteId(p.cliente_id);
+660 [2]: setSelectedVehiculoId(p.vehiculo_id ?? "");
+661 [2]: setConceptos(
+662 [2]: p.conceptos?.length
+663 [2]: ? p.conceptos
+664 [2]: : [{ descripcion: "", cantidad: 1, precio: 0 }],
+665 [2]: );
+666 [2]: setObservaciones(p.observaciones || defaultPresupuestoObs);
+667 [2]: setShowForm(true);
+668 [1]: }
+669 [1]: 
+670 [2]: function clienteData(id: string) {
+671 [2]: return clientes.find((c) => c.id === id);
+672 [1]: }
+673 [1]: 
+674 [2]: function vehiculoData(id: string | null) {
+675 [2]: if (!id) return null;
+676 [2]: return allVehiculos[id] || vehiculos.find((v) => v.id === id) || null;
+677 [1]: }
+678 [1]: 
+679 [1]: // Helper to mark form as edited
+680 [2]: const handleChangeConcepto = (next: Concepto[]) => {
+681 [2]: setConceptos(next);
+682 [1]: };
+683 [2]: const handleChangeObservaciones = (val: string) => {
+684 [2]: setObservaciones(val);
+685 [1]: };
+686 [2]: const handleChangeCliente = (val: string) => {
+687 [2]: setSelectedClienteId(val);
+688 [1]: };
+689 [2]: const handleChangeVehiculo = (val: string) => {
+690 [2]: setSelectedVehiculoId(val);
+691 [1]: };
+692 [1]: 
+693 [1]: // METIS Conversacional Logic
+694 [2]: useEffect(() => {
+695 [3]: if (listening && transcript) {
+696 [3]: if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+697 [4]: voiceTimerRef.current = setTimeout(() => {
+698 [4]: const text = transcript.toLowerCase();
+699 [4]: reset(); // Clear transcript so it doesn't re-trigger
+700 [4]: 
+701 [4]: // Check intents
+702 [4]: if (
+703 [4]: text.includes("borra") ||
+704 [4]: text.includes("elimina") ||
+705 [4]: text.includes("quita")
+706 [5]: ) {
+707 [5]: // Intent: Remove concept
+708 [5]: // A very simple heuristic: find a concept that matches a word in the transcript
+709 [5]: const palabras = text
+710 [5]: .replace(/borra|elimina|quita/g, "")
+711 [5]: .trim()
+712 [5]: .split(/\s+/);
+713 [6]: if (palabras.length > 0) {
+714 [6]: let found = false;
+715 [7]: setConceptos((prev) => {
+716 [8]: const next = prev.filter((c) => {
+717 [8]: if (!c.descripcion) return true;
+718 [8]: const match = palabras.some(
+719 [8]: (p) =>
+720 [8]: p.length > 3 && c.descripcion.toLowerCase().includes(p),
+721 [8]: );
+722 [8]: if (match) found = true;
+723 [8]: return !match;
+724 [7]: });
+725 [7]: return next.length
+726 [7]: ? next
+727 [7]: : [{ descripcion: "", cantidad: 1, precio: 0 }];
+728 [6]: });
+729 [6]: if (found) speak("Concepto eliminado del presupuesto.");
+730 [6]: else speak("No he encontrado ese concepto para borrarlo.");
+731 [5]: }
+732 [5]: } else {
+733 [5]: // Default Intent: Add new concept
+734 [5]: const nuevos = parseVoiceToConceptos(text);
+735 [6]: if (nuevos.length > 0) {
+736 [6]: handleChangeConcepto([
+737 [6]: ...conceptos.filter((c) => c.descripcion.trim()),
+738 [6]: ...nuevos,
+739 [6]: ...conceptos.filter((c) => !c.descripcion.trim()),
+740 [6]: ]);
+741 [6]: const desc = nuevos[0].descripcion;
+742 [6]: speak(`He añadido ${desc} al presupuesto.`);
+743 [6]: } else {
+744 [6]: speak(
+745 [6]: "No te he entendido bien. Prueba a decir el concepto y el precio.",
+746 [6]: );
+747 [5]: }
+748 [4]: }
+749 [3]: }, 2500);
+750 [2]: }
+751 [3]: return () => {
+752 [3]: if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
+753 [2]: };
+754 [1]: }, [transcript, listening, reset]);
+755 [1]: 
+756 [1]: return (
+757 [1]: <div>
+758 [1]: {/* Cabecera unificada: Título PRESUPUESTOS (tamaño x1.2) con logo corporativo a la izquierda y botón VOLVER */}
+759 [1]: <PageHeader title="PRESUPUESTOS" titleClassName="text-[21.6px] md:text-[23px] text-xl font-bold">
+760 [1]: <button
+761 [1]: onClick={() => navigate(-1)}
+762 [1]: className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+763 [1]: title="Volver"
+764 [1]: aria-label="Volver"
+765 [1]: >
+766 [1]: <ArrowLeft className="w-7 h-7" />
+767 [1]: </button>
+768 [1]: </PageHeader>
+769 [1]: 
+770 [1]: {/* Barra de búsqueda y botón de nuevo presupuesto */}
+771 [2]: {!showForm && !clienteIdFromNav && (
+772 [2]: <div className="mb-4 flex gap-4 items-center w-full">
+773 [3]: {showSearchInput ? (
+774 [3]: <div className="relative flex-1 flex items-center gap-2">
+775 [3]: <input
+776 [3]: type="text"
+777 [3]: autoFocus
+778 [3]: value={search}
+779 [3]: onChange={(e) => setSearch(e.target.value)}
+780 [3]: placeholder="Buscar por cliente, matrícula o número de presupuesto..."
+781 [3]: className="flex-1 bg-bg-800 border border-bg-600 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
+782 [3]: />
+783 [3]: <button
+784 [5]: onClick={() => {
+785 [5]: setShowSearchInput(false);
+786 [5]: setSearch('');
+787 [3]: }}
+788 [3]: className="text-slate-400 hover:text-white p-2 shrink-0"
+789 [3]: title="Cerrar búsqueda"
+790 [3]: >
+791 [3]: <X className="w-6 h-6" />
+792 [3]: </button>
+793 [3]: </div>
+794 [3]: ) : (
+795 [3]: <>
+796 [3]: <button
+797 [3]: onClick={() => setShowSearchInput(true)}
+798 [3]: className="w-12 h-12 flex items-center justify-center text-slate-450 hover:text-white shrink-0 transition-transform active:scale-95 bg-transparent border-0 outline-none p-0"
+799 [3]: title="Buscar"
+800 [3]: >
+801 [3]: <Search className="w-8 h-8" />
+802 [3]: </button>
+803 [3]: <button
+804 [5]: onClick={() => {
+805 [5]: resetForm();
+806 [5]: setShowForm(true);
+807 [3]: }}
+808 [3]: className="flex-1 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 font-extrabold shadow-[0_0_12px_rgba(8,145,178,0.3)] gap-1.5 uppercase text-sm tracking-wider"
+809 [3]: title="Añadir nuevo presupuesto"
+810 [3]: aria-label="Añadir nuevo presupuesto"
+811 [3]: >
+812 [3]: <Plus className="w-5 h-5" /> NUEVO PRESUPUESTO
+813 [3]: </button>
+814 [3]: </>
+815 [2]: )}
+816 [2]: </div>
+817 [1]: )}
+818 [1]: 
+819 [1]: {/* Hoja A4 del presupuesto */}
+820 [2]: {showForm && (
+821 [2]: <div className="mb-6">
+822 [2]: <div className="gestarian-paper rounded-lg shadow-2xl mx-auto max-w-[calc(210mm*0.9)] p-8 sm:p-12 print:shadow-none print:max-w-none">
+823 [2]: {/* Cabecera: logo + datos empresa + número */}
+824 [2]: <div className="flex justify-between items-start mb-6 pb-4 border-b-2 border-gray-800">
+825 [2]: <div className="flex items-center gap-3">
+826 [3]: {config?.logo_bn ? (
+827 [3]: <img
+828 [3]: src={config.logo_bn}
+829 [3]: alt="Logo"
+830 [3]: className="w-16 h-16 rounded-lg object-cover bg-gray-100 p-1 hidden md:block"
+831 [3]: />
+832 [3]: ) : (
+833 [3]: <div className="w-16 h-16 rounded-lg bg-gray-800 hidden md:flex items-center justify-center text-white font-bold text-lg">
+834 [3]: {config?.nombre_empresa?.charAt(0) ?? "D"}
+835 [3]: </div>
+836 [2]: )}
+837 [2]: <div>
+838 [2]: <h2 className="text-xl font-bold">
+839 [2]: {config?.nombre_empresa ?? "DM CAR"}
+840 [2]: </h2>
+841 [2]: <p className="text-xs gestarian-paper-muted">
+842 [2]: {config?.cif ?? "B-12345678"}
+843 [2]: </p>
+844 [2]: <p className="text-xs gestarian-paper-muted">
+845 [2]: {config?.direccion ?? ""}
+846 [2]: </p>
+847 [3]: {config?.telefono && (
+848 [3]: <p className="text-xs gestarian-paper-muted">
+849 [3]: Tel: {config.telefono}
+850 [3]: </p>
+851 [2]: )}
+852 [2]: </div>
+853 [2]: </div>
+854 [2]: <div className="text-right">
+855 [2]: <h3 className="text-lg md:text-2xl font-bold uppercase tracking-wide">
+856 [2]: Presupuesto
+857 [2]: </h3>
+858 [2]: <p className="text-sm gestarian-paper-muted mt-1">
+859 [3]: {editingId
+860 [3]: ? presupuestos.find((p) => p.id === editingId)?.numero
+861 [2]: : `P${new Date().getFullYear().toString().slice(-2)}${String(presupuestos.filter(p => p.numero?.startsWith('P' + new Date().getFullYear().toString().slice(-2))).length + 1).padStart(4, "0")}`}
+862 [2]: </p>
+863 [2]: <p className="text-xs gestarian-paper-muted">
+864 [2]: {new Date().toLocaleDateString("es-ES")}
+865 [2]: </p>
+866 [2]: </div>
+867 [2]: </div>
+868 [2]: 
+869 [2]: {/* Datos cliente + vehículo */}
+870 [4]: {(() => {
+871 [4]: const hasCliente = !!selectedClienteId;
+872 [4]: const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+873 [4]: 
+874 [4]: // ── SECUENCIA LÓGICA DE ANIMACIÓN EN CLIENTE Y VEHÍCULO ──
+875 [4]: const animarCliente = !hasCliente;
+876 [4]: const animarVehiculo = hasCliente && !hasVehiculo;
+877 [4]: 
+878 [4]: return (
+879 [4]: <>
+880 [4]: <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+881 [4]: <div>
+882 [4]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
+883 [4]: Cliente
+884 [4]: </p>
+885 [4]: {/* Selector de cliente clásico (ancho completo, mismo formato) */}
+886 [4]: <div className="mb-2">
+887 [4]: <select
+888 [4]: value={selectedClienteId}
+889 [4]: onChange={(e) => handleChangeCliente(e.target.value)}
+890 [6]: className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
+891 [6]: animarCliente
+892 [6]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+893 [6]: : "border-gray-300"
+894 [4]: }`}
+895 [4]: >
+896 [4]: <option value="" className="text-xs">Seleccionar cliente...</option>
+897 [5]: {clientes.map((c) => (
+898 [5]: <option key={c.id} value={c.id} className="text-xs">
+899 [5]: {c.nombre}
+900 [5]: </option>
+901 [4]: ))}
+902 [4]: </select>
+903 [4]: </div>
+904 [4]: 
+905 [4]: <div className="relative mb-2">
+906 [4]: <input
+907 [4]: type="text"
+908 [4]: value={clienteSearchText}
+909 [6]: onChange={(e) => {
+910 [6]: setClienteSearchText(e.target.value);
+911 [6]: setShowClientDropdown(true);
+912 [7]: if (!e.target.value) {
+913 [7]: handleChangeCliente("");
+914 [6]: }
+915 [4]: }}
+916 [4]: onFocus={() => setShowClientDropdown(true)}
+917 [4]: placeholder="Buscar cliente (escribe para filtrar)..."
+918 [6]: className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs focus:border-blue-700 focus:outline-none font-bold transition-all ${
+919 [6]: animarCliente
+920 [6]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+921 [6]: : "border-gray-300"
+922 [4]: }`}
+923 [4]: />
+924 [5]: {showClientDropdown && clienteSearchText && (
+925 [5]: <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-xl shadow-lg">
+926 [6]: {clientes
+927 [6]: .filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase())))
+928 [6]: .map(c => (
+929 [6]: <div
+930 [6]: key={c.id}
+931 [8]: onClick={() => {
+932 [8]: handleChangeCliente(c.id);
+933 [8]: setClienteSearchText(c.nombre);
+934 [8]: setShowClientDropdown(false);
+935 [6]: }}
+936 [6]: className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-semibold text-blue-900 flex justify-between items-center"
+937 [6]: >
+938 [6]: <span>{c.nombre}</span>
+939 [6]: {c.dni && <span className="text-[10px] text-gray-500">{c.dni}</span>}
+940 [6]: </div>
+941 [5]: ))}
+942 [6]: {clientes.filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase()))).length === 0 && (
+943 [6]: <div className="px-3 py-2 text-xs text-gray-500 text-center">No se encontraron clientes</div>
+944 [5]: )}
+945 [5]: </div>
+946 [4]: )}
+947 [4]: </div>
+948 [4]: <button
+949 [4]: type="button"
+950 [4]: onClick={() => navigate('/clientes', { state: { openNewModal: true } })}
+951 [4]: className="w-full py-1.5 px-3 bg-emerald-500/10 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 mb-2 shadow-sm"
+952 [4]: >
+953 [4]: <UserPlus className="w-4 h-4" /> Nuevo cliente
+954 [4]: </button>
+955 [5]: {selectedClienteId &&
+956 [6]: (() => {
+957 [6]: const c = clienteData(selectedClienteId);
+958 [6]: return c ? (
+959 [6]: <div className="text-xs gestarian-paper-muted space-y-0.5">
+960 [6]: {c.dni && <p>DNI: {c.dni}</p>}
+961 [6]: {c.direccion && <p>{c.direccion}</p>}
+962 [6]: {c.cp && <p>CP: {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
+963 [6]: {c.telefono && <p>Tel: {c.telefono}</p>}
+964 [6]: {c.email && <p>{c.email}</p>}
+965 [6]: </div>
+966 [6]: ) : null;
+967 [4]: })()}
+968 [4]: </div>
+969 [4]: <div>
+970 [4]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
+971 [4]: Vehículo
+972 [4]: </p>
+973 [4]: <select
+974 [4]: value={selectedVehiculoId}
+975 [4]: onChange={(e) => handleChangeVehiculo(e.target.value)}
+976 [6]: className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${
+977 [6]: animarVehiculo
+978 [6]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+979 [6]: : "border-gray-300"
+980 [4]: }`}
+981 [4]: disabled={!selectedClienteId}
+982 [4]: >
+983 [4]: <option value="">
+984 [5]: {!selectedClienteId
+985 [5]: ? "Seleccione cliente primero..."
+986 [5]: : vehiculos.length > 1
+987 [5]: ? "Selecciona vehículo..."
+988 [4]: : "Sin vehículo"}
+989 [4]: </option>
+990 [5]: {vehiculos.map((v) => (
+991 [5]: <option key={v.id} value={v.id}>
+992 [5]: {v.matricula} — {v.marca} {v.modelo ?? ""}
+993 [5]: </option>
+994 [4]: ))}
+995 [4]: </select>
+996 [5]: {selectedVehiculoId &&
+997 [6]: (() => {
+998 [6]: const v = vehiculoData(selectedVehiculoId);
+999 [6]: return v ? (
+1000 [6]: <div className="text-xs gestarian-paper-muted space-y-0.5">
+1001 [6]: <p>Matrícula: {v.matricula}</p>
+1002 [7]: {v.marca && (
+1003 [7]: <p>
+1004 [7]: {v.marca} {v.modelo ?? ""}
+1005 [7]: </p>
+1006 [6]: )}
+1007 [6]: {v.anio && <p>Año: {v.anio}</p>}
+1008 [6]: {v.vin && <p>VIN: {v.vin}</p>}
+1009 [6]: </div>
+1010 [6]: ) : null;
+1011 [4]: })()}
+1012 [4]: </div>
+1013 [4]: </div>
+1014 [4]: </>
+1015 [4]: );
+1016 [2]: })()}
+1017 [2]: 
+1018 [2]: {/* Tabla conceptos — desktop */}
+1019 [4]: {(() => {
+1020 [4]: const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null;
+1021 [4]: const hasCliente = !!selectedClienteId;
+1022 [4]: const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+1023 [4]: const isSaved = !!(editingId || currentP?.id);
+1024 [4]: const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
+1025 [4]: const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+1026 [4]: 
+1027 [4]: const animarDescripcion = hasCliente && hasVehiculo && !isSaved && !firstConcept.descripcion.trim();
+1028 [4]: const animarCantidad = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad === 0;
+1029 [4]: const animarPrecio = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad > 0 && firstConcept.precio === 0;
+1030 [4]: const animarAddLinea = hasCliente && hasVehiculo && hasImporte && !isSaved && conceptos.length === 1;
+1031 [4]: 
+1032 [4]: return (
+1033 [4]: <>
+1034 [4]: <table className="w-full text-sm mb-4 hidden sm:table border-separate border-spacing-y-1.5">
+1035 [4]: <thead>
+1036 [4]: <tr className="border-b-2 border-gray-800 text-left text-xs uppercase gestarian-paper-muted">
+1037 [4]: <th className="py-2 w-1/2">Descripción</th>
+1038 [4]: <th className="py-2 text-center w-20">Cant.</th>
+1039 [4]: <th className="py-2 text-right w-24">Precio</th>
+1040 [4]: <th className="py-2 text-right w-28">Importe</th>
+1041 [4]: <th className="py-2 w-8"></th>
+1042 [4]: </tr>
+1043 [4]: </thead>
+1044 [4]: <tbody>
+1045 [6]: {conceptos.map((c, i) => {
+1046 [6]: const isFirst = i === 0;
+1047 [6]: return (
+1048 [6]: <tr key={i}>
+1049 [6]: <td className="py-1">
+1050 [6]: <input
+1051 [6]: type="text"
+1052 [6]: placeholder="Descripción del trabajo..."
+1053 [6]: value={c.descripcion}
+1054 [8]: onChange={(e) => {
+1055 [8]: const next = [...conceptos];
+1056 [8]: next[i] = { ...c, descripcion: e.target.value };
+1057 [8]: handleChangeConcepto(next);
+1058 [6]: }}
+1059 [8]: className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${
+1060 [8]: isFirst && animarDescripcion
+1061 [8]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+1062 [8]: : "border-gray-300"
+1063 [6]: }`}
+1064 [6]: />
+1065 [6]: </td>
+1066 [6]: <td className="py-1 text-center">
+1067 [6]: <input
+1068 [6]: type="number"
+1069 [6]: value={c.cantidad === 0 ? "" : c.cantidad}
+1070 [6]: placeholder="0"
+1071 [6]: onFocus={(e) => e.target.select()}
+1072 [8]: onChange={(e) => {
+1073 [8]: const next = [...conceptos];
+1074 [9]: next[i] = {
+1075 [9]: ...c,
+1076 [9]: cantidad: parseFloat(e.target.value) || 0,
+1077 [8]: };
+1078 [8]: handleChangeConcepto(next);
+1079 [6]: }}
+1080 [8]: className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
+1081 [8]: isFirst && animarCantidad
+1082 [8]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+1083 [8]: : "border-gray-300"
+1084 [6]: }`}
+1085 [6]: />
+1086 [6]: </td>
+1087 [6]: <td className="py-1 text-right">
+1088 [6]: <input
+1089 [6]: type="number"
+1090 [6]: value={c.precio === 0 ? "" : c.precio}
+1091 [6]: placeholder="0"
+1092 [6]: onFocus={(e) => e.target.select()}
+1093 [8]: onChange={(e) => {
+1094 [8]: const next = [...conceptos];
+1095 [9]: next[i] = {
+1096 [9]: ...c,
+1097 [9]: precio: parseFloat(e.target.value) || 0,
+1098 [8]: };
+1099 [8]: handleChangeConcepto(next);
+1100 [6]: }}
+1101 [8]: className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${
+1102 [8]: isFirst && animarPrecio
+1103 [8]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+1104 [8]: : "border-gray-300"
+1105 [6]: }`}
+1106 [6]: />
+1107 [6]: </td>
+1108 [6]: <td className="py-1 text-right">
+1109 [6]: <div className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white !bg-white text-black !text-black font-black text-right shadow-inner">
+1110 [6]: {(c.cantidad * c.precio).toFixed(2)} €
+1111 [6]: </div>
+1112 [6]: </td>
+1113 [6]: <td className="py-1 text-center">
+1114 [6]: <button
+1115 [7]: onClick={() =>
+1116 [7]: handleChangeConcepto(
+1117 [7]: conceptos.filter((_, idx) => idx !== i),
+1118 [7]: )
+1119 [6]: }
+1120 [6]: className="text-gray-400 hover:text-red-500 p-1"
+1121 [6]: >
+1122 [6]: <Trash2 className="w-4 h-4" />
+1123 [6]: </button>
+1124 [6]: </td>
+1125 [6]: </tr>
+1126 [6]: );
+1127 [4]: })}
+1128 [4]: </tbody>
+1129 [4]: </table>
+1130 [4]: 
+1131 [4]: {/* Tarjetas conceptos — móvil */}
+1132 [4]: <div className="sm:hidden mb-4 space-y-3">
+1133 [5]: {conceptos.map((c, i) => (
+1134 [5]: <ConceptoMobileCard
+1135 [5]: key={i}
+1136 [5]: concepto={c}
+1137 [5]: animarDescripcion={i === 0 && animarDescripcion}
+1138 [5]: animarCantidad={i === 0 && animarCantidad}
+1139 [5]: animarPrecio={i === 0 && animarPrecio}
+1140 [7]: onChange={(updated) => {
+1141 [7]: const next = [...conceptos];
+1142 [7]: next[i] = updated;
+1143 [7]: handleChangeConcepto(next);
+1144 [5]: }}
+1145 [6]: onDelete={() =>
+1146 [6]: handleChangeConcepto(
+1147 [6]: conceptos.filter((_, idx) => idx !== i),
+1148 [6]: )
+1149 [5]: }
+1150 [5]: />
+1151 [4]: ))}
+1152 [4]: </div>
+1153 [4]: 
+1154 [4]: {/* Botón AÑADIR LÍNEA centrado con relleno celeste casi blanco y borde azul animado cuando hay importe */}
+1155 [4]: <div className="flex justify-center my-4">
+1156 [4]: <button
+1157 [5]: onClick={() =>
+1158 [5]: handleChangeConcepto([
+1159 [5]: ...conceptos,
+1160 [5]: { descripcion: "", cantidad: 1, precio: 0 },
+1161 [5]: ])
+1162 [4]: }
+1163 [6]: className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${
+1164 [6]: animarAddLinea
+1165 [6]: ? "border-blue-600 animated-contour-border-blue shadow-[0_0_16px_rgba(37,99,235,0.7)]"
+1166 [6]: : "border-blue-300 hover:border-blue-400"
+1167 [4]: }`}
+1168 [4]: title="Añadir nueva línea"
+1169 [4]: >
+1170 [4]: <Plus className="w-4 h-4 text-blue-600 font-black" />
+1171 [4]: <span>Añadir línea</span>
+1172 [4]: </button>
+1173 [4]: </div>
+1174 [4]: </>
+1175 [4]: );
+1176 [2]: })()}
+1177 [2]: 
+1178 [2]: {/* El Panel de dictado clásico se ha eliminado a favor del Icono Flotante METIS */}
+1179 [2]: 
+1180 [2]: {/* Totales */}
+1181 [4]: {(() => {
+1182 [4]: const subtotal = conceptos.reduce((acc, c) => acc + (c.cantidad * c.precio), 0);
+1183 [4]: const iva = aplicarIva ? subtotal * IVA_RATE : 0;
+1184 [4]: const total = subtotal + iva;
+1185 [4]: 
+1186 [4]: return (
+1187 [4]: <div className="flex justify-end mb-6">
+1188 [4]: <div className="w-64 space-y-1.5 text-sm">
+1189 [4]: <div className="flex justify-between">
+1190 [4]: <span className="gestarian-paper-muted">Base imponible</span>
+1191 [4]: <span className="font-medium">{subtotal.toFixed(2)} €</span>
+1192 [4]: </div>
+1193 [4]: <div className="flex justify-between items-center py-0.5">
+1194 [4]: <label className="flex items-center gap-1.5 cursor-pointer select-none gestarian-paper-muted hover:text-gray-800">
+1195 [4]: <input
+1196 [4]: type="checkbox"
+1197 [4]: checked={aplicarIva}
+1198 [4]: onChange={(e) => setAplicarIva(e.target.checked)}
+1199 [4]: className="w-4 h-4 rounded border-gray-400 text-cyan-600 focus:ring-cyan-500 cursor-pointer"
+1200 [4]: />
+1201 [4]: <span>IVA (21%)</span>
+1202 [4]: </label>
+1203 [4]: <span className="font-medium">{iva.toFixed(2)} €</span>
+1204 [4]: </div>
+1205 [4]: <div className="flex justify-between font-bold text-base border-t-2 border-gray-800 pt-1.5">
+1206 [4]: <span>TOTAL</span>
+1207 [4]: <span>{total.toFixed(2)} €</span>
+1208 [4]: </div>
+1209 [4]: </div>
+1210 [4]: </div>
+1211 [4]: );
+1212 [2]: })()}
+1213 [2]: 
+1214 [2]: {/* Observaciones */}
+1215 [2]: <div className="mb-6">
+1216 [2]: <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
+1217 [2]: Observaciones
+1218 [2]: </p>
+1219 [2]: <textarea
+1220 [2]: value={observaciones}
+1221 [2]: onChange={(e) => handleChangeObservaciones(e.target.value)}
+1222 [2]: placeholder="Notas internas..."
+1223 [2]: rows={2}
+1224 [2]: className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-gray-800 focus:outline-none"
+1225 [2]: />
+1226 [2]: </div>
+1227 [2]: 
+1228 [2]: {/* Botones de acción inferiores con la distribución unificada */}
+1229 [2]: <div className="border-t-2 border-gray-800 pt-6 space-y-6">
+1230 [4]: {(() => {
+1231 [4]: const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null
+1232 [4]: const cliente = selectedClienteId ? clienteData(selectedClienteId) : null
+1233 [4]: const veh = selectedVehiculoId ? vehiculoData(selectedVehiculoId) : null
+1234 [4]: 
+1235 [4]: const emailSentAt = currentP?.enviado_email_at
+1236 [4]: const whatsappSentAt = currentP?.enviado_whatsapp_at
+1237 [4]: 
+1238 [4]: // Comprobar si este presupuesto específico ha completado su roadmap hasta CONFIRMAR factura
+1239 [4]: const pId = editingId || currentP?.id
+1240 [4]: const vId = selectedVehiculoId || currentP?.vehiculo_id
+1241 [4]: const cId = selectedClienteId || currentP?.cliente_id
+1242 [4]: 
+1243 [4]: // Un presupuesto solo se bloquea si su expediente ha llegado a FACTURA -> GENERAR FACTURA -> BORRADOR -> CONFIRMAR
+1244 [5]: const tieneFacturaConfirmada = (() => {
+1245 [5]: if (!pId) return false;
+1246 [5]: // Comprobar si hay una factura confirmada (con número emitido) generada desde la reparación de este presupuesto
+1247 [5]: const citaVinculada = citas.find(c => c.presupuesto_id === pId);
+1248 [5]: const repVinculada = citaVinculada ? reparaciones.find(r => r.cita_id === citaVinculada.id) : null;
+1249 [6]: if (repVinculada) {
+1250 [6]: return facturas.some(f => f.reparacion_id === repVinculada.id && !!f.numero);
+1251 [5]: }
+1252 [5]: return false;
+1253 [4]: })();
+1254 [4]: 
+1255 [4]: // Estado de animación única
+1256 [4]: const hasCliente = !!selectedClienteId;
+1257 [4]: const hasVehiculo = !!selectedVehiculoId || vehiculos.length === 0;
+1258 [4]: const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+1259 [4]: const isSaved = !!(editingId || currentP?.id);
+1260 [4]: const isSent = !!(emailSentAt || whatsappSentAt);
+1261 [4]: 
+1262 [4]: // Guardar se anima si hay cliente, vehículo, importe y no está guardado aún (y ya no se anima añadir línea)
+1263 [4]: const animarGuardar = hasCliente && hasVehiculo && hasImporte && !isSaved && (conceptos.length > 1 || conceptos.some(c => c.descripcion.trim().length > 3));
+1264 [4]: // Envío se anima (alternando asíncronamente Email y WhatsApp con 10% crecimiento) si está guardado y aún no se ha enviado (y no está mostrándose el toast inicial)
+1265 [4]: const animarEnvio = (isSaved || animarEnvioPostSave) && !isSent && !showSentToast;
+1266 [4]: 
+1267 [5]: const formatSentDate = (isoStr: string) => {
+1268 [6]: try {
+1269 [6]: const d = new Date(isoStr)
+1270 [6]: return `${d.toLocaleDateString('es-ES')} A LAS ${d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}`
+1271 [6]: } catch {
+1272 [6]: return isoStr
+1273 [5]: }
+1274 [4]: }
+1275 [4]: 
+1276 [4]: return (
+1277 [4]: <div className="space-y-6">
+1278 [4]: {/* DOS LÍNEAS DE ACCIONES */}
+1279 [4]: <div className="space-y-4">
+1280 [4]: {/* LÍNEA 1: EMAIL | IMÁGENES | EXPEDIENTE (EN EL CENTRO) | IMPRIMIR | WHATSAPP */}
+1281 [4]: <div className="flex items-center justify-center gap-3 sm:gap-4">
+1282 [4]: {/* 1. EMAIL (Flotante sin recuadro con animación alternada) */}
+1283 [5]: {!emailSentAt && (
+1284 [5]: <button
+1285 [7]: onClick={async () => {
+1286 [7]: const numero = currentP?.numero || "BORRADOR"
+1287 [7]: const numExpediente = getExpediente(currentP || {}, cliente, clientes)
+1288 [7]: await sendPresupuestoByEmail({ numero, conceptos, observaciones, aplicarIva }, cliente, veh, config, numExpediente)
+1289 [8]: if (currentP?.id) {
+1290 [8]: const nowIso = new Date().toISOString()
+1291 [8]: localStorage.setItem(`presupuesto_${currentP.id}_email_at`, nowIso)
+1292 [8]: await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', currentP.id)
+1293 [8]: await loadPresupuestos()
+1294 [7]: }
+1295 [7]: playSuccessSound()
+1296 [7]: setModalEnvioOpen(true)
+1297 [5]: }}
+1298 [7]: className={`p-1 hover:scale-110 transition-transform active:scale-95 shrink-0 ${
+1299 [7]: animarEnvio ? "animated-send-email-alt" : ""
+1300 [5]: }`}
+1301 [5]: title="ENVIAR POR EMAIL"
+1302 [5]: aria-label="ENVIAR POR EMAIL"
+1303 [5]: >
+1304 [5]: <svg className="w-14 h-14 sm:w-16 sm:h-16 text-[#ea4335] drop-shadow-md" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+1305 [5]: <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+1306 [5]: <polyline points="22,6 12,13 2,6" />
+1307 [5]: </svg>
+1308 [5]: </button>
+1309 [4]: )}
+1310 [4]: 
+1311 [4]: {/* 2. IMÁGENES (Gris 80%) */}
+1312 [4]: <button
+1313 [6]: onClick={() => {
+1314 [6]: const cIdSel = selectedClienteId || currentP?.cliente_id
+1315 [6]: const vIdSel = selectedVehiculoId || currentP?.vehiculo_id
+1316 [6]: const eFotos = currentP?.fotos || []
+1317 [6]: openExpedienteViewer(cIdSel, vIdSel, eFotos, `Expediente Presupuesto ${currentP?.numero || ''}`)
+1318 [4]: }}
+1319 [4]: className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+1320 [4]: title="IMÁGENES DEL EXPEDIENTE"
+1321 [4]: aria-label="IMÁGENES DEL EXPEDIENTE"
+1322 [4]: >
+1323 [4]: <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400" />
+1324 [4]: </button>
+1325 [4]: 
+1326 [4]: {/* 3. BOTÓN EXPEDIENTE EN EL CENTRO DE LA PRIMERA LÍNEA (Gris 80% con Carpeta Abierta Amarilla) */}
+1327 [4]: <button
+1328 [6]: onClick={() => {
+1329 [7]: navigate('/expedientes', {
+1330 [8]: state: {
+1331 [8]: expandPresupuestoId: pId,
+1332 [8]: expandVehiculoId: vId,
+1333 [8]: clienteId: cId
+1334 [7]: }
+1335 [6]: });
+1336 [4]: }}
+1337 [4]: className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-amber-400 border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+1338 [4]: title="VER EXPEDIENTE COMPLETO / ROADMAP"
+1339 [4]: aria-label="EXPEDIENTE"
+1340 [4]: >
+1341 [4]: <FolderOpen className="w-7 h-7 sm:w-8 sm:h-8 text-amber-400 fill-amber-400/30" />
+1342 [4]: </button>
+1343 [4]: 
+1344 [4]: {/* 4. IMPRIMIR (Gris 80%) */}
+1345 [4]: <button
+1346 [4]: onClick={() => window.print()}
+1347 [4]: className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gray-500/80 hover:bg-gray-500 text-white border border-gray-400/60 flex items-center justify-center shadow-md transition-all active:scale-95 shrink-0"
+1348 [4]: title="IMPRIMIR"
+1349 [4]: aria-label="IMPRIMIR"
+1350 [4]: >
+1351 [4]: <Printer className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+1352 [4]: </button>
+1353 [4]: 
+1354 [4]: {/* 5. WHATSAPP (Bocadillo verde con animación alternada) */}
+1355 [5]: {!whatsappSentAt && (
+1356 [5]: <button
+1357 [7]: onClick={async () => {
+1358 [8]: try {
+1359 [8]: const numStr = currentP?.numero || 'BORRADOR'
+1360 [8]: const numExpediente = getExpediente(currentP || {}, cliente, clientes)
+1361 [8]: const doc = generatePresupuestoPDF({ numero: numStr, conceptos, observaciones, aplicarIva }, cliente, veh, config, numExpediente)
+1362 [8]: const pdfBlob = doc.output('blob')
+1363 [8]: 
+1364 [9]: const res = await shareDocumentoViaWhatsApp({
+1365 [9]: tipo: 'presupuesto',
+1366 [9]: numero: numStr,
+1367 [9]: pdfBlob,
+1368 [9]: cliente,
+1369 [9]: matricula: veh?.matricula,
+1370 [8]: })
+1371 [8]: 
+1372 [9]: if (res.success) {
+1373 [10]: if (currentP?.id) {
+1374 [10]: const nowIso = new Date().toISOString()
+1375 [10]: localStorage.setItem(`presupuesto_${currentP.id}_wa_at`, nowIso)
+1376 [10]: const { error: dbError } = await supabase.from('presupuestos').update({ enviado_whatsapp_at: nowIso }).eq('id', currentP.id)
+1377 [11]: if (dbError) {
+1378 [11]: alert('Error guardando en la base de datos: ' + dbError.message + '\n(Se guardará localmente en el dispositivo actual)')
+1379 [10]: }
+1380 [10]: await loadPresupuestos()
+1381 [10]: playSuccessSound()
+1382 [10]: setModalEnvioOpen(true)
+1383 [9]: }
+1384 [8]: }
+1385 [8]: } catch (e: any) {
+1386 [8]: console.error('[WhatsApp Presupuesto Error]', e)
+1387 [8]: alert('No se ha podido preparar el documento para WhatsApp: ' + e.message)
+1388 [7]: }
+1389 [5]: }}
+1390 [7]: className={`hover:scale-110 transition-transform active:scale-95 shrink-0 ${
+1391 [7]: animarEnvio ? "animated-send-wa-alt" : ""
+1392 [5]: }`}
+1393 [5]: title="ENVIAR POR WHATSAPP"
+1394 [5]: aria-label="ENVIAR POR WHATSAPP"
+1395 [5]: >
+1396 [5]: <div className="relative w-14 h-14 sm:w-16 sm:h-16 flex items-center justify-center">
+1397 [5]: <svg className="w-full h-full drop-shadow-md" viewBox="0 0 48 48" fill="none">
+1398 [5]: <path
+1399 [5]: d="M24 4C12.95 4 4 12.95 4 24C4 27.84 5.08 31.43 6.96 34.5L4 44L13.82 41.13C16.76 42.97 20.26 44 24 44C35.05 44 44 35.05 44 24C44 12.95 35.05 4 24 4Z"
+1400 [5]: fill="#25D366"
+1401 [5]: />
+1402 [5]: </svg>
+1403 [5]: <svg viewBox="0 0 24 24" fill="currentColor" className="absolute inset-0 m-auto w-7 h-7 sm:w-8 sm:h-8 text-white">
+1404 [5]: <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z" />
+1405 [5]: </svg>
+1406 [5]: </div>
+1407 [5]: </button>
+1408 [4]: )}
+1409 [4]: </div>
+1410 [4]: 
+1411 [4]: {/* ESTADOS DE ENVÍO */}
+1412 [5]: {(emailSentAt || whatsappSentAt) && (
+1413 [5]: <div className="flex flex-col items-center justify-center gap-2 mt-4">
+1414 [6]: {whatsappSentAt && (
+1415 [6]: <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
+1416 [6]: ENVIADO POR WHATSAPP EL {formatSentDate(whatsappSentAt)}
+1417 [6]: </div>
+1418 [5]: )}
+1419 [6]: {emailSentAt && (
+1420 [6]: <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
+1421 [6]: ENVIADO POR EMAIL EL {formatSentDate(emailSentAt)}
+1422 [6]: </div>
+1423 [5]: )}
+1424 [5]: </div>
+1425 [4]: )}
+1426 [4]: 
+1427 [4]: {/* AVISO DE PRESUPUESTO BLOQUEADO SI YA EXISTE FACTURA CONFIRMADA */}
+1428 [5]: {tieneFacturaConfirmada && (
+1429 [5]: <div className="w-full text-center text-xs font-bold text-amber-300 bg-amber-500/10 px-3 py-2 rounded-xl border border-amber-500/30">
+1430 [5]: PRESUPUESTO CERRADO: FACTURA DE EXPEDIENTE YA CONFIRMADA
+1431 [5]: </div>
+1432 [4]: )}
+1433 [4]: 
+1434 [4]: {/* LÍNEA 2: VOLVER (IZQUIERDA) | GUARDAR (DERECHA) */}
+1435 [4]: <div className="flex items-center justify-between pt-2 px-2">
+1436 [4]: {/* VOLVER A LA IZQUIERDA (Gris 80%) */}
+1437 [4]: <button
+1438 [4]: onClick={resetForm}
+1439 [4]: className="px-5 py-2.5 rounded-xl bg-gray-500/80 hover:bg-gray-500 text-white border border-gray-400/60 font-bold text-xs tracking-wider uppercase shadow-md transition-all active:scale-95"
+1440 [4]: >
+1441 [4]: VOLVER
+1442 [4]: </button>
+1443 [4]: 
+1444 [4]: {/* GUARDAR A LA DERECHA (Relleno blanco, texto verde y contorno verde whatsapp con animación de crecimiento) */}
+1445 [4]: <button
+1446 [4]: onClick={handleSave}
+1447 [4]: disabled={tieneFacturaConfirmada}
+1448 [6]: className={`px-6 py-2.5 rounded-xl font-black text-xs tracking-wider uppercase shadow-md transition-all active:scale-95 flex items-center gap-2 bg-white !bg-white text-[#25D366] !text-[#25D366] border-2 border-[#25D366] ${
+1449 [6]: tieneFacturaConfirmada
+1450 [6]: ? 'bg-gray-100 !bg-gray-100 text-gray-400 !text-gray-400 border-gray-300 cursor-not-allowed opacity-60'
+1451 [6]: : animarGuardar
+1452 [6]: ? 'animated-guardar-whatsapp'
+1453 [6]: : 'hover:bg-green-50'
+1454 [4]: }`}
+1455 [4]: title={tieneFacturaConfirmada ? "Presupuesto cerrado por factura confirmada" : "GUARDAR PRESUPUESTO"}
+1456 [4]: >
+1457 [4]: <Check className="w-4 h-4 text-[#25D366] stroke-[3]" />
+1458 [4]: <span className="text-[#25D366] font-black">GUARDAR</span>
+1459 [4]: </button>
+1460 [4]: </div>
+1461 [4]: </div>
+1462 [4]: </div>
+1463 [4]: )
+1464 [2]: })()}
+1465 [2]: </div>
+1466 [2]: </div>
+1467 [2]: </div>
+1468 [1]: )}
+1469 [1]: 
+1470 [1]: {/* Listado agrupado por Clientes */}
+1471 [2]: {!showForm && (
+1472 [2]: <motion.div layout className="space-y-3">
+1473 [4]: {(() => {
+1474 [4]: const query = search.trim().toLowerCase();
+1475 [4]: 
+1476 [4]: // Filtrar clientes con sus presupuestos
+1477 [5]: const clientesConPresupuestos = clientes.map(cliente => {
+1478 [5]: const clientPresups = presupuestos.filter(p => p.cliente_id === cliente.id);
+1479 [5]: return { cliente, clientPresups };
+1480 [5]: }).filter(({ cliente, clientPresups }) => {
+1481 [5]: if (clienteIdFromNav && cliente.id !== clienteIdFromNav) return false;
+1482 [5]: if (!query && clientPresups.length === 0) return false;
+1483 [5]: if (!query) return true;
+1484 [5]: 
+1485 [5]: const nombreMatch = (cliente.nombre || '').toLowerCase().includes(query);
+1486 [6]: const presupMatch = clientPresups.some(p => {
+1487 [6]: const numMatch = p.numero?.toLowerCase().includes(query);
+1488 [6]: const veh = p.vehiculo_id ? vehiculos.find(v => v.id === p.vehiculo_id) : null;
+1489 [6]: const matMatch = veh?.matricula?.toLowerCase().includes(query);
+1490 [6]: return numMatch || matMatch;
+1491 [5]: });
+1492 [5]: 
+1493 [5]: return nombreMatch || presupMatch;
+1494 [4]: });
+1495 [4]: 
+1496 [5]: if (clientesConPresupuestos.length === 0) {
+1497 [5]: return (
+1498 [5]: <EmptyState
+1499 [5]: icon={<FileText className="w-12 h-12 text-cyan-400" />}
+1500 [5]: title={clienteIdFromNav ? "Sin presupuestos para este cliente" : "No se encontraron presupuestos"}
+1501 [5]: subtitle="Crea un presupuesto o intenta otra búsqueda"
+1502 [5]: />
+1503 [5]: );
+1504 [4]: }
+1505 [4]: 
+1506 [4]: // Ordenar alfabéticamente por nombre de cliente
+1507 [4]: clientesConPresupuestos.sort((a, b) =>
+1508 [4]: (a.cliente.nombre || '').localeCompare(b.cliente.nombre || '', 'es', { sensitivity: 'base' })
+1509 [4]: );
+1510 [4]: 
+1511 [5]: return clientesConPresupuestos.map(({ cliente, clientPresups }) => {
+1512 [5]: const isExpanded = expandedClienteId === cliente.id;
+1513 [5]: const nombreDisplay = cliente.nombre || 'Cliente sin nombre';
+1514 [5]: 
+1515 [5]: // Lógica de color de borde para la tarjeta general de cliente (3px):
+1516 [5]: // - Si hay algún presupuesto individual azul (enviado sin aceptar), PREVALECE AZUL.
+1517 [5]: // - Si no hay azul pero hay algún naranja (sin enviar/pendiente sin aceptar), PREVALECE NARANJA.
+1518 [5]: // - Si todos están aceptados, VERDE.
+1519 [5]: const hasAzul = clientPresups.some(p => p.estado !== 'aceptado' && !!(p.enviado_email_at || p.enviado_whatsapp_at || (p.estado as string) === 'enviado' || (p as any).enviado));
+1520 [5]: const hasNaranja = clientPresups.some(p => p.estado !== 'aceptado' && !p.enviado_email_at && !p.enviado_whatsapp_at && (p.estado as string) !== 'enviado' && !(p as any).enviado);
+1521 [5]: const allVerde = clientPresups.length > 0 && clientPresups.every(p => p.estado === 'aceptado');
+1522 [5]: 
+1523 [5]: let generalBorderColor = 'border-[3px] border-bg-700 bg-bg-800/90';
+1524 [6]: if (hasAzul) {
+1525 [6]: generalBorderColor = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] bg-bg-800';
+1526 [6]: } else if (hasNaranja) {
+1527 [6]: generalBorderColor = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.25)] bg-bg-800';
+1528 [6]: } else if (allVerde) {
+1529 [6]: generalBorderColor = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.25)] bg-bg-800';
+1530 [5]: }
+1531 [5]: 
+1532 [5]: const cardClasses = isExpanded
+1533 [5]: ? `${generalBorderColor} ring-1 ring-white/20 z-10`
+1534 [5]: : expandedClienteId
+1535 [5]: ? `${generalBorderColor} opacity-70 brightness-[0.70]`
+1536 [5]: : `${generalBorderColor} hover:border-cyan-400/80`;
+1537 [5]: 
+1538 [5]: return (
+1539 [5]: <motion.div
+1540 [5]: layout
+1541 [5]: key={cliente.id}
+1542 [5]: transition={{ layout: { duration: 0.28, ease: "easeInOut" } }}
+1543 [5]: className={`rounded-2xl transition-all duration-300 shadow-md ${cardClasses}`}
+1544 [5]: >
+1545 [5]: {/* Fila del cliente: solo el nombre completo del cliente */}
+1546 [5]: <div
+1547 [5]: onClick={() => setExpandedClienteId(isExpanded ? null : cliente.id)}
+1548 [5]: className="flex items-center justify-between px-4 py-3.5 cursor-pointer hover:bg-bg-700/50 transition-colors gap-3"
+1549 [5]: >
+1550 [5]: <div className="flex items-center gap-3 min-w-0">
+1551 [5]: <h3 className="font-bold text-white text-2xl leading-tight truncate">
+1552 [5]: {nombreDisplay}
+1553 [5]: </h3>
+1554 [5]: </div>
+1555 [5]: 
+1556 [5]: <div className="flex items-center gap-2 shrink-0">
+1557 [5]: <span className="text-xs font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/30 min-w-[28px] text-center">
+1558 [5]: {clientPresups.length}
+1559 [5]: </span>
+1560 [5]: </div>
+1561 [5]: </div>
+1562 [5]: 
+1563 [5]: {/* Historial desplegable de presupuestos del cliente con animación fluida y stagger (1.5s total) */}
+1564 [5]: <AnimatePresence initial={false}>
+1565 [6]: {isExpanded && (
+1566 [6]: <motion.div
+1567 [6]: key="dropdown"
+1568 [6]: initial="hidden"
+1569 [6]: animate="show"
+1570 [6]: exit="exit"
+1571 [6]: variants={dropdownPanelVariants}
+1572 [6]: className="overflow-hidden"
+1573 [6]: >
+1574 [6]: <motion.div
+1575 [6]: initial="hidden"
+1576 [6]: animate="show"
+1577 [6]: exit="exit"
+1578 [6]: variants={getDropdownStaggerVariants(clientPresups.length, 1.5)}
+1579 [6]: className="p-3 bg-bg-950/80 border-t border-bg-700/80 space-y-3"
+1580 [6]: >
+1581 [6]: <p className="text-base sm:text-lg font-black text-slate-300 uppercase tracking-wider px-1 text-center">Historial de presupuestos</p>
+1582 [8]: {clientPresups.map((p) => {
+1583 [8]: const veh = p.vehiculo_id
+1584 [8]: ? (allVehiculos[p.vehiculo_id] || vehiculos.find(x => x.id === p.vehiculo_id))
+1585 [8]: : Object.values(allVehiculos).find(v => v.cliente_id === cliente.id) || null;
+1586 [8]: 
+1587 [8]: let borderClass = 'border-[3px] border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+1588 [9]: if (p.estado === 'aceptado') {
+1589 [9]: borderClass = 'border-[3px] border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
+1590 [9]: } else if ((p.estado as string) === 'enviado' || (p as any).enviado) {
+1591 [9]: borderClass = 'border-[3px] border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
+1592 [8]: }
+1593 [8]: 
+1594 [8]: const totalPresupuesto = (p.total ?? 0).toFixed(2);
+1595 [8]: 
+1596 [8]: return (
+1597 [8]: <motion.div
+1598 [8]: key={p.id}
+1599 [8]: variants={dropdownItemVariants}
+1600 [10]: onClick={(e) => {
+1601 [10]: e.stopPropagation();
+1602 [10]: editPresupuesto(p);
+1603 [8]: }}
+1604 [8]: className={`rounded-2xl ${borderClass} bg-bg-900/90 p-4 transition-all cursor-pointer flex flex-col gap-2.5 justify-center select-none`}
+1605 [8]: >
+1606 [8]: {/* Línea 1: Marca y Modelo a la izquierda, Matrícula a la derecha (preferencia matrícula) */}
+1607 [8]: <div className="flex items-center justify-between gap-3">
+1608 [8]: <div className="font-semibold text-slate-300 text-sm sm:text-base uppercase truncate flex-1 min-w-0">
+1609 [9]: {veh ? (
+1610 [9]: <span>{veh.marca || ''} {veh.modelo || ''}</span>
+1611 [9]: ) : (
+1612 [9]: <span className="text-slate-500 italic">Sin datos vehículo</span>
+1613 [8]: )}
+1614 [8]: </div>
+1615 [9]: {veh?.matricula && (
+1616 [9]: <div className="shrink-0 scale-100 sm:scale-105 origin-right">
+1617 [9]: <MatriculaBadge matricula={veh.matricula} size="md" />
+1618 [9]: </div>
+1619 [8]: )}
+1620 [8]: </div>
+1621 [8]: 
+1622 [8]: {/* Línea 2: ID de Presupuesto a la izquierda (x1.2), 3 iconos centrados (x1.3) */}
+1623 [8]: <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/5" onClick={(e) => e.stopPropagation()}>
+1624 [8]: {/* Izquierda: Número de presupuesto */}
+1625 [8]: <div className="shrink-0">
+1626 [8]: <span className="text-xl sm:text-2xl font-mono text-cyan-400 font-black tracking-wide">
+1627 [8]: {p.numero}
+1628 [8]: </span>
+1629 [8]: </div>
+1630 [8]: 
+1631 [8]: {/* Centro / Espacio restante: 3 iconos de acción en tamaño x1.3 */}
+1632 [8]: <div className="flex-1 flex items-center justify-center gap-6 sm:gap-10 ml-2 sm:ml-4">
+1633 [8]: {/* Botón Ver Expediente: Carpeta amarilla con una E adentro */}
+1634 [8]: <motion.button
+1635 [8]: whileHover={{ scale: 1.15 }}
+1636 [8]: whileTap={{ scale: 0.92 }}
+1637 [10]: onClick={(e) => {
+1638 [10]: e.stopPropagation();
+1639 [10]: navigate('/expedientes', { state: { search: cliente.nombre || veh?.matricula || '' } });
+1640 [8]: }}
+1641 [8]: className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-yellow-500 hover:text-yellow-400 drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+1642 [8]: title="Ver Expediente"
+1643 [8]: aria-label="Ver Expediente"
+1644 [8]: >
+1645 [8]: <ExpedienteFolderIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+1646 [8]: </motion.button>
+1647 [8]: 
+1648 [8]: {/* Botón Ver Presupuesto: Hoja A4 cyan con P adentro */}
+1649 [8]: <motion.button
+1650 [8]: whileHover={{ scale: 1.15 }}
+1651 [8]: whileTap={{ scale: 0.92 }}
+1652 [10]: onClick={(e) => {
+1653 [10]: e.stopPropagation();
+1654 [10]: editPresupuesto(p);
+1655 [8]: }}
+1656 [8]: className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-cyan-400 hover:text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+1657 [8]: title="Ver Presupuesto"
+1658 [8]: aria-label="Ver Presupuesto"
+1659 [8]: >
+1660 [8]: <PresupuestoIcon className="w-12 h-12 sm:w-14 sm:h-14" />
+1661 [8]: </motion.button>
+1662 [8]: 
+1663 [8]: {/* Botón Imágenes */}
+1664 [8]: <motion.button
+1665 [8]: whileHover={{ scale: 1.15 }}
+1666 [8]: whileTap={{ scale: 0.92 }}
+1667 [10]: onClick={async (e) => {
+1668 [10]: e.stopPropagation();
+1669 [10]: const fotos = await fetchExpedienteFotos(cliente.id, p.vehiculo_id, [], { presupuestoId: p.id });
+1670 [10]: setExpedienteFotos(fotos);
+1671 [10]: setViewerMatricula(veh?.matricula || null);
+1672 [10]: setExpedienteViewerTitle(`Fotos Presupuesto ${p.numero || ''}`);
+1673 [10]: setShowExpedienteViewer(true);
+1674 [8]: }}
+1675 [8]: className="bg-transparent border-0 p-0 outline-none flex items-center justify-center shrink-0 text-violet-400 hover:text-violet-300 drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
+1676 [8]: title="Ver Imágenes"
+1677 [8]: aria-label="Ver Imágenes"
+1678 [8]: >
+1679 [8]: <ImageIcon className="w-12 h-12 sm:w-14 sm:h-14 stroke-[1.5]" />
+1680 [8]: </motion.button>
+1681 [8]: </div>
+1682 [8]: </div>
+1683 [8]: 
+1684 [8]: {/* Línea 3: Número de expediente tamaño x1.2 en naranja, Fecha en negrita rosa claro en el centro, Importe total gris claro a la derecha */}
+1685 [8]: <div className="flex items-center justify-between gap-3 pt-1 border-t border-white/10">
+1686 [8]: {/* Izquierda: Número de expediente en naranja (mismo tamaño que ID presupuesto) */}
+1687 [8]: <span className="text-xl sm:text-2xl font-mono text-amber-500 font-black tracking-wide shrink-0">
+1688 [8]: {getExpediente(p, cliente, clientes)}
+1689 [8]: </span>
+1690 [8]: 
+1691 [8]: {/* Centro: Fecha en negrita rosa claro en formato dd/mm/aa */}
+1692 [8]: <span className="text-sm sm:text-base text-pink-300 font-black tracking-wide">
+1693 [8]: {formatDateShort(p.created_at)}
+1694 [8]: </span>
+1695 [8]: 
+1696 [8]: {/* Derecha: Importe total sin recuadro en gris claro */}
+1697 [8]: <span className="text-slate-300 text-sm sm:text-base font-black tracking-wide shrink-0">
+1698 [8]: {totalPresupuesto} €
+1699 [8]: </span>
+1700 [8]: </div>
+1701 [8]: </motion.div>
+1702 [8]: );
+1703 [6]: })}
+1704 [6]: </motion.div>
+1705 [6]: </motion.div>
+1706 [5]: )}
+1707 [5]: </AnimatePresence>
+1708 [5]: </motion.div>
+1709 [5]: );
+1710 [4]: });
+1711 [2]: })()}
+1712 [2]: </motion.div>
+1713 [1]: )}
+1714 [1]: 
+1715 [1]: <GlobalImageViewer
+1716 [1]: isOpen={showExpedienteViewer || !!viewerMatricula}
+1717 [3]: onClose={() => {
+1718 [3]: setShowExpedienteViewer(false);
+1719 [3]: setViewerMatricula(null);
+1720 [1]: }}
+1721 [1]: matricula={viewerMatricula || (selectedVehiculoId ? vehiculoData(selectedVehiculoId)?.matricula : undefined)}
+1722 [1]: images={expedienteFotos}
+1723 [3]: onAddImage={async (dataUrl) => {
+1724 [3]: const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null
+1725 [3]: const cId = selectedClienteId || currentP?.cliente_id
+1726 [3]: const vId = selectedVehiculoId || currentP?.vehiculo_id
+1727 [3]: await saveExpedienteFoto(dataUrl, cId, vId)
+1728 [3]: setExpedienteFotos(prev => [...prev, dataUrl])
+1729 [1]: }}
+1730 [3]: onDeleteImage={async (index) => {
+1731 [3]: setExpedienteFotos(prev => prev.filter((_, i) => i !== index))
+1732 [1]: }}
+1733 [1]: title={expedienteViewerTitle}
+1734 [1]: />
+1735 [1]: {/* Modal Informativo de Presupuesto Enviado Directo con botones grandes */}
+1736 [2]: {modalEnvioOpen && createPortal(
+1737 [2]: <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
+1738 [2]: <AnimatePresence mode="wait">
+1739 [2]: <motion.div
+1740 [2]: key="modal-envio-presupuesto"
+1741 [2]: initial={{ opacity: 0, scale: 0.85 }}
+1742 [2]: animate={{ opacity: 1, scale: 1 }}
+1743 [2]: exit={{ opacity: 0, scale: 0.9 }}
+1744 [2]: transition={{ duration: 0.28, ease: "easeOut" }}
+1745 [2]: className="bg-slate-900 border-[3px] border-emerald-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(16,185,129,0.3)] text-center text-white"
+1746 [2]: >
+1747 [2]: <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+1748 [2]: <CheckCircle2 className="w-9 h-9" />
+1749 [2]: </div>
+1750 [2]: <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
+1751 [2]: PRESUPUESTO ENVIADO CORRECTAMENTE
+1752 [2]: </h3>
+1753 [2]: 
+1754 [2]: <div className="grid grid-cols-2 gap-4">
+1755 [2]: <button
+1756 [4]: onClick={() => {
+1757 [4]: setModalEnvioOpen(false);
+1758 [4]: handleVolver();
+1759 [2]: }}
+1760 [2]: className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[28px] sm:text-[32px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+1761 [2]: >
+1762 [2]: VOLVER
+1763 [2]: </button>
+1764 [2]: <button
+1765 [4]: onClick={() => {
+1766 [4]: setModalEnvioOpen(false);
+1767 [2]: }}
+1768 [2]: className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[28px] sm:text-[32px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+1769 [2]: >
+1770 [2]: ACEPTAR
+1771 [2]: </button>
+1772 [2]: </div>
+1773 [2]: </motion.div>
+1774 [2]: </AnimatePresence>
+1775 [2]: </div>,
+1776 [2]: document.body
+1777 [1]: )}
+1778 [1]: </div>
+1779 [1]: );
+1780 [0]: }
+1781 [0]: 
+1782 [0]: 
+1783 [0]: 

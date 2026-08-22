@@ -6,6 +6,7 @@
 
 import type { AiAssistantConfig, FallbackAiConfig } from '../lib/types';
 import { getMetisKnowledgePrompt } from '../ai/metisKnowledge';
+import { geminiSupportsSystemInstruction } from '../lib/geminiCompat';
 
 export interface AIResponse {
   text: string;
@@ -131,21 +132,34 @@ Usa este conocimiento para responder a preguntas sobre el funcionamiento de la a
 
   try {
     if (config.provider === 'gemini' && config.api_key) {
+      const model = config.model || 'gemini-1.5-flash';
+      // Los modelos Gemini 1.0 no soportan systemInstruction (HTTP 400): para
+      // ellos se incrusta la instrucción en el mensaje de usuario.
+      const soportaSystem = geminiSupportsSystemInstruction(model);
+      const userContent = soportaSystem
+        ? `Contexto: ${JSON.stringify(contextData || {})}\n\nInstrucción del usuario: ${userMessage}\n\nIMPORTANTE: Responde ÚNICAMENTE en español de España (castellano), de forma breve y natural.`
+        : `INSTRUCCIONES DEL SISTEMA: ${systemPrompt}\n\n---\n\nContexto: ${JSON.stringify(contextData || {})}\n\nInstrucción del usuario: ${userMessage}\n\nIMPORTANTE: Responde ÚNICAMENTE en español de España (castellano), de forma breve y natural.`;
+      const body: Record<string, any> = {
+        contents: [{ role: 'user', parts: [{ text: userContent }] }],
+        generationConfig: { temperature: 0.2 }
+      };
+      if (soportaSystem) body.systemInstruction = { parts: [{ text: systemPrompt }] };
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-flash'}:generateContent?key=${config.api_key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.api_key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              { parts: [{ text: `${systemPrompt}\n\nContexto: ${JSON.stringify(contextData || {})}\n\nInstrucción del usuario: ${userMessage}` }] }
-            ]
-          })
+          body: JSON.stringify(body)
         }
       );
       if (response.ok) {
         const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Instrucción procesada correctamente.';
+        let text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Instrucción procesada correctamente.';
+        // Si Gemini devolvió JSON estructurado, extraer el campo "text"
+        try {
+          const parsed = JSON.parse(text);
+          if (parsed && parsed.text) text = parsed.text;
+        } catch (e) { /* texto plano */ }
         return { text };
       }
     }

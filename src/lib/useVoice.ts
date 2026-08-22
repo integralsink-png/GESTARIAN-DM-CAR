@@ -102,6 +102,11 @@ export function useVoice() {
   }, [])
   const recRef = useRef<SpeechRecognitionLike | null>(null)
   const finalRef = useRef('')
+  // Evita que dos clics/eventos arranquen el reconocedor a la vez (bug de Chrome:
+  // un start() doble deja el reconocedor "colgado" sin emitir ningún evento)
+  const startingRef = useRef(false)
+  // Vigilancia de silencio: contador para no quedarnos "escuchando" eternamente
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -200,49 +205,92 @@ export function useVoice() {
   }, [])
 
   const start = useCallback(async () => {
-    finalRef.current = ''
-    setTranscript('')
-    setInterim('')
-    setError(null)
-    setPermissionDenied(false)
-
-    const r = initRecognition()
-    if (!r) {
-      setError('El reconocimiento de voz no está soportado en este navegador. Usa Google Chrome, Edge o Safari.')
-      return
-    }
-
-    // Antes de activar el reconocedor aseguramos el permiso de forma explícita:
-    // así el navegador muestra la pregunta y el usuario pulsa "Permitir".
-    // Si el permiso está denegado, getUserMedia falla al instante sin pregunta
-    // y mostramos el mensaje con el botón que abre los ajustes.
-    setPendingState(true)
+    // Evita arranques dobles mientras se pide permiso o ya se está iniciando
+    if (startingRef.current) return
+    startingRef.current = true
     try {
-      if (canRequestMicPermission()) {
-        const perm = await requestPermission()
-        if (perm !== 'granted') return
+      finalRef.current = ''
+      setTranscript('')
+      setInterim('')
+      setError(null)
+      setPermissionDenied(false)
+
+      const r = initRecognition()
+      if (!r) {
+        setError('El reconocimiento de voz no está soportado en este navegador. Usa Google Chrome, Edge o Safari.')
+        return
       }
 
+      setPendingState(true)
       try {
-        r.start()
-        setListening(true)
-      } catch (err: any) {
-        setListening(false)
-        setError(
-          err?.name === 'InvalidStateError'
-            ? 'El micrófono ya estaba activo. Espera un segundo y vuelve a pulsar.'
-            : describeRecognitionError(err?.message || 'unknown')
-        )
+        if (canRequestMicPermission()) {
+          const perm = await requestPermission()
+          if (perm !== 'granted') return
+        }
+
+        try {
+          r.start()
+          setListening(true)
+        } catch (err: any) {
+          setListening(false)
+          setError(
+            err?.name === 'InvalidStateError'
+              ? 'El micrófono ya estaba activo. Espera un segundo y vuelve a pulsar.'
+              : describeRecognitionError(err?.message || 'unknown')
+          )
+        }
+      } finally {
+        setPendingState(false)
       }
     } finally {
-      setPendingState(false)
+      startingRef.current = false
     }
   }, [initRecognition, requestPermission, setPendingState])
 
+  // Vigilancia de silencio: Chrome a veces deja el reconocedor "escuchando" sin
+  // devolver nada (micrófono mudo, servidor de voz inaccesible, permiso en modo
+  // raro...). Para no quedarnos con el micrófono "conectado" eternamente, si en
+  // 8 segundos no llega ni un carácter de transcripción, paramos y avisamos.
+  useEffect(() => {
+    if (!listening) {
+      if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+      return
+    }
+    silenceTimerRef.current = setTimeout(() => {
+      if (recRef.current) {
+        try { recRef.current.stop() } catch {}
+      }
+      setListening(false)
+      setInterim('')
+      setError('No te estoy oyendo nada. Comprueba que el micrófono está activo y que el navegador tiene permiso (candado de la barra de direcciones → Micrófono → Permitir). Pulsa de nuevo el micrófono cuando estés listo.')
+    }, 8000)
+    return () => {
+      if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    }
+  }, [listening, transcript, interim])
+
   const stop = useCallback(() => {
-    if (!recRef.current) return
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    if (!recRef.current) { setListening(false); return }
     try { recRef.current.stop() } catch {}
     setListening(false)
+  }, [])
+
+  /**
+   * Apagado forzoso y limpio del micrófono: aborta el reconocedor y destruye la
+   * instancia para que el siguiente arranque cree una nueva (evita el bug de
+   * Chrome en el que un start() repetido se queda "colgado" sin emitir eventos).
+   */
+  const dispose = useCallback(() => {
+    if (silenceTimerRef.current) { clearTimeout(silenceTimerRef.current); silenceTimerRef.current = null }
+    if (recRef.current) {
+      try { recRef.current.abort() } catch {}
+      recRef.current = null
+    }
+    finalRef.current = ''
+    setListening(false)
+    setTranscript('')
+    setInterim('')
   }, [])
 
   const reset = useCallback(() => {
@@ -252,7 +300,7 @@ export function useVoice() {
     setError(null)
   }, [])
 
-  return { listening, transcript, interim, supported, error, permissionDenied, pending, start, stop, reset, requestPermission }
+  return { listening, transcript, interim, supported, error, permissionDenied, pending, start, stop, reset, dispose, requestPermission }
 }
 
 const WORD_NUMBERS: Record<string, number> = {

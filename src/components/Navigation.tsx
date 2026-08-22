@@ -3,7 +3,7 @@ import { Menu, X, Camera, Power, Minimize2, Smartphone, Monitor, ChevronLeft, Ch
 import { useState, useEffect } from 'react'
 import { NAV_ITEMS, FOOTER_NAV } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
-import { useUIState } from '../lib/uiState'
+import { useUIState } from '../lib/uiStateContext'
 import { useMobileMode } from '../lib/mobileMode'
 
 // Paleta de colores vibrantes para el menú
@@ -22,19 +22,41 @@ const MENU_COLORS = [
   '#eab308', // Yellow
 ]
 
-/* ── Floating exit-fullscreen button (mobile/tablet, only when in real fullscreen) ── */
+/* ── Floating exit-fullscreen button (always visible while in fullscreen) ── */
 export function FullscreenExitButton() {
   const { isFullscreen, exitFullscreen } = useUIState()
   const { playSound } = useTheme()
+  const [showHint, setShowHint] = useState(false)
+
   if (!isFullscreen) return null
+
+  const handleExit = () => {
+    playSound('click')
+    exitFullscreen()
+    // Si no había elemento en fullscreen (caso F11 del navegador, que JS no puede
+    // cancelar), avisamos de la única forma de salir: la tecla F11.
+    if (!document.fullscreenElement) {
+      setShowHint(true)
+      window.setTimeout(() => setShowHint(false), 4500)
+    }
+  }
+
   return (
-    <button
-      onClick={() => { playSound('click'); exitFullscreen() }}
-      className="fixed top-2 right-2 z-[60] w-7 h-7 flex items-center justify-center rounded-full bg-black/20 text-white/30 hover:text-white/80 hover:bg-black/50 transition-all backdrop-blur-md"
-      aria-label="Salir de pantalla completa"
-    >
-      <Minimize2 className="w-3 h-3" />
-    </button>
+    <>
+      {showHint && (
+        <div className="fixed top-12 right-2 z-[70] bg-black/90 text-white text-xs px-3 py-2 rounded-lg border border-white/25 shadow-xl pointer-events-none">
+          Pulsa <kbd className="font-bold text-[#40e0d0]">F11</kbd> (o <kbd className="font-bold text-[#40e0d0]">Esc</kbd>) para salir de pantalla completa
+        </div>
+      )}
+      <button
+        onClick={handleExit}
+        className="fixed top-2 right-2 z-[70] w-10 h-10 flex items-center justify-center rounded-full bg-black/70 text-white border border-white/30 hover:bg-black/90 hover:border-[#40e0d0]/60 shadow-lg transition-all backdrop-blur-md active:scale-95"
+        aria-label="Salir de pantalla completa"
+        title="Salir de pantalla completa (Esc / F11)"
+      >
+        <Minimize2 className="w-5 h-5" />
+      </button>
+    </>
   )
 }
 

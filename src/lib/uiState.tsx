@@ -1,27 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import type { ReactNode } from 'react'
+import { UIStateContext } from './uiStateContext'
 
-interface UIStateCtx {
-  isFullscreen: boolean
-  enterFullscreen: () => void
-  exitFullscreen: () => void
-  headerVisible: boolean
-  footerVisible: boolean
-  setHeaderHover: (v: boolean) => void
-  setFooterHover: (v: boolean) => void
-}
-
-const UIStateContext = createContext<UIStateCtx>({
-  isFullscreen: false,
-  enterFullscreen: () => {},
-  exitFullscreen: () => {},
-  headerVisible: false,
-  footerVisible: false,
-  setHeaderHover: () => {},
-  setFooterHover: () => {},
-})
-
-export const useUIState = () => useContext(UIStateContext)
+// NOTA: Este módulo solo exporta el componente UIStateProvider (compatible con
+// Fast Refresh). El contexto y el hook useUIState viven en ./uiStateContext.ts
+// para que Vite no muestre el warning "Could not Fast Refresh (useUIState export
+// is incompatible)" al guardar.
 
 export function UIStateProvider({ children }: { children: ReactNode }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -30,41 +14,50 @@ export function UIStateProvider({ children }: { children: ReactNode }) {
   const headerHoverRef = useRef(false)
   const footerHoverRef = useRef(false)
 
-  // Keep isFullscreen in sync with browser fullscreen state (user can exit via browser controls)
+  // Sincroniza el estado de pantalla completa con el navegador de forma robusta.
+  // Cubre 3 casos:
+  //  1) Fullscreen API (requestFullscreen / Esc) → fullscreenchange
+  //  2) Pantalla completa del navegador con F11 → document.fullscreenElement es null,
+  //     así que se detecta cuando el viewport ocupa toda la pantalla.
+  //  3) Cambios de tamaño (maximizar, arrastrar, DevTools) → resize
+  // NOTA: se ha eliminado la entrada automática en fullscreen al primer toque/clic,
+  // que dejaba al usuario encerrado sin forma visible de salir.
   useEffect(() => {
-    function onFsChange() {
-      setIsFullscreen(!!document.fullscreenElement)
-    }
-    document.addEventListener('fullscreenchange', onFsChange)
-    document.addEventListener('webkitfullscreenchange', onFsChange as EventListener)
-    return () => {
-      document.removeEventListener('fullscreenchange', onFsChange)
-      document.removeEventListener('webkitfullscreenchange', onFsChange as EventListener)
-    }
-  }, [])
+    let timer: ReturnType<typeof setTimeout> | undefined
 
-  // Auto-enter real fullscreen on first user gesture (mobile/tablet only)
-  // Browsers require a user gesture to call requestFullscreen()
-  useEffect(() => {
-    if (window.innerWidth >= 1024) return
-
-    let entered = false
-    function tryFullscreen() {
-      if (entered) return
-      const el = document.documentElement as any
-      const req = el.requestFullscreen || el.webkitRequestFullscreen
-      if (req) {
-        entered = true
-        req.call(el).then(() => setIsFullscreen(true)).catch(() => {})
-        document.removeEventListener('click', tryFullscreen)
-        document.removeEventListener('touchstart', tryFullscreen)
-      }
+    const sync = () => {
+      clearTimeout(timer)
+      timer = setTimeout(() => {
+        const inApiFullscreen = !!document.fullscreenElement
+        // Solo en escritorio (puntero fino) tiene sentido la detección de F11;
+        // en móvil innerHeight puede igualar screen.height sin estar en fullscreen.
+        const isDesktop = window.matchMedia('(pointer: fine)').matches
+        const fillsScreen =
+          isDesktop &&
+          window.outerWidth <= window.screen.width &&
+          window.outerHeight <= window.screen.height &&
+          Math.abs(window.screen.width - window.innerWidth) <= 2 &&
+          Math.abs(window.screen.height - window.innerHeight) <= 2
+        setIsFullscreen(inApiFullscreen || fillsScreen)
+      }, 30)
     }
-    document.addEventListener('click', tryFullscreen, { once: false })
-    document.addEventListener('touchstart', tryFullscreen, { once: false })
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // F11 no dispara fullscreenchange: comprobamos tras el cambio de tamaño
+      if (e.key === 'F11' || e.key === 'Escape') sync()
+    }
+
+    document.addEventListener('fullscreenchange', sync)
+    document.addEventListener('webkitfullscreenchange', sync as EventListener)
+    window.addEventListener('resize', sync)
+    window.addEventListener('keydown', onKeyDown)
+    sync()
     return () => {
-      document.removeEventListener('click', tryFullscreen)
-      document.removeEventListener('touchstart', tryFullscreen)
+      clearTimeout(timer)
+      document.removeEventListener('fullscreenchange', sync)
+      document.removeEventListener('webkitfullscreenchange', sync as EventListener)
+      window.removeEventListener('resize', sync)
+      window.removeEventListener('keydown', onKeyDown)
     }
   }, [])
 
@@ -104,7 +97,11 @@ export function UIStateProvider({ children }: { children: ReactNode }) {
 
   const exitFullscreen = useCallback(() => {
     const exit = document.exitFullscreen || (document as any).webkitExitFullscreen
-    if (exit) exit.call(document).then(() => setIsFullscreen(false)).catch(() => {})
+    if (exit) {
+      exit.call(document).then(() => setIsFullscreen(false)).catch(() => {})
+    } else {
+      setIsFullscreen(false)
+    }
   }, [])
 
   const setHeaderHover = useCallback((v: boolean) => {
