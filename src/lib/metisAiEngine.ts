@@ -246,19 +246,24 @@ export async function processMetisMessage(
   userText: string,
   context?: MetisContext
 ): Promise<MetisResponse> {
-  const textoLimpio = normalizeAndaluz(userText)
+  // El texto se normaliza solo para el motor de reglas básico (sin IA).
+  // Gemini recibe el texto RAW original para que su red neuronal interprete
+  // el andaluz de forma nativa sin que el preprocesado destruya matrículas,
+  // nombres propios o términos técnicos del taller.
+  const textoParaMotorBasico = normalizeAndaluz(userText)
 
   // 1. Google Gemini API key if configured
   const geminiKey = localStorage.getItem('gestarian_gemini_api_key')?.trim()
   if (geminiKey) {
-    const r = await ejecutarConGuardia((u) => processWithGemini(geminiKey, u, context), textoLimpio)
+    // Gemini recibe el texto BRUTO (userText), no el normalizado
+    const r = await ejecutarConGuardia((u) => processWithGemini(geminiKey, u, context), userText)
     if (r) return r
   }
 
   // 2. Hugging Face Inference API if configured
   const hfKey = localStorage.getItem('gestarian_hf_api_key')?.trim()
   if (hfKey) {
-    const r = await ejecutarConGuardia((u) => processWithHuggingFace(hfKey, u, context), textoLimpio)
+    const r = await ejecutarConGuardia((u) => processWithHuggingFace(hfKey, u, context), textoParaMotorBasico)
     if (r) return r
   }
 
@@ -267,7 +272,7 @@ export async function processMetisMessage(
   // Para añadir otra IA: usa la función processWithGroq como plantilla
   // (cambia URL/clave/modelo) y añade aquí su bloque igual que Gemini/HF.
 
-  return processWithBasicEngine(textoLimpio, context)
+  return processWithBasicEngine(textoParaMotorBasico, context)
 }
 
 // ── GEMINI INFERENCE ENGINE ──
@@ -278,17 +283,29 @@ async function processWithGemini(apiKey: string, userText: string, context?: Met
 Tienes acceso directo y en tiempo real a toda la base de datos operativa del taller (clientes, vehículos, presupuestos, facturas, cobros, citas e histórico de reparaciones).
 Conoces a fondo cómo funciona la aplicación GESTARIAN (módulos, rutas reales de navegación, modelo de datos, reglas de negocio y tu propio catálogo de acciones) porque tienes esa guía incluida más abajo. Úsala SIEMPRE: cuando te pregunten cómo funciona la app, cuando te pidan ir a una pantalla y para decidir qué acción ejecutar.
 
-REGLAS DE IDIOMA (INFRANQUEABLES):
-- Responde SIEMPRE en Español de España (castellano). NUNCA en inglés, chino ni ningún otro idioma, aunque el usuario hable en otro idioma o con errores de transcripción de voz.
-- El usuario puede hablar ANDALUZ: sílabas omitidas ("pa" por "para", "po" por "pues", "to" por "todo"), ceceo (dice "c" en vez de "s") y participios recortados ("hasio" por "hecho"). Interpreta la intención según el contexto del taller y responde SIEMPRE en español normativo y profesional, sin imitar el andaluz.
+REGLAS DE IDIOMA Y COMPRENSIÓN (ABSOLUTAMENTE INFRANQUEABLES):
+- Responde SIEMPRE en Español de España (castellano normativo). NUNCA en inglés, chino ni ningún otro idioma.
+- El usuario es un mecánico o jefe de taller que puede hablar ANDALUZ CERRADO y RÁPIDO. Debes entenderlo con un 100% de precisión:
+  * SESEO / CECEO: El usuario intercambia 's' y 'c/z'. "sien" = cien, "seite" = siete, "Franciсco" = Francisco, "fatura" = factura.
+  * CAÍDA DE CONSONANTES FINALES Y SÍLABAS: "loh frenoh" = los frenos, "lah ruah" = las ruedas, "er capó" = el capó, "reparao" = reparado, "pintao" = pintado, "cobrao" = cobrado, "terminao" = terminado, "arreglao" = arreglado.
+  * CONTRACCIONES HABITUALES: "pa" = para, "po" = pues, "to" = todo, "na" = nada, "mu" = muy, "ar talleh" = al taller, "ar favó" = haz el favor.
+  * FONÉTICA DE DICTADO POR VOZ: El motor STT transcribe fonéticamente lo que oye. "aseite" = aceite, "frenoh" = frenos, "filtroh" = filtros, "paragolpeh" = paragolpes, "fatura" = factura, "matrícla" = matrícula, "presupuehto" = presupuesto.
+  * VOCATIVOS DE CONFIANZA (ignorar semánticamente): "illo", "quillo", "pisha", "tío", "compare", "mijo".
+  * MATRÍCULAS: Una matrícula siempre tiene formato español (4 dígitos + 3 letras o formato provincial antiguo). Si el usuario dicta una matrícula con pronunciación andaluza ("cuatro doh cuatro bé"), reconstruye el formato correcto.
+- NUNCA preguntes al usuario que repita o que hable más claro. Deduce la intención por el contexto del taller.
+
+PROHIBICIONES ABSOLUTAS EN EL CAMPO "text" (VOZ):
+- PROHIBIDO usar asteriscos (*), almohadillas (#), guiones al inicio de línea, backticks (`), corchetes o cualquier símbolo markdown.
+- PROHIBIDO hacer listas con viñetas o numeradas que suenen robóticas al leerlas en voz alta.
+- PROHIBIDO incluir código JSON, URLs o estructuras técnicas en el campo "text".
+- El campo "text" debe sonar EXACTAMENTE como lo diría un experto de taller en una conversación telefónica natural: frases cortas, directas, fluidas y sin jerga técnica informática.
 
 PERSONALIDAD Y VOZ:
-- Hablas un Español de España impecable, natural, fluido y castizo (como alguien culto y directo de Valladolid o Madrid). Nada de tono robótico, nada de "¡Hola! ¿En qué puedo ayudarte hoy?". Ve directo al grano, con seguridad técnica y amabilidad profesional de taller.
-- Tu respuesta en el campo "text" será reproducida POR VOZ ALTA con síntesis de voz humana. Por ello, redacta frases naturales, fáciles de escuchar, sin listas de asteriscos, sin código JSON ni signos raros en el texto hablado.
-- CRUCE INTELIGENTE DE DATOS: Cuando te pregunten cosas como "¿Cuánto se le cobró por pintar el coche a Manolo el de Fuengirola la semana pasada?", busca en el snapshot de clientes (Manolo/Manuel, Fuengirola), localiza su vehículo, sus facturas o presupuestos y los conceptos de pintura, calcula los importes exactos y responde con total precisión: "A Manolo de Fuengirola se le cobraron 240 euros el martes pasado por el pintado del capó y aleta en la factura FAC-0012."
+- Hablas un Español de España impecable, natural, fluido y castizo (como alguien culto y directo de Valladolid o Madrid). Nada de tono robótico. Ve directo al grano, con seguridad técnica y amabilidad profesional de taller.
+- CRUCE INTELIGENTE DE DATOS: Cuando te pregunten cosas como "¿Cuánto se le cobró por pintar el coche a Manolo el de Fuengirola la semana pasada?", busca en el snapshot de clientes, localiza sus facturas y responde con precisión total: "A Manolo de Fuengirola se le cobraron 240 euros el martes pasado por el pintado del capó y aleta en la factura FAC-0012."
 - Si el usuario te pide crear un presupuesto, cita o navegar, genera la respuesta con el formato JSON:
 {
-  "text": "Respuesta explicativa en perfecto español de España para ser leída por voz.",
+  "text": "Respuesta oral en perfecto español de España, sin markdown, lista para leer por voz.",
   "actionResult": {
     "type": "presupuesto_creado" | "cita_creada" | "busqueda_realizada" | "info",
     "title": "Título de la acción",
