@@ -272,6 +272,7 @@ async function processWithGemini(apiKey: string, userText: string, context?: Met
 
   const systemInstruction = `Eres METIS, el cerebro de inteligencia artificial y asistente experto de GESTARIAN para el taller piloto DM CAR.
 Tienes acceso directo y en tiempo real a toda la base de datos operativa del taller (clientes, vehículos, presupuestos, facturas, cobros, citas e histórico de reparaciones).
+Conoces a fondo cómo funciona la aplicación GESTARIAN (módulos, rutas reales de navegación, modelo de datos, reglas de negocio y tu propio catálogo de acciones) porque tienes esa guía incluida más abajo. Úsala SIEMPRE: cuando te pregunten cómo funciona la app, cuando te pidan ir a una pantalla y para decidir qué acción ejecutar.
 
 REGLAS DE IDIOMA (INFRANQUEABLES):
 - Responde SIEMPRE en Español de España (castellano). NUNCA en inglés, chino ni ningún otro idioma, aunque el usuario hable en otro idioma o con errores de transcripción de voz.
@@ -288,7 +289,7 @@ PERSONALIDAD Y VOZ:
     "type": "presupuesto_creado" | "cita_creada" | "busqueda_realizada" | "info",
     "title": "Título de la acción",
     "details": "Detalles relevantes",
-    "navigationPath": "/presupuestos" | "/citas" | "/clientes" | "/expedientes"
+    "navigationPath": "/" | "/presupuestos" | "/presupuesto-hibrido" | "/citas" | "/clientes" | "/expedientes" | "/expediente/:vehiculoId" | "/reparaciones" | "/facturas" | "/balances" | "/proveedores" | "/incidencias" | "/usuarios" | "/configuracion" | "/asignar-cita"
 - Si es una consulta o conversación, devuelve el JSON con "text" respondiendo directamente con la información cruzada de la base de datos.`
 
   const aiConfig = localStorage.getItem('gestarian_ai_assistant_config')
@@ -438,7 +439,7 @@ async function processWithHuggingFace(apiKey: string, userText: string, context?
   const dbInfoParts: string[] = []
   if (matriculaDetected) dbInfoParts.push(`Matrícula detectada: ${matriculaDetected}`)
   if (context) dbInfoParts.push(`Contexto UI: ${JSON.stringify(context)}`)
-  const prompt = `${systemInstruction}\n\n${dbInfoParts.join(' | ')}\n\nUsuario: ${userText}`
+  const prompt = `${systemInstruction}\n\n${getMetisKnowledgePrompt()}\n\n${dbInfoParts.join(' | ')}\n\nUsuario: ${userText}`
 
   const url = `https://api-inference.huggingface.co/models/${defaultModel}`
   const body = {

@@ -5,6 +5,7 @@
  */
 
 import type { AiAssistantConfig, FallbackAiConfig } from '../lib/types';
+import { getMetisKnowledgePrompt } from '../ai/metisKnowledge';
 
 export interface AIResponse {
   text: string;
@@ -123,7 +124,10 @@ export async function processAiInstruction(userMessage: string, contextData?: an
   // Prompt del sistema para la comprensión coloquial en español de España y dialecto andaluz en GESTARIAN
   const systemPrompt = `Eres el Ayudante IA oficial de GESTARIAN, un software para gestión de talleres mecánicos y de chapa/pintura.
 Hablas y comprendes perfectamente el español de España y expresiones coloquiales y dialectales (incluyendo andaluz y jerga de taller como 'cambiale el aceite a ese coche', 'ponle dos horas de chapa', 'mira la bujía', 'quillo', 'illo', 'vamos a meterle mano a este buga').
-Tu tarea es comprender la instrucción y responder de forma profesional, concisa y servicial.`;
+Tu tarea es comprender la instrucción y responder de forma profesional, concisa y servicial.
+Conoces a fondo cómo funciona la aplicación GESTARIAN: módulos, rutas de navegación, modelo de datos, reglas de negocio (IVA 21%, ciclos de presupuesto/factura/cobro) y funciones clave (dictado por voz, OCR, PDF por WhatsApp/Email, expedientes 360°, balances).
+Usa este conocimiento para responder a preguntas sobre el funcionamiento de la app.
+\n\n${getMetisKnowledgePrompt()}`;
 
   try {
     if (config.provider === 'gemini' && config.api_key) {

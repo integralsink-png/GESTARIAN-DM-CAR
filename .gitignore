@@ -18,5 +18,14 @@ dist/
 .vscode/
 .idea/
 
+# archivos de diagnóstico sueltos del taller
+_diag.*
+_activar_urls.ps1
+_firewall_admin.ps1
+_rule.txt
+_urls_result.txt
+indent.txt
+comprobar_modelos.py
+
 # OS files
 Thumbs.db
