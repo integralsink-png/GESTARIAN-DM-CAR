@@ -80,7 +80,7 @@ export function InicioPage() {
   const { offsetX, isAnimating } = useGestures({ showPanels, setShowPanels, isFadingOut, setIsFadingOut })
 
   useEffect(() => {
-    const t = setInterval(() => setHora(new Date()), 30000)
+    const t = setInterval(() => setHora(new Date()), 1000)
     return () => clearInterval(t)
   }, [])
 
@@ -188,6 +188,18 @@ export function InicioPage() {
             `}
           >
             <div className="w-full max-w-4xl mx-auto">
+              {/* Reloj Digital Grande Centrado con Glow Blanco */}
+              <div className="flex flex-col items-center justify-center my-4 py-2 select-none">
+                <div 
+                  className="font-black text-white tracking-widest tabular-nums leading-none text-5xl sm:text-7xl md:text-8xl"
+                  style={{
+                    fontFamily: "'Courier New', Courier, monospace, system-ui",
+                    textShadow: '0 0 20px rgba(255, 255, 255, 0.9), 0 0 40px rgba(255, 255, 255, 0.6), 0 0 60px rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  {hora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </div>
+              </div>
 
               <MetisAlertsSection
                 mostrarAvisos={mostrarAvisos} totalAvisos={totalAvisos} touchSelectable={panelInteractable}

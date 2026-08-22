@@ -5,6 +5,7 @@ import { NAV_ITEMS, FOOTER_NAV } from '../lib/navigation'
 import { useTheme } from '../lib/theme'
 import { useUIState } from '../lib/uiStateContext'
 import { useMobileMode } from '../lib/mobileMode'
+import { MetisVoiceCall } from './MetisVoiceCall'
 
 // Paleta de colores vibrantes para el menú
 const MENU_COLORS = [
@@ -177,6 +178,9 @@ export function MobileFooter() {
   const navigate = useNavigate()
   const location = useLocation()
 
+  // Sonido de tap al pulsar botón de menú
+  const [animatingBtn, setAnimatingBtn] = useState<string | null>(null)
+
   useEffect(() => {
     const handleToggle = (e: Event) => {
       const detail = (e as CustomEvent).detail
@@ -190,16 +194,24 @@ export function MobileFooter() {
     return null
   }
 
-  // Sonido de tap al pulsar botón de menú
+  const triggerAnimatedAction = (btnKey: string, action: () => void) => {
+    if ('vibrate' in navigator) navigator.vibrate([30, 40, 50])
+    playSound('click')
+    setAnimatingBtn(btnKey)
+    setTimeout(() => {
+      setAnimatingBtn(null)
+      action()
+    }, 450)
+  }
+
   const handleNavClick = (path: string) => {
-    // Vibración háptica si el dispositivo lo soporta
     if ('vibrate' in navigator) navigator.vibrate(40)
     playSound('click')
     setMenuOpen(false)
     navigate(path)
   }
 
-  const isA4Document = ['/facturas', '/presupuestos', '/presupuesto-hibrido', '/asignar-cita'].includes(location.pathname)
+  const isA4Document = ['/presupuestos', '/presupuesto-hibrido', '/asignar-cita'].includes(location.pathname)
   if (isA4Document) return null
 
   return (
@@ -209,35 +221,40 @@ export function MobileFooter() {
       )}
       <nav className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex items-center justify-between px-6 gap-2">
         <button
-          onClick={() => { playSound('click'); navigate('/presupuesto-hibrido', { state: { startCamera: true } }) }}
-          className="w-16 h-16 rounded-full bg-transparent text-[#40e0d0] shadow-[0_0_10px_rgba(64,224,208,0.9),inset_0_0_5px_rgba(64,224,208,0.9)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0"
+          onClick={() => triggerAnimatedAction('camera', () => navigate('/presupuesto-hibrido', { state: { startCamera: true } }))}
+          className={`w-16 h-16 rounded-full bg-transparent text-[#40e0d0] shadow-[0_0_10px_rgba(64,224,208,0.9),inset_0_0_5px_rgba(64,224,208,0.9)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 ${animatingBtn === 'camera' ? 'scale-125 border-cyan-400' : ''}`}
           style={{ filter: 'drop-shadow(0 0 5px rgb(64, 224, 157))' }}
           aria-label="Cámara"
         >
-          <Camera className="w-7 h-7" strokeWidth={1} color="white" />
+          <div className={animatingBtn === 'camera' ? 'animate-icon-burst' : ''}>
+            <Camera className="w-7 h-7" strokeWidth={1} color="white" />
+          </div>
         </button>
 
         <button
-          onClick={() => { playSound('click'); setMenuOpen(!menuOpen) }}
-          className="w-16 h-16 rounded-full bg-transparent text-[#d3d3d3] shadow-[0_0_10px_rgba(211,211,211,0.9),inset_0_0_5px_rgba(211,211,211,0.9)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0"
+          onClick={() => triggerAnimatedAction('menu', () => setMenuOpen(!menuOpen))}
+          className={`w-16 h-16 rounded-full bg-transparent text-[#d3d3d3] shadow-[0_0_10px_rgba(211,211,211,0.9),inset_0_0_5px_rgba(211,211,211,0.9)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 ${animatingBtn === 'menu' ? 'scale-125 border-orange-400' : ''}`}
           style={{ filter: 'drop-shadow(0 0 5px #f15b04e7)' }}
           aria-label="Menú"
         >
-          {menuOpen ? <X className="w-7 h-7" strokeWidth={1} color="white" /> : <Menu className="w-7 h-7" strokeWidth={1} color="white" />}
+          <div className={animatingBtn === 'menu' ? 'animate-icon-burst' : ''}>
+            {menuOpen ? <X className="w-7 h-7" strokeWidth={1} color="white" /> : <Menu className="w-7 h-7" strokeWidth={1} color="white" />}
+          </div>
         </button>
 
         <button
-          onClick={() => {
-            playSound('click');
-            window.dispatchEvent(new Event('metis-toggle-panel'));
-          }}
-         className="w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_5px_rgba(168,85,247,1)] border-[1px] border-white/50 flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 relative animate-pulse"
+          onClick={() => triggerAnimatedAction('ai', () => window.dispatchEvent(new Event('metis-toggle-panel')))}
+          className={`w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_5px_rgba(168,85,247,1)] border-[1px] border-white/50 flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 relative animate-pulse ${animatingBtn === 'ai' ? 'scale-125 border-purple-400' : ''}`}
           style={{ backgroundColor: 'rgba(0,0,0,0)' }}
           aria-label="Asistente METIS"
         >
-          <span className="font-thin text-[36px] text-white tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,1)]" style={{ WebkitTextStroke: '1px rgba(255, 255, 255, 0.5)' }}>AI</span>
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-transparent animate-pulse" />
+          <div className={animatingBtn === 'ai' ? 'animate-icon-burst' : ''}>
+            <span className="font-thin text-[32px] text-transparent tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,1)]" style={{ WebkitTextStroke: '1px white' }}>AI</span>
+          </div>
+          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-transparent animate-metis-ping" />
         </button>
+
+        <MetisVoiceCall />
       </nav>
 
       {menuOpen && (
@@ -249,8 +266,8 @@ export function MobileFooter() {
             backgroundPosition: 'center',
           }}
         >
-          {/* Overlay oscuro semitransparente sobre la imagen */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-md" />
+          {/* Overlay oscuro semitransparente sobre la imagen (reducido al 30%) */}
+          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
 
           {/* Botón cerrar */}
           <button
@@ -345,7 +362,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.05s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.05s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -365,7 +382,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.12s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.12s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -385,7 +402,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.2s' }}
+                    style={{ gridColumn: 'span 8', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.2s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -405,7 +422,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.28s' }}
+                    style={{ gridColumn: 'span 4', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.28s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -425,7 +442,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTop', animationDelay: '0.35s' }}
+                    style={{ gridColumn: 'span 8', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromTop', animationDelay: '0.35s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -445,7 +462,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.42s' }}
+                    style={{ gridColumn: 'span 4', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.42s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -465,7 +482,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 8', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.5s' }}
+                    style={{ gridColumn: 'span 8', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.5s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -485,7 +502,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 4', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.58s' }}
+                    style={{ gridColumn: 'span 4', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.58s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -505,7 +522,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.65s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottomLeft', animationDelay: '0.65s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-7 h-7 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -525,7 +542,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.72s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.72s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -545,7 +562,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.78s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.78s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -565,7 +582,7 @@ export function MobileFooter() {
                   <button
                     key={item.path}
                     className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.84s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.84s' }}
                     onClick={() => handleNavClick(item.path)}
                   >
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
@@ -581,7 +598,7 @@ export function MobileFooter() {
                   <button
                     key="nuevo-presupuesto"
                     className="bento-btn"
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.90s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.90s' }}
                     onClick={() => {
                       playSound('click')
                       setMenuOpen(false)
@@ -601,7 +618,7 @@ export function MobileFooter() {
                   <button
                     key="nuevo-cliente"
                     className="bento-btn"
-                    style={{ gridColumn: 'span 6', backgroundColor: `${color}28`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.96s' }}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromBottom', animationDelay: '0.96s' }}
                     onClick={() => {
                       playSound('click')
                       setMenuOpen(false)

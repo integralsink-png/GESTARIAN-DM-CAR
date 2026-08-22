@@ -408,7 +408,7 @@ export function FacturasPage() {
   }
 
   useEffect(() => {
-    if (navState?.reparacionId || (navState as any)?.presupuestoId) {
+    if (navState?.reparacionId || (navState as any)?.presupuestoId || (navState as any)?.openForm) {
       if (!navState?.facturaNumero && !selectedFactura) {
         crearFacturaDesdeReparacion()
       }
@@ -556,7 +556,7 @@ export function FacturasPage() {
       <div class="total-row"><span>Base imponible</span><span>${base.toFixed(2)} €</span></div>
       <div class="total-row"><span>IVA (21%)</span><span>${iva.toFixed(2)} €</span></div>
       <div class="total-final"><span>TOTAL</span><span>${selectedFactura.total.toFixed(2)} €</span></div></div></div>
-    <div class="footer">Estado de cobro: ${selectedFactura.estado_cobro.toUpperCase()} · Abonado: ${selectedFactura.total_abonado.toFixed(2)} € · Pendiente: ${(selectedFactura.total - selectedFactura.total_abonado).toFixed(2)} €</div>
+    <div class="footer">Estado de cobro: ${selectedFactura.estado_cobro.toUpperCase()} · Abonado: ${selectedFactura.total_abonado.toFixed(2)} € · Resto Abono: ${(selectedFactura.total - selectedFactura.total_abonado).toFixed(2)} €</div>
     </body></html>`
     const blob = new Blob([html], { type: 'text/html' })
     const url = URL.createObjectURL(blob)
@@ -607,7 +607,15 @@ export function FacturasPage() {
       <div className="sticky top-0 bg-bg-950/95 backdrop-blur-md z-30 pb-4 border-b border-slate-800/80 -mx-4 px-4 sm:-mx-6 sm:px-6">
         <PageHeader title="FACTURACIÓN">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (activeTab === 'recibidas') {
+                setActiveTab('emitidas')
+              } else if (selectedFactura) {
+                setSelectedFactura(null)
+              } else {
+                navigate(-1)
+              }
+            }}
             className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
             title="Volver"
             aria-label="Volver"
@@ -696,66 +704,68 @@ export function FacturasPage() {
 
       {/* Contenido con Scroll (Pasa por debajo) */}
       <div className="pt-4 px-1">
-        {/* Selector de pestañas: EMITIDAS / LUPA / RECIBIDAS */}
-        <div className="flex flex-col gap-3 mb-4 border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setActiveTab('emitidas'); setSelectedFactura(null); }}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
-                activeTab === 'emitidas'
-                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              EMITIDAS
-            </button>
+        {/* Selector de pestañas: EMITIDAS / LUPA / RECIBIDAS (solo visible en emitidas o según contexto) */}
+        {activeTab === 'emitidas' && (
+          <div className="flex flex-col gap-3 mb-4 border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => { setActiveTab('emitidas'); setSelectedFactura(null); }}
+                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+                  activeTab === 'emitidas'
+                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                EMITIDAS
+              </button>
 
-            {/* Icono de Lupa */}
-            <button
-              onClick={() => setShowSearchInput(!showSearchInput)}
-              className={`p-2.5 rounded-xl transition-all border-[2px] flex items-center justify-center ${
-                showSearchInput
-                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-              }`}
-              title="Buscar facturas"
-            >
-              <Search className="w-5 h-5" />
-            </button>
+              {/* Icono de Lupa */}
+              <button
+                onClick={() => setShowSearchInput(!showSearchInput)}
+                className={`p-2.5 rounded-xl transition-all border-[2px] flex items-center justify-center ${
+                  showSearchInput
+                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+                }`}
+                title="Buscar facturas"
+              >
+                <Search className="w-5 h-5" />
+              </button>
 
-            <button
-              onClick={() => { setActiveTab('recibidas'); setSelectedFactura(null); }}
-              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
-                activeTab === 'recibidas'
-                  ? 'bg-purple-500/20 text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
-                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-              }`}
-            >
-              RECIBIDAS
-            </button>
-          </div>
-
-          {/* Campo de búsqueda global */}
-          {showSearchInput && (
-            <div className="flex items-center gap-2 mt-1">
-              <input
-                type="text"
-                value={globalSearchText}
-                onChange={(e) => setGlobalSearchText(e.target.value)}
-                placeholder="Buscar por cliente, matrícula o nº factura..."
-                className="w-full bg-bg-700 border border-bg-600 rounded-xl px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-              />
-              {globalSearchText && (
-                <button
-                  onClick={() => setGlobalSearchText('')}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all"
-                >
-                  Limpiar
-                </button>
-              )}
+              <button
+                onClick={() => { setActiveTab('recibidas'); setSelectedFactura(null); }}
+                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+                  activeTab === 'recibidas'
+                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+                }`}
+              >
+                RECIBIDAS
+              </button>
             </div>
-          )}
-        </div>
+
+            {/* Campo de búsqueda global */}
+            {showSearchInput && (
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="text"
+                  value={globalSearchText}
+                  onChange={(e) => setGlobalSearchText(e.target.value)}
+                  placeholder="Buscar por cliente, matrícula o nº factura..."
+                  className="w-full bg-bg-700 border border-bg-600 rounded-xl px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+                />
+                {globalSearchText && (
+                  <button
+                    onClick={() => setGlobalSearchText('')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {activeTab === 'recibidas' ? (
           <FacturasRecibidasPage />
@@ -1223,7 +1233,7 @@ export function FacturasPage() {
 
             <div className="text-xs text-gray-400 border-t border-gray-200 pt-4 space-y-0.5 mb-6">
               <p>Estado de cobro: {selectedFactura.estado_cobro.toUpperCase()}</p>
-              {selectedFactura.total_abonado > 0 && <p>Abonado: {selectedFactura.total_abonado.toFixed(2)} € · Pendiente: {saldoPendiente.toFixed(2)} €</p>}
+              {selectedFactura.total_abonado > 0 && <p>Abonado: {selectedFactura.total_abonado.toFixed(2)} € · <span className="text-blue-500 font-bold">Resto Abono: {saldoPendiente.toFixed(2)} €</span></p>}
             </div>
 
             {/* Observaciones */}
@@ -1436,9 +1446,9 @@ export function FacturasPage() {
               const expId = p && cliente ? getExpediente(p, cliente, clientes) : 'S/N';
               
               // Border and bg classes based on status
-              let borderClass = 'border-slate-700 bg-bg-900';
+              let borderClass = 'border-orange-500 hover:border-orange-400 bg-orange-950/10 shadow-[0_0_15px_rgba(249,115,22,0.2)]';
               if (f.estado_cobro === 'pagada') {
-                borderClass = 'border-emerald-500 hover:border-emerald-400 bg-emerald-950/5';
+                borderClass = 'border-emerald-500 hover:border-emerald-400 bg-emerald-950/15 shadow-[0_0_15px_rgba(16,185,129,0.25)]';
               } else {
                 // Check for Impago
                 const ultimoCobro = localStorage.getItem(`factura_${f.id}_ultimo_cobro`) || f.updated_at;
@@ -1450,13 +1460,13 @@ export function FacturasPage() {
                 const isPendienteSentAndLate = f.estado_cobro === 'pendiente' && (Date.now() - new Date(fechaEmision).getTime() > 7 * 24 * 60 * 60 * 1000);
 
                 if (isParcialAndLate || isPendienteSentAndLate) {
-                  borderClass = 'border-red-500 hover:border-red-400 bg-red-950/5';
+                  borderClass = 'border-red-500 hover:border-red-400 bg-red-950/10 shadow-[0_0_15px_rgba(239,68,68,0.25)]';
                 } else if (f.estado_cobro === 'parcial') {
-                  borderClass = 'border-blue-500 hover:border-blue-400 bg-blue-950/5';
+                  borderClass = 'border-blue-500 hover:border-blue-400 bg-blue-950/15 shadow-[0_0_15px_rgba(59,130,246,0.25)]';
                 } else if (!isEnviado) {
-                  borderClass = 'border-yellow-400 hover:border-yellow-300 bg-yellow-950/5 animated-contour-border';
+                  borderClass = 'border-yellow-400 hover:border-yellow-300 bg-yellow-950/10 animated-contour-border shadow-[0_0_15px_rgba(250,204,21,0.25)]';
                 } else {
-                  borderClass = 'border-amber-500 hover:border-amber-400 bg-amber-950/5';
+                  borderClass = 'border-orange-500 hover:border-orange-400 bg-orange-950/10 shadow-[0_0_15px_rgba(249,115,22,0.2)]';
                 }
               }
 

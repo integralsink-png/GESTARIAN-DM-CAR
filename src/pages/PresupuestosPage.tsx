@@ -50,6 +50,7 @@ function ConceptoMobileCard({
   animarDescripcion,
   animarCantidad,
   animarPrecio,
+  readOnly,
 }: {
   concepto: Concepto;
   onChange: (c: Concepto) => void;
@@ -57,6 +58,7 @@ function ConceptoMobileCard({
   animarDescripcion?: boolean;
   animarCantidad?: boolean;
   animarPrecio?: boolean;
+  readOnly?: boolean;
 }) {
   const { listening, transcript, interim, supported, start, stop, reset } =
     useVoice();
@@ -88,6 +90,27 @@ function ConceptoMobileCard({
     reset();
     setEditingVoice(true);
     start();
+  }
+
+  if (readOnly) {
+    return (
+      <div className="bg-white rounded-2xl p-3.5 border border-gray-300 shadow-sm space-y-2">
+        <div className="text-sm font-bold text-gray-900">
+          {concepto.descripcion}
+        </div>
+        <div className="flex items-center justify-between text-xs pt-1.5 border-t border-gray-100">
+          <div className="text-gray-600">
+            <span className="font-semibold text-gray-800">Cant:</span> {concepto.cantidad}
+          </div>
+          <div className="text-gray-600">
+            <span className="font-semibold text-gray-800">Precio:</span> {concepto.precio.toFixed(2)} €
+          </div>
+          <div className="font-black text-blue-900 text-sm">
+            {(concepto.cantidad * concepto.precio).toFixed(2)} €
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -863,12 +886,27 @@ export function PresupuestosPage() {
               const isSaved = !!(editingId || currentP?.id);
               const isSent = !!(currentP?.enviado_email_at || currentP?.enviado_whatsapp_at);
 
+              // Comprobar si este presupuesto específico ha completado su roadmap hasta CONFIRMAR factura
+              const pId = editingId || currentP?.id;
+              const citaVinculada = citas.find(c => c.presupuesto_id === pId);
+              const repVinculada = citaVinculada ? reparaciones.find(r => r.cita_id === citaVinculada.id) : null;
+              const tieneFacturaConfirmada = (() => {
+                if (!pId) return false;
+                if (repVinculada) {
+                  return facturas.some(f => f.reparacion_id === repVinculada.id && !!f.numero && f.id !== 'draft');
+                }
+                return false;
+              })();
+
               const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
               const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
 
               // ── SECUENCIA LÓGICA DE ANIMACIÓN EN CLIENTE Y VEHÍCULO ──
               const animarCliente = !hasCliente;
               const animarVehiculo = hasCliente && !hasVehiculo;
+
+              const ocultarSelectoresCliente = !!clienteIdFromNav || !!editingId;
+              const ocultarSelectorVehiculo = (!!clienteIdFromNav && vehiculos.length === 1) || !!editingId;
 
               return (
                 <>
@@ -877,88 +915,94 @@ export function PresupuestosPage() {
                       <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
                         Cliente
                       </p>
-                      {/* Selector de cliente clásico (ancho completo, mismo formato) */}
-                      <div className="mb-2">
-                        <select
-                          value={selectedClienteId}
-                          onChange={(e) => handleChangeCliente(e.target.value)}
-                          className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
-                              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                              : "border-gray-300"
-                            }`}
-                          style={{ fontSize: '0.80rem' }}
-                        >
-                          <option value="" className="text-xs" style={{ fontSize: '90%' }}>Seleccionar cliente...</option>
-                          {clientes.map((c) => (
-                            <option key={c.id} value={c.id} className="text-xs" style={{ fontSize: '90%' }}>
-                              {c.nombre}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="relative mb-2">
-                        <input
-                          type="text"
-                          value={clienteSearchText}
-                          onChange={(e) => {
-                            setClienteSearchText(e.target.value);
-                            setShowClientDropdown(true);
-                            if (!e.target.value) {
-                              handleChangeCliente("");
-                            }
-                          }}
-                          onFocus={() => setShowClientDropdown(true)}
-                          placeholder="Buscar cliente (escribe para filtrar)..."
-                          className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
-                              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                              : "border-gray-300"
-                            }`}
-                          style={{ fontSize: '0.80rem' }}
-                        />
-                        {showClientDropdown && clienteSearchText && (
-                          <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-xl shadow-lg">
-                            {clientes
-                              .filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase())))
-                              .map(c => (
-                                <div
-                                  key={c.id}
-                                  onClick={() => {
-                                    handleChangeCliente(c.id);
-                                    setClienteSearchText(c.nombre);
-                                    setShowClientDropdown(false);
-                                  }}
-                                  className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-semibold text-blue-900 flex justify-between items-center"
-                                  style={{ fontSize: '0.80rem' }}
-                                >
-                                  <span>{c.nombre}</span>
-                                  {c.dni && <span className="text-[10px] text-gray-500">{c.dni}</span>}
-                                </div>
+                      {/* Selectores y búsqueda de cliente se ocultan si venimos con el cliente forzado o es un presupuesto existente */}
+                      {!ocultarSelectoresCliente && (
+                        <>
+                          {/* Selector de cliente clásico (ancho completo, mismo formato) */}
+                          <div className="mb-2">
+                            <select
+                              value={selectedClienteId}
+                              onChange={(e) => handleChangeCliente(e.target.value)}
+                              className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
+                                  ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                  : "border-gray-300"
+                                }`}
+                              style={{ fontSize: '0.80rem' }}
+                            >
+                              <option value="" className="text-xs" style={{ fontSize: '90%' }}>Seleccionar cliente...</option>
+                              {clientes.map((c) => (
+                                <option key={c.id} value={c.id} className="text-xs" style={{ fontSize: '90%' }}>
+                                  {c.nombre}
+                                </option>
                               ))}
-                            {clientes.filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase()))).length === 0 && (
-                              <div className="px-3 py-2 text-xs text-gray-500 text-center" style={{ fontSize: '0.80rem' }}>No se encontraron clientes</div>
+                            </select>
+                          </div>
+
+                          <div className="relative mb-2">
+                            <input
+                              type="text"
+                              value={clienteSearchText}
+                              onChange={(e) => {
+                                setClienteSearchText(e.target.value);
+                                setShowClientDropdown(true);
+                                if (!e.target.value) {
+                                  handleChangeCliente("");
+                                }
+                              }}
+                              onFocus={() => setShowClientDropdown(true)}
+                              placeholder="Buscar cliente (escribe para filtrar)..."
+                              className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-xs focus:border-blue-700 focus:outline-none font-bold transition-all ${animarCliente
+                                  ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                  : "border-gray-300"
+                                }`}
+                              style={{ fontSize: '0.80rem' }}
+                            />
+                            {showClientDropdown && clienteSearchText && (
+                              <div className="absolute z-30 left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white border border-gray-300 rounded-xl shadow-lg">
+                                {clientes
+                                  .filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase())))
+                                  .map(c => (
+                                    <div
+                                      key={c.id}
+                                      onClick={() => {
+                                        handleChangeCliente(c.id);
+                                        setClienteSearchText(c.nombre);
+                                        setShowClientDropdown(false);
+                                      }}
+                                      className="px-3 py-2 text-xs hover:bg-blue-50 cursor-pointer border-b border-gray-100 font-semibold text-blue-900 flex justify-between items-center"
+                                      style={{ fontSize: '0.80rem' }}
+                                    >
+                                      <span>{c.nombre}</span>
+                                      {c.dni && <span className="text-[10px] text-gray-500">{c.dni}</span>}
+                                    </div>
+                                  ))}
+                                {clientes.filter(c => c.nombre.toLowerCase().includes(clienteSearchText.toLowerCase()) || (c.dni && c.dni.toLowerCase().includes(clienteSearchText.toLowerCase()))).length === 0 && (
+                                  <div className="px-3 py-2 text-xs text-gray-500 text-center" style={{ fontSize: '0.80rem' }}>No se encontraron clientes</div>
+                                )}
+                              </div>
                             )}
                           </div>
-                        )}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => navigate('/clientes', { state: { openNewModal: true } })}
-                        className="w-full py-1.5 px-3 bg-emerald-500/10 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 mb-2 shadow-sm"
-                        style={{ fontSize: '0.80rem' }}
-                      >
-                        <UserPlus className="w-4 h-4" /> Nuevo cliente
-                      </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/clientes', { state: { openNewModal: true } })}
+                            className="w-full py-1.5 px-3 bg-emerald-500/10 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-bold hover:bg-emerald-500/20 transition-all flex items-center justify-center gap-1.5 mb-2 shadow-sm"
+                            style={{ fontSize: '0.80rem' }}
+                          >
+                            <UserPlus className="w-4 h-4" /> Nuevo cliente
+                          </button>
+                        </>
+                      )}
                       {selectedClienteId &&
                         (() => {
                           const c = clienteData(selectedClienteId);
                           return c ? (
-                            <div className="text-xs gestarian-paper-muted space-y-0.5">
-                              {c.dni && <p>DNI: {c.dni}</p>}
-                              {c.direccion && <p>{c.direccion}</p>}
-                              {c.cp && <p>CP: {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
-                              {c.telefono && <p>Tel: {c.telefono}</p>}
-                              {c.email && <p>{c.email}</p>}
+                            <div className="text-xs gestarian-paper-muted space-y-1">
+                              <p className="font-extrabold text-gray-900 text-sm">{c.nombre}</p>
+                              {c.dni && <p><span className="font-semibold text-gray-700">DNI:</span> {c.dni}</p>}
+                              {c.direccion && <p><span className="font-semibold text-gray-700">Dirección:</span> {c.direccion}</p>}
+                              {c.cp && <p><span className="font-semibold text-gray-700">CP:</span> {c.cp} {getLocalidadFromCP(c.cp) ? `(${getLocalidadFromCP(c.cp)})` : ''}</p>}
+                              {c.telefono && <p><span className="font-semibold text-gray-700">Tel:</span> {c.telefono}</p>}
+                              {c.email && <p><span className="font-semibold text-gray-700">Email:</span> {c.email}</p>}
                             </div>
                           ) : null;
                         })()}
@@ -967,41 +1011,38 @@ export function PresupuestosPage() {
                       <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
                         Vehículo
                       </p>
-                      <select
-                        value={selectedVehiculoId}
-                        onChange={(e) => handleChangeVehiculo(e.target.value)}
-                        className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarVehiculo
-                            ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                            : "border-gray-300"
-                          }`}
-                        disabled={!selectedClienteId}
-                      >
-                        <option value="">
-                          {!selectedClienteId
-                            ? "Seleccione cliente primero..."
-                            : vehiculos.length > 1
-                              ? "Selecciona vehículo..."
-                              : "Sin vehículo"}
-                        </option>
-                        {vehiculos.map((v) => (
-                          <option key={v.id} value={v.id}>
-                            {v.matricula} — {v.marca} {v.modelo ?? ""}
+                      {!ocultarSelectorVehiculo && (
+                        <select
+                          value={selectedVehiculoId}
+                          onChange={(e) => handleChangeVehiculo(e.target.value)}
+                          className={`w-full bg-white text-blue-900 border rounded-xl px-3 py-2 text-sm mb-2 focus:border-blue-700 focus:outline-none font-bold transition-all ${animarVehiculo
+                              ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                              : "border-gray-300"
+                            }`}
+                          disabled={!selectedClienteId}
+                        >
+                          <option value="">
+                            {!selectedClienteId
+                              ? "Seleccione cliente primero..."
+                              : vehiculos.length > 1
+                                ? "Selecciona vehículo..."
+                                : "Sin vehículo"}
                           </option>
-                        ))}
-                      </select>
+                          {vehiculos.map((v) => (
+                            <option key={v.id} value={v.id}>
+                              {v.matricula} — {v.marca} {v.modelo ?? ""}
+                            </option>
+                          ))}
+                        </select>
+                      )}
                       {selectedVehiculoId &&
                         (() => {
                           const v = vehiculoData(selectedVehiculoId);
                           return v ? (
-                            <div className="text-xs gestarian-paper-muted space-y-0.5">
-                              <p>Matrícula: {v.matricula}</p>
-                              {v.marca && (
-                                <p>
-                                  {v.marca} {v.modelo ?? ""}
-                                </p>
-                              )}
-                              {v.anio && <p>Año: {v.anio}</p>}
-                              {v.vin && <p>VIN: {v.vin}</p>}
+                            <div className="text-xs gestarian-paper-muted space-y-1">
+                              <p className="font-extrabold text-gray-900 text-sm">{v.matricula} {v.marca ? `— ${v.marca} ${v.modelo ?? ''}` : ''}</p>
+                              {v.anio && <p><span className="font-semibold text-gray-700">Año:</span> {v.anio}</p>}
+                              {v.vin && <p><span className="font-semibold text-gray-700">VIN:</span> {v.vin}</p>}
                             </div>
                           ) : null;
                         })()}
@@ -1019,6 +1060,17 @@ export function PresupuestosPage() {
               const isSaved = !!(editingId || currentP?.id);
               const firstConcept = conceptos[0] || { descripcion: "", cantidad: 1, precio: 0 };
               const hasImporte = conceptos.some(c => (c.cantidad * c.precio) > 0);
+
+              const pId = editingId || currentP?.id;
+              const citaVinculada = citas.find(c => c.presupuesto_id === pId);
+              const repVinculada = citaVinculada ? reparaciones.find(r => r.cita_id === citaVinculada.id) : null;
+              const tieneFacturaConfirmada = (() => {
+                if (!pId) return false;
+                if (repVinculada) {
+                  return facturas.some(f => f.reparacion_id === repVinculada.id && !!f.numero && f.id !== 'draft');
+                }
+                return false;
+              })();
 
               const animarDescripcion = hasCliente && hasVehiculo && !isSaved && !firstConcept.descripcion.trim();
               const animarCantidad = hasCliente && hasVehiculo && !isSaved && !!firstConcept.descripcion.trim() && firstConcept.cantidad === 0;
@@ -1043,60 +1095,78 @@ export function PresupuestosPage() {
                         return (
                           <tr key={i}>
                             <td className="py-1">
-                              <input
-                                type="text"
-                                placeholder="Descripción del trabajo..."
-                                value={c.descripcion}
-                                onChange={(e) => {
-                                  const next = [...conceptos];
-                                  next[i] = { ...c, descripcion: e.target.value };
-                                  handleChangeConcepto(next);
-                                }}
-                                className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${isFirst && animarDescripcion
-                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                                    : "border-gray-300"
-                                  }`}
-                              />
+                              {tieneFacturaConfirmada ? (
+                                <div className="py-2 px-3 text-sm font-semibold text-gray-900 bg-gray-50/50 rounded-xl">
+                                  {c.descripcion}
+                                </div>
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder="Descripción del trabajo..."
+                                  value={c.descripcion}
+                                  onChange={(e) => {
+                                    const next = [...conceptos];
+                                    next[i] = { ...c, descripcion: e.target.value };
+                                    handleChangeConcepto(next);
+                                  }}
+                                  className={`w-full bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-3 py-1.5 text-sm rounded-xl focus:outline-none focus:border-blue-700 font-medium transition-all ${isFirst && animarDescripcion
+                                      ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                      : "border-gray-300"
+                                    }`}
+                                />
+                              )}
                             </td>
                             <td className="py-1 text-center">
-                              <input
-                                type="number"
-                                value={c.cantidad === 0 ? "" : c.cantidad}
-                                placeholder="0"
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => {
-                                  const next = [...conceptos];
-                                  next[i] = {
-                                    ...c,
-                                    cantidad: parseFloat(e.target.value) || 0,
-                                  };
-                                  handleChangeConcepto(next);
-                                }}
-                                className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarCantidad
-                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                                    : "border-gray-300"
-                                  }`}
-                              />
+                              {tieneFacturaConfirmada ? (
+                                <div className="py-2 px-2 text-sm text-center font-bold text-gray-900">
+                                  {c.cantidad}
+                                </div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  value={c.cantidad === 0 ? "" : c.cantidad}
+                                  placeholder="0"
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => {
+                                    const next = [...conceptos];
+                                    next[i] = {
+                                      ...c,
+                                      cantidad: parseFloat(e.target.value) || 0,
+                                    };
+                                    handleChangeConcepto(next);
+                                  }}
+                                  className={`w-16 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-center rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarCantidad
+                                      ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                      : "border-gray-300"
+                                    }`}
+                                />
+                              )}
                             </td>
                             <td className="py-1 text-right">
-                              <input
-                                type="number"
-                                value={c.precio === 0 ? "" : c.precio}
-                                placeholder="0"
-                                onFocus={(e) => e.target.select()}
-                                onChange={(e) => {
-                                  const next = [...conceptos];
-                                  next[i] = {
-                                    ...c,
-                                    precio: parseFloat(e.target.value) || 0,
-                                  };
-                                  handleChangeConcepto(next);
-                                }}
-                                className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarPrecio
-                                    ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
-                                    : "border-gray-300"
-                                  }`}
-                              />
+                              {tieneFacturaConfirmada ? (
+                                <div className="py-2 px-2 text-sm text-right font-bold text-gray-900">
+                                  {c.precio.toFixed(2)} €
+                                </div>
+                              ) : (
+                                <input
+                                  type="number"
+                                  value={c.precio === 0 ? "" : c.precio}
+                                  placeholder="0"
+                                  onFocus={(e) => e.target.select()}
+                                  onChange={(e) => {
+                                    const next = [...conceptos];
+                                    next[i] = {
+                                      ...c,
+                                      precio: parseFloat(e.target.value) || 0,
+                                    };
+                                    handleChangeConcepto(next);
+                                  }}
+                                  className={`w-24 bg-white !bg-white text-black !text-black placeholder:text-gray-400 border px-2 py-1.5 text-sm text-right rounded-xl focus:outline-none focus:border-blue-700 font-bold transition-all ${isFirst && animarPrecio
+                                      ? "border-blue-600 animated-contour-border-blue shadow-[0_0_12px_rgba(37,99,235,0.7)]"
+                                      : "border-gray-300"
+                                    }`}
+                                />
+                              )}
                             </td>
                             <td className="py-1 text-right">
                               <div className="px-3 py-1.5 rounded-xl border border-gray-300 bg-white !bg-white text-black !text-black font-black text-right shadow-inner">
@@ -1104,16 +1174,18 @@ export function PresupuestosPage() {
                               </div>
                             </td>
                             <td className="py-1 text-center">
-                              <button
-                                onClick={() =>
-                                  handleChangeConcepto(
-                                    conceptos.filter((_, idx) => idx !== i),
-                                  )
-                                }
-                                className="text-gray-400 hover:text-red-500 p-1"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              {!tieneFacturaConfirmada && (
+                                <button
+                                  onClick={() =>
+                                    handleChangeConcepto(
+                                      conceptos.filter((_, idx) => idx !== i),
+                                    )
+                                  }
+                                  className="text-gray-400 hover:text-red-500 p-1"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -1127,6 +1199,7 @@ export function PresupuestosPage() {
                       <ConceptoMobileCard
                         key={i}
                         concepto={c}
+                        readOnly={tieneFacturaConfirmada}
                         animarDescripcion={i === 0 && animarDescripcion}
                         animarCantidad={i === 0 && animarCantidad}
                         animarPrecio={i === 0 && animarPrecio}
@@ -1144,25 +1217,27 @@ export function PresupuestosPage() {
                     ))}
                   </div>
 
-                  {/* Botón AÑADIR LÍNEA centrado con relleno celeste casi blanco y borde azul animado cuando hay importe */}
-                  <div className="flex justify-center my-4">
-                    <button
-                      onClick={() =>
-                        handleChangeConcepto([
-                          ...conceptos,
-                          { descripcion: "", cantidad: 1, precio: 0 },
-                        ])
-                      }
-                      className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${animarAddLinea
-                          ? "border-blue-600 animated-contour-border-blue shadow-[0_0_16px_rgba(37,99,235,0.7)]"
-                          : "border-blue-300 hover:border-blue-400"
-                        }`}
-                      title="Añadir nueva línea"
-                    >
-                      <Plus className="w-4 h-4 text-blue-600 font-black" />
-                      <span>Añadir línea</span>
-                    </button>
-                  </div>
+                  {/* Botón AÑADIR LÍNEA centrado (oculto si la factura está confirmada) */}
+                  {!tieneFacturaConfirmada && (
+                    <div className="flex justify-center my-4">
+                      <button
+                        onClick={() =>
+                          handleChangeConcepto([
+                            ...conceptos,
+                            { descripcion: "", cantidad: 1, precio: 0 },
+                          ])
+                        }
+                        className={`px-6 py-2.5 rounded-xl bg-[#f0f9ff] text-blue-900 font-extrabold text-xs tracking-wider uppercase flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 border-2 ${animarAddLinea
+                            ? "border-blue-600 animated-contour-border-blue shadow-[0_0_16px_rgba(37,99,235,0.7)]"
+                            : "border-blue-300 hover:border-blue-400"
+                          }`}
+                        title="Añadir nueva línea"
+                      >
+                        <Plus className="w-4 h-4 text-blue-600 font-black" />
+                        <span>Añadir línea</span>
+                      </button>
+                    </div>
+                  )}
                 </>
               );
             })()}
@@ -1208,13 +1283,33 @@ export function PresupuestosPage() {
               <p className="text-xs gestarian-paper-muted uppercase font-semibold mb-1">
                 Observaciones
               </p>
-              <textarea
-                value={observaciones}
-                onChange={(e) => handleChangeObservaciones(e.target.value)}
-                placeholder="Notas internas..."
-                rows={2}
-                className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-gray-800 focus:outline-none"
-              />
+              {(() => {
+                const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null;
+                const pId = editingId || currentP?.id;
+                const citaVinculada = citas.find(c => c.presupuesto_id === pId);
+                const repVinculada = citaVinculada ? reparaciones.find(r => r.cita_id === citaVinculada.id) : null;
+                const tieneFacturaConfirmada = (() => {
+                  if (!pId) return false;
+                  if (repVinculada) {
+                    return facturas.some(f => f.reparacion_id === repVinculada.id && !!f.numero && f.id !== 'draft');
+                  }
+                  return false;
+                })();
+
+                return tieneFacturaConfirmada ? (
+                  <div className="w-full border border-gray-200 bg-gray-50 rounded px-3 py-2 text-sm text-gray-800 whitespace-pre-wrap">
+                    {observaciones || "Sin observaciones"}
+                  </div>
+                ) : (
+                  <textarea
+                    value={observaciones}
+                    onChange={(e) => handleChangeObservaciones(e.target.value)}
+                    placeholder="Notas internas..."
+                    rows={2}
+                    className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:border-gray-800 focus:outline-none"
+                  />
+                );
+              })()}
             </div>
 
             {/* Botones de acción inferiores con la distribución unificada */}

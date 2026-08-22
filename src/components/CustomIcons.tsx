@@ -86,12 +86,23 @@ export const NuevoVehiculoPlusIcon = ({ className = "w-6 h-6", style }: { classN
   <svg className={`text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] ${className}`} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
     {/* Contorno del vehículo */}
     <path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"></path>
-    <circle cx="7" cy="17" r="2"></circle>
-    <path d="M9 17h6"></path>
-    <circle cx="17" cy="17" r="2"></circle>
     {/* Signo + dentro del habitáculo */}
     <path d="M9.5 10.5h3m-1.5-1.5v3" strokeWidth="1.5"></path>
   </svg>
 );
+
+// Símbolo de Nueva Factura Recibida: hoja A4 (morada) con + y F
+export const NuevaFacturaRecibidaIcon = ({ className = "w-6 h-6", style }: { className?: string; style?: React.CSSProperties }) => (
+  <svg className={`text-purple-400 drop-shadow-[0_0_10px_rgba(192,132,252,0.6)] ${className}`} style={style} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+    <polyline points="14 2 14 8 20 8"></polyline>
+    {/* + inside top-left */}
+    <path d="M6 12h3.5m-1.75-1.75v3.5" strokeWidth="1.2"></path>
+    {/* F letter inside */}
+    <path d="M12 16v-6h4" strokeWidth="1.3"></path>
+    <path d="M12 13h3" strokeWidth="1.3"></path>
+  </svg>
+);
+
 
 

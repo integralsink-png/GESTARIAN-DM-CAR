@@ -219,17 +219,30 @@ export interface Proveedor {
   created_at: string
 }
 
+export interface PagoRecibida {
+  id: string
+  importe: number
+  fecha: string
+  metodo_pago?: string
+  recibo_foto?: string
+}
+
 export interface FacturaRecibida {
   id: string
   numero: string
+  numero_registro?: string
   proveedor_id: string | null
+  presupuesto_id?: string | null
   fecha: string
   base_imponible: number
   iva: number
   total: number
+  total_pagado?: number
   estado: string
   archivo_url: string | null
   conceptos: Concepto[]
+  pagos?: PagoRecibida[]
+  fotos_recibos?: string[]
   created_at: string
 }
 

@@ -25,26 +25,19 @@ export function ClientesPage() {
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [loading, setLoading] = useState(true)
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(location.state?.expandClienteId ?? null)
-  const [showNuevoExpedienteInfo, setShowNuevoExpedienteInfo] = useState<boolean>(!!location.state?.fromNuevoExpediente)
-  const infoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [showNuevoExpedienteInfo, setShowNuevoExpedienteInfo] = useState<boolean>(() => {
+    if (location.state?.fromNuevoExpediente) {
+      const hide = localStorage.getItem('hideNuevoExpedienteInfo')
+      return hide !== 'true'
+    }
+    return false
+  })
 
   useEffect(() => {
     if (location.state?.openNewModal) {
       setShowNuevoClienteModal(true)
     }
   }, [location.state?.openNewModal])
-  useEffect(() => {
-    if (location.state?.fromNuevoExpediente) {
-      setShowNuevoExpedienteInfo(true)
-      if (infoTimerRef.current) clearTimeout(infoTimerRef.current)
-      infoTimerRef.current = setTimeout(() => {
-        setShowNuevoExpedienteInfo(false)
-      }, 6000)
-    }
-    return () => {
-      if (infoTimerRef.current) clearTimeout(infoTimerRef.current)
-    }
-  }, [location.state?.fromNuevoExpediente])
 
   useEffect(() => {
     if (location.state?.expandClienteId) {
@@ -251,70 +244,11 @@ export function ClientesPage() {
     return false
   })
 
-  // ── Vista individual de PRESUPUESTO ──
-  if (viewPresupuesto) {
-    const { presup, cliente, vehiculo } = viewPresupuesto
-    return (
-      <div className="space-y-4">
-        <Button variant="ghost" onClick={() => setViewPresupuesto(null)}>
-          <span className="flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> VOLVER</span>
-        </Button>
-
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-bg-600">
-            <div>
-              <h2 className="text-xl font-bold text-white">Presupuesto {presup.numero}</h2>
-              <p className="text-xs text-slate-400">Cliente: {cliente.nombre} · Vehículo: {vehiculo?.matricula ?? '—'}</p>
-            </div>
-            <Badge text={presup.estado} color={presup.estado === 'aceptado' ? 'green' : presup.estado === 'rechazado' ? 'red' : 'yellow'} />
-          </div>
-
-          {/* Tabla conceptos */}
-          <div className="space-y-2 mb-6">
-            {(presup.conceptos ?? []).map((c, i) => (
-              <div key={i} className="flex justify-between items-center bg-bg-800 p-3 rounded-lg text-sm">
-                <span className="text-white font-medium">{c.descripcion}</span>
-                <span className="text-slate-400">{c.cantidad} x {c.precio.toFixed(2)} € = <strong className="text-white">{(c.cantidad * c.precio).toFixed(2)} €</strong></span>
-              </div>
-            ))}
-            <div className="flex justify-between items-center pt-3 border-t border-bg-600 font-bold text-lg text-white">
-              <span>Total</span>
-              <span>{presup.total.toFixed(2)} €</span>
-            </div>
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex flex-wrap gap-3 pt-4 border-t border-bg-600">
-            {presup.estado !== 'aceptado' && (
-              <Button onClick={() => handleAceptarPresupuesto(presup.id, cliente.id)}>
-                <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Aceptar presupuesto</span>
-              </Button>
-            )}
-            <Button variant="secondary" onClick={() => sendPresupuestoByEmail(presup, cliente, vehiculo, config)}>
-              <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> Email</span>
-            </Button>
-            <Button variant="secondary" onClick={() => {
-              const msg = `Hola ${cliente.nombre}, le enviamos el presupuesto ${presup.numero} por un total de ${presup.total.toFixed(2)}€. Saludos, DM CAR.`
-              const phone = cliente.telefono?.replace(/\s/g, '') || ''
-              if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
-            }}>
-              <span className="flex items-center gap-2"><MessageCircle className="w-4 h-4 text-green-400" /> WhatsApp</span>
-            </Button>
-            <Button variant="secondary" onClick={() => downloadPresupuestoPDF(presup, cliente, vehiculo, config)}>
-              <span className="flex items-center gap-2"><Printer className="w-4 h-4" /> Imprimir</span>
-            </Button>
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-
-
   // Estados de formularios y ventanas emergentes (Pop-up)
   const [showNuevoVehiculoModal, setShowNuevoVehiculoModal] = useState<string | null>(null)
   const [clientePopup, setClientePopup] = useState(false)
   const [vehiculoPopup, setVehiculoPopup] = useState(false)
+  const [vehiculoDuplicadoMsg, setVehiculoDuplicadoMsg] = useState<string | null>(null)
 
   const [nuevoClienteForm, setNuevoClienteForm] = useState({ nombre: '', dni: '', telefono: '', email: '', direccion: '', cp: '', localidad: '' })
   const [nuevoVehFormModal, setNuevoVehFormModal] = useState({ matricula: '', marca: '', modelo: '', codigo_color: '', vin: '' })
@@ -420,8 +354,6 @@ export function ClientesPage() {
     }
   }
 
-  const [vehiculoDuplicadoMsg, setVehiculoDuplicadoMsg] = useState<string | null>(null)
-
   // Añadir vehículo (vincular vehículo) al cliente sin cerrar modal obligatoriamente si desea agregar más
   async function handleAñadirVehiculoModal(clienteId?: string) {
     const cleanMatricula = nuevoVehFormModal.matricula.trim().toUpperCase()
@@ -476,6 +408,65 @@ export function ClientesPage() {
     }
   }
 
+  // ── Vista individual de PRESUPUESTO ──
+  if (viewPresupuesto) {
+    const { presup, cliente, vehiculo } = viewPresupuesto
+    return (
+      <div className="space-y-4">
+        <Button variant="ghost" onClick={() => setViewPresupuesto(null)}>
+          <span className="flex items-center gap-2"><ArrowLeft className="w-4 h-4" /> VOLVER</span>
+        </Button>
+
+        <Card className="p-6">
+          <div className="flex items-center justify-between mb-4 pb-3 border-b border-bg-600">
+            <div>
+              <h2 className="text-xl font-bold text-white">Presupuesto {presup.numero}</h2>
+              <p className="text-xs text-slate-400">Cliente: {cliente.nombre} · Vehículo: {vehiculo?.matricula ?? '—'}</p>
+            </div>
+            <Badge text={presup.estado} color={presup.estado === 'aceptado' ? 'green' : presup.estado === 'rechazado' ? 'red' : 'yellow'} />
+          </div>
+
+          {/* Tabla conceptos */}
+          <div className="space-y-2 mb-6">
+            {(presup.conceptos ?? []).map((c, i) => (
+              <div key={i} className="flex justify-between items-center bg-bg-800 p-3 rounded-lg text-sm">
+                <span className="text-white font-medium">{c.descripcion}</span>
+                <span className="text-slate-400">{c.cantidad} x {c.precio.toFixed(2)} € = <strong className="text-white">{(c.cantidad * c.precio).toFixed(2)} €</strong></span>
+              </div>
+            ))}
+            <div className="flex justify-between items-center pt-3 border-t border-bg-600 font-bold text-lg text-white">
+              <span>Total</span>
+              <span>{presup.total.toFixed(2)} €</span>
+            </div>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex flex-wrap gap-3 pt-4 border-t border-bg-600">
+            {presup.estado !== 'aceptado' && (
+              <Button onClick={() => handleAceptarPresupuesto(presup.id, cliente.id)}>
+                <span className="flex items-center gap-2"><Check className="w-4 h-4" /> Aceptar presupuesto</span>
+              </Button>
+            )}
+            <Button variant="secondary" onClick={() => sendPresupuestoByEmail(presup, cliente, vehiculo, config)}>
+              <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> Email</span>
+            </Button>
+            <Button variant="secondary" onClick={() => {
+              const msg = `Hola ${cliente.nombre}, le enviamos el presupuesto ${presup.numero} por un total de ${presup.total.toFixed(2)}€. Saludos, DM CAR.`
+              const phone = cliente.telefono?.replace(/\s/g, '') || ''
+              if (phone) window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+            }}>
+              <span className="flex items-center gap-2"><MessageCircle className="w-4 h-4 text-green-400" /> WhatsApp</span>
+            </Button>
+            <Button variant="secondary" onClick={() => downloadPresupuestoPDF(presup, cliente, vehiculo, config)}>
+              <span className="flex items-center gap-2"><Printer className="w-4 h-4" /> Imprimir</span>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
+
+
   // ── Vista principal de CLIENTES ──
   return (
     <div className="space-y-4">
@@ -487,19 +478,28 @@ export function ClientesPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.8 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-slate-900/95 backdrop-blur-md border-2 border-cyan-400 text-white p-6 sm:p-8 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.5)] flex flex-col sm:flex-row items-center justify-between gap-5 text-center sm:text-left select-none w-[80%] max-w-2xl"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] bg-slate-900/95 backdrop-blur-md border-2 border-cyan-400 text-white p-6 sm:p-8 rounded-3xl shadow-[0_0_50px_rgba(6,182,212,0.5)] flex flex-col items-center justify-between gap-5 text-center select-none w-[90%] max-w-xl"
           >
-            <p className="flex-1 text-2xl sm:text-3xl md:text-4xl font-extrabold text-white leading-relaxed tracking-wide">
+            <p className="w-full text-xl sm:text-2xl md:text-3xl font-extrabold text-white leading-relaxed tracking-wide mb-2">
               Crea un nuevo cliente, busca usando la lupa o selecciónalo del listado.
             </p>
-            <button
-              onClick={() => setShowNuevoExpedienteInfo(false)}
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-400 border border-cyan-500/50 flex items-center justify-center shrink-0 transition-all active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.3)]"
-              title="Cerrar"
-              aria-label="Cerrar aviso"
-            >
-              <X className="w-8 h-8 stroke-[2.5]" />
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
+              <button
+                onClick={() => setShowNuevoExpedienteInfo(false)}
+                className="px-8 py-5 rounded-2xl bg-cyan-500 text-white font-extrabold text-2xl sm:text-3xl tracking-wider hover:bg-cyan-400 transition-all active:scale-95 shadow-[0_0_20px_rgba(6,182,212,0.5)]"
+              >
+                Aceptar
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('hideNuevoExpedienteInfo', 'true')
+                  setShowNuevoExpedienteInfo(false)
+                }}
+                className="px-8 py-5 rounded-2xl bg-slate-800 text-slate-300 border-[3px] border-slate-600 font-extrabold text-2xl sm:text-3xl tracking-wider hover:bg-slate-700 hover:text-white transition-all active:scale-95"
+              >
+                No mostrar más
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -652,7 +652,7 @@ export function ClientesPage() {
                             className="flex flex-col items-center justify-center w-full"
                           >
                             <button
-                              onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, openForm: true } })}
+                              onClick={() => navigate('/presupuestos', { state: { clienteId: cliente.id, vehiculoId: clientVehs.length === 1 ? clientVehs[0].id : undefined, openForm: true } })}
                               className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none"
                               title="Nuevo Presupuesto"
                             >
@@ -716,7 +716,14 @@ export function ClientesPage() {
                             className="flex flex-col items-center justify-center w-full"
                           >
                             <button
-                              onClick={() => toggleSubpanel(cliente.id, 'presupuestos')}
+                              onClick={() => {
+                                const cPresups = presupuestosCliente[cliente.id] ?? []
+                                if (cPresups.length === 1) {
+                                  setViewPresupuesto({ presup: cPresups[0], cliente, vehiculo: clientVehs.find(v => v.id === cPresups[0].vehiculo_id) ?? null })
+                                } else {
+                                  toggleSubpanel(cliente.id, 'presupuestos')
+                                }
+                              }}
                               className={`relative transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
                                 subpanel === 'presupuestos' ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]' : 'text-cyan-400 hover:text-cyan-300'
                               }`}
@@ -776,7 +783,14 @@ export function ClientesPage() {
                             className="flex flex-col items-center justify-center w-full"
                           >
                             <button
-                              onClick={() => toggleSubpanel(cliente.id, 'facturas')}
+                              onClick={() => {
+                                const cFacts = facturasCliente[cliente.id] ?? []
+                                if (cFacts.length === 1) {
+                                  navigate('/facturas', { state: { clienteId: cliente.id, facturaNumero: cFacts[0].numero } })
+                                } else {
+                                  toggleSubpanel(cliente.id, 'facturas')
+                                }
+                              }}
                               className={`relative transition-all hover:scale-110 active:scale-95 bg-transparent border-0 p-0 outline-none ${
                                 subpanel === 'facturas' ? 'text-green-300 drop-shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'text-green-500 hover:text-green-400'
                               }`}
@@ -978,7 +992,7 @@ export function ClientesPage() {
                           <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Facturas del cliente</h4>
                           {/* Botón Nueva Factura: icono + con dibujo de F (líneas blancas transparente) */}
                           <button
-                            onClick={() => navigate('/facturas', { state: { clienteId: cliente.id } })}
+                            onClick={() => navigate('/facturas', { state: { clienteId: cliente.id, vehiculoId: clientVehs.length === 1 ? clientVehs[0].id : undefined, openForm: true } })}
                             className="p-2.5 rounded-xl bg-white/10 text-white border border-white/30 hover:bg-white/20 flex items-center justify-center transition-all active:scale-95 shadow-[0_0_10px_rgba(255,255,255,0.15)]"
                             title="Nueva Factura"
                             aria-label="Nueva Factura"

@@ -156,24 +156,42 @@ export function PresupuestoHibridoPage() {
   // --------------------------------------------------
   const startCamera = useCallback(async () => {
     setOcrError(null)
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setOcrError('Tu navegador no soporta la cámara.')
-      return
-    }
+
     try {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((t) => t.stop())
         streamRef.current = null
       }
 
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: 'environment' } },
-          audio: false
-        })
-      } catch (e) {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+      let stream: MediaStream | null = null
+
+      if (navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' } },
+            audio: false
+          })
+        } catch (e1) {
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { facingMode: 'environment' },
+              audio: false
+            })
+          } catch (e2) {
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+          }
+        }
+      } else {
+        const legacyGetUserMedia = (navigator as any).webkitGetUserMedia || (navigator as any).mozGetUserMedia || (navigator as any).getUserMedia
+        if (legacyGetUserMedia) {
+          stream = await new Promise<MediaStream>((resolve, reject) => {
+            legacyGetUserMedia.call(navigator, { video: true, audio: false }, resolve, reject)
+          })
+        }
+      }
+
+      if (!stream) {
+        throw new Error('No se pudo inicializar ningún flujo de cámara.')
       }
 
       streamRef.current = stream
@@ -188,7 +206,12 @@ export function PresupuestoHibridoPage() {
       }
     } catch (err: any) {
       console.error('Camera error:', err)
-      setOcrError('No se pudo acceder a la cámara. Revisa los permisos en tu navegador.')
+      const isNotAllowed = err?.name === 'NotAllowedError' || err?.name === 'PermissionDeniedError'
+      if (isNotAllowed) {
+        setOcrError('Permiso de cámara denegado. Permítelo en los ajustes del navegador.')
+      } else {
+        setOcrError('No se pudo acceder a la cámara. Comprueba los permisos de tu dispositivo.')
+      }
     }
   }, [])
 

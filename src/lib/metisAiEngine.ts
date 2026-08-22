@@ -241,6 +241,15 @@ async function ejecutarConGuardia(
 }
 
 
+// Helper para lanzar avisos visuales en pantalla (Toasts)
+function emitirAvisoToast(message: string, type: 'warning' | 'info' | 'error' = 'warning') {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('gestarian-toast', {
+      detail: { message, type, options: { duration: 3500 } }
+    }))
+  }
+}
+
 // MAIN ENTRY POINT
 export async function processMetisMessage(
   userText: string,
@@ -252,26 +261,41 @@ export async function processMetisMessage(
   // nombres propios o términos técnicos del taller.
   const textoParaMotorBasico = normalizeAndaluz(userText)
 
-  // 1. Google Gemini API key if configured
+  // 1. Intentar con Google Gemini (Motor Principal)
   const geminiKey = localStorage.getItem('gestarian_gemini_api_key')?.trim()
   if (geminiKey) {
-    // Gemini recibe el texto BRUTO (userText), no el normalizado
-    const r = await ejecutarConGuardia((u) => processWithGemini(geminiKey, u, context), userText)
-    if (r) return r
+    try {
+      const r = await ejecutarConGuardia((u) => processWithGemini(geminiKey, u, context), userText)
+      if (r) return r
+    } catch (e: any) {
+      console.warn('[METIS] Gemini agotó cuota o falló:', e)
+    }
   }
 
-  // 2. Hugging Face Inference API if configured
-  const hfKey = localStorage.getItem('gestarian_hf_api_key')?.trim()
-  if (hfKey) {
-    const r = await ejecutarConGuardia((u) => processWithHuggingFace(hfKey, u, context), textoParaMotorBasico)
-    if (r) return r
+  // 2. Si Gemini falla o se agota su cuota, activar de inmediato el Proveedor Alternativo (Fallback)
+  const fallbackKey = localStorage.getItem('gestarian_groq_api_key')?.trim() || 
+                      localStorage.getItem('gestarian_openrouter_api_key')?.trim() || 
+                      localStorage.getItem('gestarian_fallback_api_key')?.trim()
+  
+  const fallbackCfg = JSON.parse(localStorage.getItem('gestarian_fallback_ai_config') || '{}')
+  const providerName = (fallbackCfg.provider || 'Groq/OpenRouter').toUpperCase()
+
+  if (fallbackKey) {
+    // Lanzar aviso en pantalla al usuario para que sepa que se ha cambiado de modelo
+    emitirAvisoToast(`⚡ Cuota de Gemini agotada. Cambiando automáticamente a ${providerName}...`, 'warning')
+    
+    try {
+      const r = await ejecutarConGuardia((u) => processWithGroq(fallbackKey, u, context), textoParaMotorBasico)
+      if (r) return r
+    } catch (e: any) {
+      console.error('[METIS] Error en motor fallback:', e)
+      emitirAvisoToast('❌ El motor alternativo también ha fallado. Usando motor local.', 'error')
+    }
+  } else if (geminiKey) {
+    emitirAvisoToast('⚠️ Cuota de Gemini agotada y no hay clave de Fallback configurada.', 'warning')
   }
 
-  // 🕳️ HUECO RESERVADO PARA NUEVA IA ALTERNATIVA
-  // Antes aquí estaba Groq (llama-3.3-70b-versatile), fuera de servicio.
-  // Para añadir otra IA: usa la función processWithGroq como plantilla
-  // (cambia URL/clave/modelo) y añade aquí su bloque igual que Gemini/HF.
-
+  // 3. Motor local por reglas si todo lo anterior falla
   return processWithBasicEngine(textoParaMotorBasico, context)
 }
 
@@ -286,7 +310,7 @@ Conoces a fondo cómo funciona la aplicación GESTARIAN (módulos, rutas reales 
 REGLAS DE IDIOMA Y COMPRENSIÓN (ABSOLUTAMENTE INFRANQUEABLES):
 - Responde SIEMPRE en Español de España (castellano normativo). NUNCA en inglés, chino ni ningún otro idioma.
 - El usuario es un mecánico o jefe de taller que puede hablar ANDALUZ CERRADO y RÁPIDO. Debes entenderlo con un 100% de precisión:
-  * SESEO / CECEO: El usuario intercambia 's' y 'c/z'. "sien" = cien, "seite" = siete, "Franciсco" = Francisco, "fatura" = factura.
+  * SESEO / CECEO: El usuario intercambia 's' y 'c/z'. "sien" = cien, "seite" = siete, "Franciscco" = Francisco, "fatura" = factura.
   * CAÍDA DE CONSONANTES FINALES Y SÍLABAS: "loh frenoh" = los frenos, "lah ruah" = las ruedas, "er capó" = el capó, "reparao" = reparado, "pintao" = pintado, "cobrao" = cobrado, "terminao" = terminado, "arreglao" = arreglado.
   * CONTRACCIONES HABITUALES: "pa" = para, "po" = pues, "to" = todo, "na" = nada, "mu" = muy, "ar talleh" = al taller, "ar favó" = haz el favor.
   * FONÉTICA DE DICTADO POR VOZ: El motor STT transcribe fonéticamente lo que oye. "aseite" = aceite, "frenoh" = frenos, "filtroh" = filtros, "paragolpeh" = paragolpes, "fatura" = factura, "matrícla" = matrícula, "presupuehto" = presupuesto.
@@ -295,7 +319,7 @@ REGLAS DE IDIOMA Y COMPRENSIÓN (ABSOLUTAMENTE INFRANQUEABLES):
 - NUNCA preguntes al usuario que repita o que hable más claro. Deduce la intención por el contexto del taller.
 
 PROHIBICIONES ABSOLUTAS EN EL CAMPO "text" (VOZ):
-- PROHIBIDO usar asteriscos (*), almohadillas (#), guiones al inicio de línea, backticks (`), corchetes o cualquier símbolo markdown.
+- PROHIBIDO usar asteriscos (*), almohadillas (#), guiones al inicio de línea, backticks (\`), corchetes o cualquier símbolo markdown.
 - PROHIBIDO hacer listas con viñetas o numeradas que suenen robóticas al leerlas en voz alta.
 - PROHIBIDO incluir código JSON, URLs o estructuras técnicas en el campo "text".
 - El campo "text" debe sonar EXACTAMENTE como lo diría un experto de taller en una conversación telefónica natural: frases cortas, directas, fluidas y sin jerga técnica informática.
@@ -641,8 +665,13 @@ Datos extraídos de la Base de Datos: ${dbInfo || 'No hay datos relevantes previ
 
 Mensaje del usuario: "${userText}"`
 
+  const fallbackCfg = JSON.parse(localStorage.getItem('gestarian_fallback_ai_config') || '{}')
+  const groqModel = fallbackCfg.model && !fallbackCfg.model.includes('llama-3') 
+    ? fallbackCfg.model 
+    : 'openai/gpt-oss-20b'
+
   const response = await openai.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: groqModel,
     messages: [
       { role: "system", content: systemInstruction },
       { role: "user", content: prompt }

@@ -223,7 +223,7 @@ function TarjetaExpediente({
 
   const steps = buildRoadmap(expData, actions)
 
-  const startLongPress = () => {
+  const startLongPress = (e?: React.TouchEvent | React.MouseEvent) => {
     longPressTriggered.current = false
 
     if (longPressTimer.current) {
@@ -232,7 +232,11 @@ function TarjetaExpediente({
 
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true
-      setDeleteVisible(true)
+      if (row.factura) {
+        showToast('No se puede eliminar un expediente con factura emitida.', 'error')
+      } else {
+        setDeleteVisible(true)
+      }
     }, 600)
   }
 
@@ -277,6 +281,7 @@ function TarjetaExpediente({
           onMouseLeave={cancelLongPress}
           onTouchStart={startLongPress}
           onTouchEnd={cancelLongPress}
+          onTouchMove={cancelLongPress}
           className="p-3 sm:p-4 cursor-pointer select-none"
         >
           {/* Fila 1: EXP a la izquierda, Fecha a la derecha */}

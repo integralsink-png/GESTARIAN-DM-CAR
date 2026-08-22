@@ -150,7 +150,52 @@
   will-change: transform, opacity, color, filter;
 }
 
-/* ── Eliminar flechitas de aumento/disminución en campos numéricos (Chrome, Safari, Edge, Opera, Firefox) ── */
+/* ── Animación personalizada para el punto verde del ayudante METIS ── */
+@keyframes metis-dot-ping {
+  0% {
+    transform: scale(0.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.05;
+  }
+}
+
+.animate-metis-ping {
+  animation: metis-dot-ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ── Animación estrepitosa al pulsar botones del footer ── */
+@keyframes icon-explosive-burst {
+  0% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+  }
+  25% {
+    transform: scale(0.65) rotate(-25deg) skewX(-15deg);
+    filter: drop-shadow(0 0 25px #ec4899) hue-rotate(90deg);
+    color: #ec4899;
+  }
+  50% {
+    transform: scale(1.65) rotate(40deg) skewY(15deg);
+    filter: drop-shadow(0 0 45px #06b6d4) hue-rotate(180deg) brightness(2);
+    color: #06b6d4;
+  }
+  75% {
+    transform: scale(1.35) rotate(-15deg) skewX(10deg);
+    filter: drop-shadow(0 0 35px #a855f7) hue-rotate(270deg) brightness(1.7);
+    color: #a855f7;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.9));
+  }
+}
+
+.animate-icon-burst {
+  animation: icon-explosive-burst 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards !important;
+}
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none !important;

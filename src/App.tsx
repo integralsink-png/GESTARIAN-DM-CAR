@@ -44,6 +44,49 @@ function BackgroundImage() {
       if (data) {
         if (data.fondo_landscape) setFondoLandscape(data.fondo_landscape)
         if (data.fondo_portrait) setFondoPortrait(data.fondo_portrait)
+
+        // Sincronización global automática de Claves API desde Supabase hacia localStorage
+        if (data.ai_api_key && !localStorage.getItem('gestarian_gemini_api_key')) {
+          localStorage.setItem('gestarian_gemini_api_key', data.ai_api_key)
+          localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify({
+            provider: data.ai_provider || 'gemini',
+            model: data.ai_model || 'gemini-3.7-flash',
+            api_key: data.ai_api_key,
+            status: 'connected'
+          }))
+        }
+        if (data.doc_ocr_api_key && !localStorage.getItem('gestarian_document_ocr_config')) {
+          localStorage.setItem('gestarian_document_ocr_config', JSON.stringify({
+            provider: data.doc_ocr_provider || 'gemini',
+            model: data.doc_ocr_model || 'gemini-3.7-flash',
+            api_key: data.doc_ocr_api_key,
+            status: 'connected'
+          }))
+        }
+        if (data.plate_api_key && !localStorage.getItem('gestarian_plate_recognizer_key')) {
+          localStorage.setItem('gestarian_plate_recognizer_key', data.plate_api_key)
+          localStorage.setItem('gestarian_plate_recognizer_config', JSON.stringify({
+            provider: 'plate_recognizer',
+            api_key: data.plate_api_key,
+            endpoint_url: data.plate_endpoint || 'https://api.platerecognizer.com/v1/plate-reader/',
+            status: 'connected'
+          }))
+        }
+        if (data.fallback_api_key && !localStorage.getItem('gestarian_fallback_api_key')) {
+          localStorage.setItem('gestarian_fallback_api_key', data.fallback_api_key)
+          if (data.fallback_provider === 'openrouter') {
+            localStorage.setItem('gestarian_openrouter_api_key', data.fallback_api_key)
+          } else {
+            localStorage.setItem('gestarian_groq_api_key', data.fallback_api_key)
+          }
+          localStorage.setItem('gestarian_fallback_ai_config', JSON.stringify({
+            provider: data.fallback_provider || 'openrouter',
+            model: data.fallback_model || 'deepseek/deepseek-chat:free',
+            api_key: data.fallback_api_key,
+            enabled: data.fallback_enabled ?? true,
+            status: 'connected'
+          }))
+        }
       }
     })
   }, [])

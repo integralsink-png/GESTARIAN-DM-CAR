@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, XCircle, X } from 'lucide-react';
 
@@ -105,6 +105,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const handleActionCancel = useCallback((id: string) => {
     setActionToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
+
+  useEffect(() => {
+    const handleGlobalToast = (e: CustomEvent) => {
+      if (e.detail?.message) {
+        showToast(e.detail.message, e.detail.type || 'info', e.detail.options);
+      }
+    };
+    window.addEventListener('gestarian-toast' as any, handleGlobalToast as any);
+    return () => window.removeEventListener('gestarian-toast' as any, handleGlobalToast as any);
+  }, [showToast]);
 
   return (
     <ToastContext.Provider value={{ showToast, showActionToast }}>

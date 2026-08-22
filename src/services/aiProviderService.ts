@@ -52,7 +52,7 @@ export async function testAiConnection(config: AiAssistantConfig | FallbackAiCon
   try {
     if (config.provider === 'gemini') {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-flash'}:generateContent?key=${config.api_key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-3.7-flash'}:generateContent?key=${config.api_key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -132,7 +132,7 @@ Usa este conocimiento para responder a preguntas sobre el funcionamiento de la a
 
   try {
     if (config.provider === 'gemini' && config.api_key) {
-      const model = config.model || 'gemini-1.5-flash';
+      const model = config.model || 'gemini-3.7-flash';
       // Los modelos Gemini 1.0 no soportan systemInstruction (HTTP 400): para
       // ellos se incrusta la instrucción en el mensaje de usuario.
       const soportaSystem = geminiSupportsSystemInstruction(model);
@@ -205,4 +205,87 @@ Usa este conocimiento para responder a preguntas sobre el funcionamiento de la a
   }
 
   return { text: 'He recibido tu instrucción. El servicio IA está procesando los datos de GESTARIAN.' };
+}
+
+/**
+ * Transcribe un archivo de audio (Blob/MediaRecorder) a texto usando Groq (Whisper) o Gemini 1.5.
+ */
+export async function transcribeAudio(audioBlob: Blob): Promise<string> {
+  const config = getAiConfig();
+  const fallback = getFallbackConfig();
+  
+  // 1. Intentar Groq Whisper (ultrarrápido, requiere API key de Groq)
+  const groqKey = localStorage.getItem('gestarian_groq_api_key') || (fallback.provider === 'groq' ? fallback.api_key : '');
+  if (groqKey) {
+    try {
+      const formData = new FormData();
+      formData.append('file', audioBlob, 'audio.webm');
+      formData.append('model', 'whisper-large-v3');
+      formData.append('language', 'es');
+      formData.append('response_format', 'json');
+
+      const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${groqKey}` },
+        body: formData
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.text) return data.text.trim();
+      }
+    } catch (e) {
+      console.warn('Fallo en transcripción Groq Whisper, cayendo a Gemini...', e);
+    }
+  }
+
+  // 2. Fallback a Gemini (1.5 Flash multimodal)
+  if (config.api_key && config.provider === 'gemini') {
+    try {
+      // Convert Blob to Base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve) => {
+        reader.onloadend = () => {
+          const b64 = (reader.result as string).split(',')[1];
+          resolve(b64);
+        };
+      });
+      reader.readAsDataURL(audioBlob);
+      const base64Data = await base64Promise;
+
+      const model = config.model || 'gemini-3.7-flash';
+      const body = {
+        contents: [{
+          parts: [
+            { text: 'Transcribe este audio a texto en español. Escribe SOLO la transcripción literal, sin comillas, sin formato markdown, sin explicaciones. Solo el texto hablado.' },
+            {
+              inlineData: {
+                mimeType: audioBlob.type || 'audio/webm',
+                data: base64Data
+              }
+            }
+          ]
+        }]
+      };
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${config.api_key}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return text.trim();
+      }
+    } catch (e) {
+      console.error('Error en transcripción Gemini:', e);
+      throw new Error('No se pudo transcribir el audio (Gemini API error).');
+    }
+  }
+
+  throw new Error('No hay servicios de transcripción configurados (Falta API Key de Groq o Gemini).');
 }

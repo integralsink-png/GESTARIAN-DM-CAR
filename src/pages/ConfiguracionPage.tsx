@@ -57,7 +57,35 @@ export function ConfiguracionPage() {
   // Mensajes de prueba de conexión
   const [testResult, setTestResult] = useState<{ service: string; message: string; success: boolean } | null>(null)
 
-  // ----------------------------------------------------
+  // 5. Capas de Personalización (Sistema de 5 Capas de Alto Contraste)
+  const [selectedLayer, setSelectedLayer] = useState<number>(0)
+  const [activeLayerIndex, setActiveLayerIndex] = useState<number | null>(() => {
+    const saved = localStorage.getItem('gestarian_active_layer')
+    return saved !== null ? parseInt(saved, 10) : 0
+  })
+
+  const [customLayers, setCustomLayers] = useState<Array<{ name: string; colors: typeof defaultTextColors }>>(() => {
+    const stored = localStorage.getItem('gestarian_custom_layers')
+    if (stored) {
+      try { return JSON.parse(stored) } catch (e) {}
+    }
+    return [
+      { name: 'Capa 1 (Actual)', colors: { text_title: '#ffffff', text_primary: '#ffffff', text_input: '#ffffff', text_secondary: '#94a3b8', text_card: '#f8fafc' } },
+      { name: 'Capa 2 (Neon High-Vis)', colors: { text_title: '#38bdf8', text_primary: '#ffffff', text_input: '#67e8f9', text_secondary: '#cbd5e1', text_card: '#ffffff' } },
+      { name: 'Capa 3 (Amber Solar)', colors: { text_title: '#fbbf24', text_primary: '#ffffff', text_input: '#fde68a', text_secondary: '#d6d3d1', text_card: '#fafaf9' } },
+      { name: 'Capa 4 (Emerald Glow)', colors: { text_title: '#34d399', text_primary: '#ffffff', text_input: '#a7f3d0', text_secondary: '#cbd5e1', text_card: '#f0fdf4' } },
+      { name: 'Capa 5 (Ultra White)', colors: { text_title: '#ffffff', text_primary: '#ffffff', text_input: '#ffffff', text_secondary: '#e2e8f0', text_card: '#ffffff' } },
+    ]
+  })
+
+  const saveLayerColors = (layerIdx: number, newColors: typeof defaultTextColors) => {
+    const updated = [...customLayers]
+    if (updated[layerIdx]) {
+      updated[layerIdx] = { ...updated[layerIdx], colors: newColors }
+      setCustomLayers(updated)
+      localStorage.setItem('gestarian_custom_layers', JSON.stringify(updated))
+    }
+  }
   // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
   // ----------------------------------------------------
   // ESTADOS DE COLORES DE TEXTO (OBJETIVO 4 & 5)
@@ -128,6 +156,64 @@ export function ConfiguracionPage() {
     const { data } = await supabase.from('configuracion').select('*').eq('id', 1).maybeSingle()
     if (data) {
       setConfig(data)
+
+      // Si existen claves API guardadas en Supabase, sincronizarlas en localStorage para todos los dispositivos
+      if (data.ai_api_key) {
+        localStorage.setItem('gestarian_gemini_api_key', data.ai_api_key)
+        localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify({
+          provider: data.ai_provider || 'gemini',
+          model: data.ai_model || 'gemini-3.7-flash',
+          api_key: data.ai_api_key,
+          status: 'connected'
+        }))
+        setAiApiKey(data.ai_api_key)
+        if (data.ai_provider) setAiProvider(data.ai_provider)
+        if (data.ai_model) setAiModel(data.ai_model)
+      }
+
+      if (data.doc_ocr_api_key) {
+        localStorage.setItem('gestarian_document_ocr_config', JSON.stringify({
+          provider: data.doc_ocr_provider || 'gemini',
+          model: data.doc_ocr_model || 'gemini-3.7-flash',
+          api_key: data.doc_ocr_api_key,
+          status: 'connected'
+        }))
+        setDocOcrApiKey(data.doc_ocr_api_key)
+        if (data.doc_ocr_provider) setDocOcrProvider(data.doc_ocr_provider)
+        if (data.doc_ocr_model) setDocOcrModel(data.doc_ocr_model)
+      }
+
+      if (data.plate_api_key) {
+        localStorage.setItem('gestarian_plate_recognizer_key', data.plate_api_key)
+        localStorage.setItem('gestarian_plate_recognizer_config', JSON.stringify({
+          provider: 'plate_recognizer',
+          api_key: data.plate_api_key,
+          endpoint_url: data.plate_endpoint || 'https://api.platerecognizer.com/v1/plate-reader/',
+          status: 'connected'
+        }))
+        setPlateApiKey(data.plate_api_key)
+        if (data.plate_endpoint) setPlateEndpoint(data.plate_endpoint)
+      }
+
+      if (data.fallback_api_key) {
+        localStorage.setItem('gestarian_fallback_api_key', data.fallback_api_key)
+        if (data.fallback_provider === 'openrouter') {
+          localStorage.setItem('gestarian_openrouter_api_key', data.fallback_api_key)
+        } else {
+          localStorage.setItem('gestarian_groq_api_key', data.fallback_api_key)
+        }
+        localStorage.setItem('gestarian_fallback_ai_config', JSON.stringify({
+          provider: data.fallback_provider || 'openrouter',
+          model: data.fallback_model || 'deepseek/deepseek-chat:free',
+          api_key: data.fallback_api_key,
+          enabled: data.fallback_enabled ?? true,
+          status: 'connected'
+        }))
+        setFallbackApiKey(data.fallback_api_key)
+        if (data.fallback_provider) setFallbackProvider(data.fallback_provider)
+        if (data.fallback_model) setFallbackModel(data.fallback_model)
+        if (data.fallback_enabled !== undefined) setFallbackEnabled(data.fallback_enabled)
+      }
     } else {
       setConfig({
         id: 1,
@@ -150,13 +236,13 @@ export function ConfiguracionPage() {
     // Cargar IA principal
     const aiCfg = getAiConfig()
     setAiProvider(aiCfg.provider as any || 'gemini')
-    setAiModel(aiCfg.model || 'gemini-1.5-flash')
+    setAiModel(aiCfg.model || 'gemini-3.7-flash')
     setAiApiKey(aiCfg.api_key || localStorage.getItem('gestarian_gemini_api_key') || '')
 
     // Cargar OCR Documentos
     const docCfg = getDocumentOcrConfig()
     setDocOcrProvider(docCfg.provider as any || 'gemini')
-    setDocOcrModel(docCfg.model || 'gemini-1.5-flash')
+    setDocOcrModel(docCfg.model || 'gemini-3.7-flash')
     setDocOcrApiKey(docCfg.api_key || localStorage.getItem('gestarian_gemini_api_key') || '')
 
     // Cargar Plate Recognizer
@@ -166,11 +252,11 @@ export function ConfiguracionPage() {
 
     // Cargar Fallback IA
     const fallbackCfg = getFallbackConfig()
-    const storedOpenRouterKey = localStorage.getItem('gestarian_openrouter_api_key') || localStorage.getItem('gestarian_fallback_api_key') || fallbackCfg.api_key || ''
-    setFallbackEnabled(fallbackCfg.enabled ?? (!!storedOpenRouterKey))
-    setFallbackProvider('openrouter')
-    setFallbackModel(fallbackCfg.model && fallbackCfg.model !== 'llama-3.3-70b-versatile' ? fallbackCfg.model : 'deepseek/deepseek-chat:free')
-    setFallbackApiKey(storedOpenRouterKey)
+    const storedFallbackKey = localStorage.getItem('gestarian_fallback_api_key') || localStorage.getItem('gestarian_openrouter_api_key') || localStorage.getItem('gestarian_groq_api_key') || fallbackCfg.api_key || ''
+    setFallbackEnabled(fallbackCfg.enabled ?? (!!storedFallbackKey))
+    setFallbackProvider((fallbackCfg.provider as any) || 'openrouter')
+    setFallbackModel(fallbackCfg.model || 'deepseek/deepseek-chat:free')
+    setFallbackApiKey(storedFallbackKey)
 
     // Cargar Colores de Texto
     const savedColors = localStorage.getItem('gestarian_text_colors')
@@ -209,7 +295,7 @@ export function ConfiguracionPage() {
     if (!config) return
     setSaving(true)
 
-    // 1. Guardar configuraciones de Servicios externos de forma aislada
+    // 1. Guardar configuraciones de Servicios externos en localStorage
     const aiConfigObj = { provider: aiProvider, model: aiModel, api_key: aiApiKey, status: aiStatus }
     localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify(aiConfigObj))
     if (aiApiKey) localStorage.setItem('gestarian_gemini_api_key', aiApiKey)
@@ -240,7 +326,7 @@ export function ConfiguracionPage() {
     root.style.setProperty('--text-secondary', textColors.text_secondary)
     root.style.setProperty('--text-card', textColors.text_card)
 
-    // 3. Persistir en Supabase
+    // 3. Persistir en Supabase (Configuración + Claves API centralizadas)
     await supabase.from('configuracion').upsert({
       id: 1,
       nombre_empresa: config.nombre_empresa,
@@ -264,6 +350,19 @@ export function ConfiguracionPage() {
       modo_diurno: appearance.modo_diurno,
       animaciones_activadas: appearance.animaciones_activadas,
       sonido_activado: appearance.sonido_activado,
+      // Guardar claves centralizadas para sincronizar todos los móviles/PCs
+      ai_provider: aiProvider,
+      ai_model: aiModel,
+      ai_api_key: aiApiKey,
+      doc_ocr_provider: docOcrProvider,
+      doc_ocr_model: docOcrModel,
+      doc_ocr_api_key: docOcrApiKey,
+      plate_api_key: plateApiKey,
+      plate_endpoint: plateEndpoint,
+      fallback_provider: fallbackProvider,
+      fallback_model: fallbackModel,
+      fallback_api_key: fallbackApiKey,
+      fallback_enabled: fallbackEnabled
     }).eq('id', 1)
 
     await saveThemeToDB(themeSettings)
@@ -305,7 +404,56 @@ export function ConfiguracionPage() {
     setTestResult({ service: 'IA ALTERNATIVA / FALLBACK', message: res.message, success: res.success })
   }
 
-  if (!config) return <div className="text-center py-16 text-slate-500">Cargando...</div>
+  useEffect(() => {
+    if (testResult) {
+      setTimeout(() => {
+        const el = document.getElementById(`test-result-${testResult.service.replace(/\s+/g, '-')}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+    }
+  }, [testResult])
+
+  const renderTestResult = (serviceName: string) => {
+    if (testResult?.service !== serviceName) return null;
+    return (
+      <div 
+        id={`test-result-${serviceName.replace(/\s+/g, '-')}`}
+        className={`mt-3 p-3 rounded-xl border flex items-start justify-between gap-2 animate-fade-in ${
+          testResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+        }`}
+      >
+        <div className="flex items-start gap-2">
+          {testResult.success ? <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" /> : <XCircle className="w-5 h-5 shrink-0 mt-0.5" />}
+          <p className="text-xs font-semibold leading-relaxed">{testResult.message}</p>
+        </div>
+        <button onClick={() => setTestResult(null)} className="opacity-50 hover:opacity-100 shrink-0 p-1">
+          <XCircle className="w-4 h-4" />
+        </button>
+      </div>
+    )
+  }
+
+  if (!config) {
+    return (
+      <div className="space-y-6 pb-12">
+        <PageHeader title="CONFIGURACIÓN">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="w-[60px] h-[60px] rounded-2xl bg-slate-800/80 text-white border border-white/20 flex items-center justify-center hover:bg-slate-700 transition-transform active:scale-95 shrink-0 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              title="Volver"
+              aria-label="Volver"
+            >
+              <ArrowLeft className="w-7 h-7" />
+            </button>
+          </div>
+        </PageHeader>
+        <div className="text-center py-16 text-slate-500 font-bold">Cargando configuración...</div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 pb-12">
@@ -332,24 +480,6 @@ export function ConfiguracionPage() {
           <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar todo'}
         </button>
       </div>
-
-      {/* Banner de Resultado de Prueba de Conexión */}
-      {testResult && (
-        <div className={`p-4 rounded-2xl border flex items-center justify-between animate-fade-in ${
-          testResult.success ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-        }`}>
-          <div className="flex items-center gap-3">
-            {testResult.success ? <CheckCircle2 className="w-6 h-6 shrink-0" /> : <XCircle className="w-6 h-6 shrink-0" />}
-            <div>
-              <span className="font-extrabold text-xs uppercase tracking-wider block opacity-75">{testResult.service}</span>
-              <p className="text-sm font-semibold">{testResult.message}</p>
-            </div>
-          </div>
-          <button onClick={() => setTestResult(null)} className="text-slate-400 hover:text-white text-xs font-bold px-2 py-1">
-            Cerrar
-          </button>
-        </div>
-      )}
 
       {/* ================================================== */}
       {/* SECCIÓN 1: INTELIGENCIA ARTIFICIAL Y SERVICIOS */}
@@ -497,6 +627,7 @@ export function ConfiguracionPage() {
                   Guardar
                 </button>
               </div>
+              {renderTestResult('AYUDANTE IA GESTARIAN')}
             </div>
           </Card>
 
@@ -587,6 +718,7 @@ export function ConfiguracionPage() {
                   Guardar
                 </button>
               </div>
+              {renderTestResult('OCR DE FACTURAS Y DOCUMENTOS')}
             </div>
           </Card>
 
@@ -666,6 +798,7 @@ export function ConfiguracionPage() {
                   Guardar
                 </button>
               </div>
+              {renderTestResult('OCR DE MATRÍCULAS')}
             </div>
           </Card>
 
@@ -709,7 +842,7 @@ export function ConfiguracionPage() {
                 </div>
                 <div>
                   <h3 className="text-base font-black text-white">PROVEEDOR IA ALTERNATIVO / FALLBACK</h3>
-                  <span className="text-xs text-purple-400 font-medium">OpenRouter (100% Gratuito · Español de España y Andaluz)</span>
+                  <span className="text-xs text-purple-400 font-semibold uppercase">{fallbackProvider}</span>
                 </div>
               </div>
 
@@ -735,16 +868,15 @@ export function ConfiguracionPage() {
                 <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor Fallback</label>
                 <select
                   value={fallbackProvider}
-                  onChange={(e) => {
-                    const p = e.target.value as any;
-                    setFallbackProvider(p);
-                    if (p === 'openrouter') setFallbackModel('deepseek/deepseek-chat:free');
-                    if (p === 'groq') setFallbackModel('llama-3.3-70b-versatile');
-                  }}
+                  onChange={(e) => setFallbackProvider(e.target.value as any)}
                   className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
                 >
-                  <option value="openrouter">OpenRouter (Gratuito - DeepSeek / Llama)</option>
-                  <option value="groq">Groq (Llama 3.3)</option>
+                  <option value="openrouter">OpenRouter</option>
+                  <option value="groq">Groq</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="gemini">Google Gemini</option>
+                  <option value="custom">Personalizado / Otro</option>
                 </select>
               </div>
 
@@ -754,15 +886,59 @@ export function ConfiguracionPage() {
                   type="text" 
                   value={fallbackModel} 
                   onChange={(e) => setFallbackModel(e.target.value)}
-                  placeholder="deepseek/deepseek-chat:free"
-                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                  placeholder="ej. llama-3.3-70b-versatile, deepseek/deepseek-chat:free..."
+                  className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-purple-300 focus:border-purple-500 focus:outline-none"
                 />
+                {/* Botones de modelos vigentes y activos */}
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {fallbackProvider === 'groq' ? (
+                    [
+                      { id: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B (1000 tps) ⭐' },
+                      { id: 'openai/gpt-oss-120b', label: 'GPT-OSS 120B (500 tps)' },
+                      { id: 'groq/compound', label: 'Groq Compound (Agentic)' },
+                      { id: 'qwen/qwen3.6-27b', label: 'Qwen 3.6 27B' },
+                      { id: 'groq/compound-mini', label: 'Compound Mini' },
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setFallbackModel(m.id)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-mono border transition-all ${
+                          fallbackModel === m.id
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-300 font-bold'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))
+                  ) : fallbackProvider === 'openrouter' ? (
+                    [
+                      { id: 'deepseek/deepseek-chat:free', label: 'DeepSeek V3 (Free) ⭐' },
+                      { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 (Free)' },
+                      { id: 'google/gemini-2.0-flash-thinking-exp:free', label: 'Gemini 2.0 Free' },
+                    ].map(m => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => setFallbackModel(m.id)}
+                        className={`px-2 py-1 rounded-lg text-[10px] font-mono border transition-all ${
+                          fallbackModel === m.id
+                            ? 'bg-purple-500/20 border-purple-500 text-purple-300 font-bold'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))
+                  ) : null}
+                </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-xs font-bold text-slate-400">
-                    Clave API {fallbackProvider === 'openrouter' ? 'OpenRouter' : 'Groq'}
+                    Clave API {fallbackProvider.toUpperCase()}
                   </label>
                   {fallbackProvider === 'openrouter' && (
                     <a
@@ -774,13 +950,23 @@ export function ConfiguracionPage() {
                       Obtener API Key Gratis ↗
                     </a>
                   )}
+                  {fallbackProvider === 'groq' && (
+                    <a
+                      href="https://console.groq.com/keys"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] font-bold text-orange-400 hover:text-orange-300 underline"
+                    >
+                      Consola Groq ↗
+                    </a>
+                  )}
                 </div>
                 <div className="relative">
                   <input 
                     type={showFallbackKey ? "text" : "password"} 
                     value={fallbackApiKey} 
                     onChange={(e) => setFallbackApiKey(e.target.value)}
-                    placeholder={fallbackProvider === 'openrouter' ? "sk-or-v1-..." : "gsk_..."}
+                    placeholder={fallbackProvider === 'openrouter' ? "sk-or-v1-..." : fallbackProvider === 'groq' ? "gsk_..." : "sk-..."}
                     className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono font-bold text-purple-300 focus:outline-none"
                   />
                   <button 
@@ -796,7 +982,9 @@ export function ConfiguracionPage() {
 
             <div className="flex items-center justify-between pt-2 border-t border-slate-800">
               <div className="text-[11px] text-slate-400">
-                Modelos gratuitos recomendados: <code className="text-purple-300 font-mono">deepseek/deepseek-chat:free</code> o <code className="text-purple-300 font-mono">meta-llama/llama-3.3-70b-instruct:free</code>
+                {fallbackProvider === 'groq' 
+                  ? 'Modelos activos Groq: Llama 3.3 70B (Máxima calidad) o Llama 3.1 8B Instant (Ultra rápido).'
+                  : 'Modelos gratuitos OpenRouter: DeepSeek V3 o Llama 3.3 70B.'}
               </div>
               <div className="flex items-center gap-2">
                 <button 
@@ -815,91 +1003,207 @@ export function ConfiguracionPage() {
                 </button>
               </div>
             </div>
+            {renderTestResult('IA ALTERNATIVA / FALLBACK')}
           </Card>
 
         </div>
       </div>
 
       {/* ================================================== */}
-      {/* SECCIÓN 2: PERSONALIZACIÓN DE LA INTERFAZ & COLORES DE TEXTO (OBJETIVOS 4 & 5) */}
+      {/* SECCIÓN 2: PERSONALIZACIÓN DE LA INTERFAZ & 5 CAPAS (OBJETIVOS 4 & 5) */}
       {/* ================================================== */}
       <Card className="p-6 space-y-6 border border-slate-800">
-        <div className="flex items-center gap-2.5">
-          <Palette className="w-6 h-6 text-[var(--primary)]" />
-          <div>
-            <h2 className="text-xl font-black text-white uppercase tracking-tight">PERSONALIZACIÓN DE LA INTERFAZ</h2>
-            <span className="text-xs text-slate-400 font-medium">Ajuste fino de Colores de Texto Centralizados</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <Palette className="w-6 h-6 text-cyan-400" />
+            <div>
+              <h2 className="text-xl font-black text-white uppercase tracking-tight">PERSONALIZACIÓN DE LA INTERFAZ</h2>
+              <span className="text-xs text-slate-400 font-medium">Sistema de 5 Capas de Estilo y Alto Contraste</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                const nextActive = activeLayerIndex === selectedLayer ? null : selectedLayer;
+                setActiveLayerIndex(nextActive);
+                if (nextActive !== null) {
+                  const layerConfig = customLayers[nextActive];
+                  setTextColors(layerConfig.colors);
+                  localStorage.setItem('gestarian_active_layer', nextActive.toString());
+                  localStorage.setItem('gestarian_text_colors', JSON.stringify(layerConfig.colors));
+                  const root = document.documentElement;
+                  root.style.setProperty('--text-title', layerConfig.colors.text_title);
+                  root.style.setProperty('--text-primary', layerConfig.colors.text_primary);
+                  root.style.setProperty('--text-input', layerConfig.colors.text_input);
+                  root.style.setProperty('--text-secondary', layerConfig.colors.text_secondary);
+                  root.style.setProperty('--text-card', layerConfig.colors.text_card);
+                } else {
+                  localStorage.removeItem('gestarian_active_layer');
+                }
+              }}
+              className={`px-3.5 py-2 rounded-xl text-xs font-black uppercase tracking-wider border transition-all flex items-center gap-1.5 ${
+                activeLayerIndex === selectedLayer
+                  ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+                  : 'bg-slate-900 border-slate-700 text-slate-400 hover:text-white'
+              }`}
+            >
+              {activeLayerIndex === selectedLayer ? '✓ Capa Activa' : 'Activar Capa'}
+            </button>
           </div>
         </div>
 
+        {/* ── SELECTOR DE LAS 5 CAPAS DE PERSONALIZACIÓN ── */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {[0, 1, 2, 3, 4].map((idx) => {
+            const layer = customLayers[idx] || { name: `Capa ${idx + 1}` };
+            const isSelected = selectedLayer === idx;
+            const isCurrentActive = activeLayerIndex === idx;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  setSelectedLayer(idx);
+                  if (customLayers[idx]) {
+                    setTextColors(customLayers[idx].colors);
+                  }
+                }}
+                className={`flex-1 min-w-[100px] py-3 px-3 rounded-xl border text-center transition-all relative ${
+                  isSelected
+                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_15px_rgba(6,182,212,0.3)] font-black'
+                    : 'bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200 font-bold'
+                }`}
+              >
+                <div className="text-xs uppercase tracking-wider flex items-center justify-center gap-1.5">
+                  {layer.name || `Capa ${idx + 1}`}
+                  {isCurrentActive && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                  )}
+                </div>
+                <div className="text-[10px] opacity-60 mt-0.5">
+                  {isCurrentActive ? 'En uso' : isSelected ? 'Editando' : 'Inactiva'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── EDITOR DE COLORES DE LA CAPA SELECCIONADA ── */}
         <div className="space-y-5 bg-slate-950 p-5 rounded-2xl border border-slate-800">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h3 className="text-base font-bold text-white">COLORES DE TEXTO</h3>
+            <div>
+              <h3 className="text-base font-bold text-white uppercase">
+                Ajuste Fino de la {customLayers[selectedLayer]?.name || `Capa ${selectedLayer + 1}`}
+              </h3>
+              <p className="text-xs text-slate-400">Garantía de Alto Contraste: Fondos oscuros con textos claros y luminosos.</p>
+            </div>
             <span className="text-xs text-cyan-400 font-semibold bg-cyan-500/10 px-3 py-1 rounded-full border border-cyan-500/20">
-              Los botones mantienen su diseño propio
+              {activeLayerIndex === selectedLayer ? 'Capa Aplicada en la App' : 'Borrador de Capa'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            
             {/* A. TÍTULOS */}
             <TextColorSelector
               label="A. TÍTULOS"
               value={textColors.text_title}
-              onChange={(val) => setTextColors({ ...textColors, text_title: val })}
+              onChange={(val) => {
+                const updated = { ...textColors, text_title: val };
+                setTextColors(updated);
+                saveLayerColors(selectedLayer, updated);
+              }}
             />
 
             {/* B. TEXTOS PRINCIPALES */}
             <TextColorSelector
               label="B. TEXTOS PRINCIPALES"
               value={textColors.text_primary}
-              onChange={(val) => setTextColors({ ...textColors, text_primary: val })}
+              onChange={(val) => {
+                const updated = { ...textColors, text_primary: val };
+                setTextColors(updated);
+                saveLayerColors(selectedLayer, updated);
+              }}
             />
 
             {/* C. TEXTOS DE INPUTS */}
             <TextColorSelector
               label="C. TEXTOS DE INPUTS"
               value={textColors.text_input}
-              onChange={(val) => setTextColors({ ...textColors, text_input: val })}
+              onChange={(val) => {
+                const updated = { ...textColors, text_input: val };
+                setTextColors(updated);
+                saveLayerColors(selectedLayer, updated);
+              }}
             />
 
             {/* D. TEXTOS SECUNDARIOS */}
             <TextColorSelector
               label="D. TEXTOS SECUNDARIOS"
               value={textColors.text_secondary}
-              onChange={(val) => setTextColors({ ...textColors, text_secondary: val })}
+              onChange={(val) => {
+                const updated = { ...textColors, text_secondary: val };
+                setTextColors(updated);
+                saveLayerColors(selectedLayer, updated);
+              }}
             />
 
             {/* E. TEXTOS DE TARJETAS */}
             <TextColorSelector
               label="E. TEXTOS DE TARJETAS"
               value={textColors.text_card}
-              onChange={(val) => setTextColors({ ...textColors, text_card: val })}
+              onChange={(val) => {
+                const updated = { ...textColors, text_card: val };
+                setTextColors(updated);
+                saveLayerColors(selectedLayer, updated);
+              }}
             />
-
           </div>
         </div>
 
-        {/* Presets de Estilo Visual Global */}
-        <div>
-          <h3 className="text-sm font-bold text-slate-300 mb-3">Presets de Estilo Visual General</h3>
-          <Stack
-  direction="row"
-  spacing={1}
-  sx={{ flexWrap: 'wrap' }}
->
-            {(['classic', 'professional', 'dark', 'blue', 'green', 'orange', 'premium', 'custom'] as ThemePreset[]).map((preset) => (
-              <Chip
-                key={preset}
-                label={preset === 'custom' ? 'Personalizado' : preset.charAt(0).toUpperCase() + preset.slice(1)}
-                clickable
-                color={themePreset === preset ? 'primary' : 'default'}
-                onClick={() => handlePresetChange(preset)}
-                variant={themePreset === preset ? 'filled' : 'outlined'}
-                className="text-xs rounded-full"
-              />
+        {/* ── PRESETS DE ESTILO VISUAL MODERNO (LIBRERÍA DE ALTO CONTRASTE) ── */}
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-black uppercase text-slate-300 tracking-wide">
+              Librería de Presets Visuales Modernos (Alto Contraste)
+            </h3>
+            <span className="text-[11px] text-slate-400">Tonalidades optimizadas para legibilidad de taller</span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            {[
+              { id: 'classic', name: 'Titanium Blue', border: '#06b6d4', bg: '#090d16', text: '#ffffff' },
+              { id: 'cyberpunk', name: 'Cyber Neon', border: '#ec4899', bg: '#050508', text: '#ffffff' },
+              { id: 'nordic', name: 'Nordic Frost', border: '#88c0d0', bg: '#242933', text: '#ffffff' },
+              { id: 'emerald_oled', name: 'Emerald OLED', border: '#10b981', bg: '#01140f', text: '#ffffff' },
+              { id: 'amber_gold', name: 'Amber Gold', border: '#f59e0b', bg: '#0c0a09', text: '#ffffff' },
+              { id: 'slate_contrast', name: 'Slate High-Vis', border: '#6366f1', bg: '#020617', text: '#ffffff' },
+            ].map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => {
+                  handlePresetChange(p.id as any);
+                  const modern = MODERN_THEME_PRESETS[p.id];
+                  if (modern) {
+                    setThemeSettings((prev) => ({ ...prev, ...modern }));
+                  }
+                }}
+                className={`p-3 rounded-xl border text-left transition-all relative overflow-hidden group ${
+                  themePreset === p.id
+                    ? 'border-cyan-400 bg-slate-900 shadow-[0_0_12px_rgba(6,182,212,0.4)] scale-105'
+                    : 'border-slate-800 bg-slate-950 hover:border-slate-700 hover:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: p.border }} />
+                  <span className="text-xs font-bold text-white truncate">{p.name}</span>
+                </div>
+                <div className="text-[10px] text-slate-400">100% Contraste</div>
+              </button>
             ))}
-          </Stack>
+          </div>
         </div>
       </Card>
 
