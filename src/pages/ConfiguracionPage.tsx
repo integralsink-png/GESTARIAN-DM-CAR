@@ -381,6 +381,53 @@ export function ConfiguracionPage() {
               IA conversacional para hablar con GESTARIAN en lenguaje natural, entender instrucciones y ayudar a gestionar las tareas de la aplicación.
             </p>
 
+            {/* ── TARJETA MODELO PREFERENTE GEMINI ── */}
+            <div className="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/60 to-slate-900/80 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">⚡</span>
+                  <div>
+                    <p className="text-xs font-black text-emerald-300 uppercase tracking-wider">Modelo Preferente Gemini</p>
+                    <p className="text-[10px] text-slate-400">Activa el endpoint estable recomendado para METIS</p>
+                  </div>
+                </div>
+                <Switch
+                  size="small"
+                  checked={['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'].includes(aiModel)}
+                  onChange={(e) => {
+                    if (e.target.checked) setAiModel('gemini-3.7-flash')
+                    else setAiModel('gemini-2.5-flash')
+                  }}
+                  sx={{ '& .MuiSwitch-thumb': { bgcolor: '#10b981' }, '& .Mui-checked + .MuiSwitch-track': { bgcolor: '#10b981' } }}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                {[
+                  { id: 'gemini-3.7-flash', label: '3.7 Flash', badge: '⭐' },
+                  { id: 'gemini-3.6-flash', label: '3.6 Flash', badge: '' },
+                  { id: 'gemini-3.5-flash', label: '3.5 Flash', badge: '⚡' },
+                ].map(m => (
+                  <button
+                    key={m.id}
+                    onClick={() => setAiModel(m.id)}
+                    className={`flex-1 py-2 px-1 rounded-lg text-[10px] font-bold border transition-all ${
+                      aiModel === m.id
+                        ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                        : 'bg-slate-900/60 border-slate-700 text-slate-400 hover:border-emerald-500/50 hover:text-slate-200'
+                    }`}
+                  >
+                    {m.badge && <span className="mr-0.5">{m.badge}</span>}
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                <span className="text-emerald-400 font-semibold">Orden de preferencia:</span> 3.7 Flash → 3.6 Flash → 3.5 Flash. El motor intentará el seleccionado y migrará automáticamente si detecta el antiguo 2.0-flash configurado.
+              </p>
+            </div>
+
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
