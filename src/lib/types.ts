@@ -93,7 +93,9 @@ export interface Factura {
   fotos?: string[]
   observaciones?: string
   enviado_email_at?: string | null
+  enviado_email_2_at?: string | null
   enviado_whatsapp_at?: string | null
+  enviado_whatsapp_2_at?: string | null
   created_at: string
   updated_at?: string
 }

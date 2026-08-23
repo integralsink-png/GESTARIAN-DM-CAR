@@ -1,10 +1,12 @@
 import { PageHeader, Card, EmptyState, Button, Badge, Input } from '../components/UI'
 import { OcrInvoiceScanner } from '../components/OcrInvoiceScanner'
-import { Receipt, Truck, AlertTriangle, UserCog, Plus, X, Trash2, Search, Save, ArrowLeft, Camera, Check, Mail, Phone, MessageCircle, Edit2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Receipt, Truck, AlertTriangle, UserCog, Plus, X, Trash2, Search, Save, ArrowLeft, Camera, Check, Mail, Phone, MessageCircle, Edit2, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../lib/ToastContext'
+import { GlobalImageViewer } from '../components/GlobalImageViewer'
+import { getExpediente } from '../lib/utils'
 import type { Usuario, RolUsuario, Proveedor, FacturaRecibida, PagoRecibida, Concepto, Incidencia, PrioridadIncidencia, EstadoIncidencia, Cliente, Vehiculo, Presupuesto } from '../lib/types'
 
 export { ClienteAdminPage } from './ClienteAdminPage'
@@ -29,6 +31,13 @@ export function FacturasRecibidasPage() {
   const [metodoPago, setMetodoPago] = useState('Transferencia')
   const [reciboFotoPreview, setReciboFotoPreview] = useState<string | null>(null)
   const [viewerFoto, setViewerFoto] = useState<string | null>(null)
+
+  // Estado para el visor de imágenes de la factura recibida (GlobalImageViewer)
+  const [galleryViewerOpen, setGalleryViewerOpen] = useState(false)
+  const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [galleryMatricula, setGalleryMatricula] = useState<string | undefined>(undefined)
+  const [galleryTitle, setGalleryTitle] = useState<string>("Imágenes de la Factura")
+  const [galleryActiveFacturaId, setGalleryActiveFacturaId] = useState<string | null>(null)
   const receiptFileInputRef = useRef<HTMLInputElement>(null)
   const formReceiptFileInputRef = useRef<HTMLInputElement>(null)
 
@@ -436,6 +445,87 @@ export function FacturasRecibidasPage() {
     )
   }
 
+  // Abrir visor de imágenes para una factura recibida
+  function openFacturaImageViewer(f: FacturaRecibida) {
+    // Recopilar todas las imágenes asociadas: archivo_url de la factura + fotos_recibos + recibos de pagos
+    const imgs: string[] = []
+    if (f.archivo_url) imgs.push(f.archivo_url)
+    if (f.fotos_recibos && f.fotos_recibos.length > 0) {
+      f.fotos_recibos.forEach(img => {
+        if (img && !imgs.includes(img)) imgs.push(img)
+      })
+    }
+    if (f.pagos && f.pagos.length > 0) {
+      f.pagos.forEach(p => {
+        if (p.recibo_foto && !imgs.includes(p.recibo_foto)) {
+          imgs.push(p.recibo_foto)
+        }
+      })
+    }
+
+    // Buscar si está vinculada con un presupuesto para obtener matrícula
+    let mat: string | undefined = undefined
+    if (f.presupuesto_id) {
+      const presRel = presupuestos.find(p => p.id === f.presupuesto_id)
+      if (presRel && presRel.vehiculo_id) {
+        const vehRel = vehiculos.find(v => v.id === presRel.vehiculo_id)
+        if (vehRel && vehRel.matricula) {
+          mat = vehRel.matricula
+        }
+      }
+    }
+
+    setGalleryImages(imgs)
+    setGalleryMatricula(mat)
+    setGalleryTitle(`Documentos FAC ${f.numero}`)
+    setGalleryActiveFacturaId(f.id)
+    setGalleryViewerOpen(true)
+  }
+
+  async function handleAddFacturaImage(dataUrl: string) {
+    if (!galleryActiveFacturaId) return
+    const f = facturas.find(fac => fac.id === galleryActiveFacturaId)
+    if (!f) return
+
+    const nuevasFotos = [dataUrl, ...(f.fotos_recibos ?? [])]
+    const updated: FacturaRecibida = {
+      ...f,
+      fotos_recibos: nuevasFotos
+    }
+
+    localStorage.setItem(`factura_recibida_${f.id}_fotos`, JSON.stringify(nuevasFotos))
+    setFacturas(prev => prev.map(fac => fac.id === f.id ? updated : fac))
+    if (selectedFactura && selectedFactura.id === f.id) {
+      setSelectedFactura(updated)
+    }
+    setGalleryImages(prev => [dataUrl, ...prev])
+    showToast('Imagen adjuntada a la factura recibida.', 'success')
+  }
+
+  async function handleDeleteFacturaImage(index: number) {
+    if (!galleryActiveFacturaId) return
+    const f = facturas.find(fac => fac.id === galleryActiveFacturaId)
+    if (!f) return
+
+    const imageToDelete = galleryImages[index]
+    const nuevasFotos = (f.fotos_recibos ?? []).filter(img => img !== imageToDelete)
+    const newArchivoUrl = f.archivo_url === imageToDelete ? null : f.archivo_url
+
+    const updated: FacturaRecibida = {
+      ...f,
+      archivo_url: newArchivoUrl,
+      fotos_recibos: nuevasFotos
+    }
+
+    localStorage.setItem(`factura_recibida_${f.id}_fotos`, JSON.stringify(nuevasFotos))
+    setFacturas(prev => prev.map(fac => fac.id === f.id ? updated : fac))
+    if (selectedFactura && selectedFactura.id === f.id) {
+      setSelectedFactura(updated)
+    }
+    setGalleryImages(prev => prev.filter((_, i) => i !== index))
+    showToast('Imagen eliminada de la factura.', 'info')
+  }
+
   const proveedorNombre = (id: string | null) => proveedores.find((p) => p.id === id)?.nombre ?? '—'
 
   const facturasFiltradas = facturas.filter((f) => {
@@ -511,82 +601,37 @@ export function FacturasRecibidasPage() {
       </div>
 
       {/* ── VISOR DE DETALLE Y CONTROL DE PAGO SI HAY UNA FACTURA SELECCIONADA ── */}
-      {selectedFactura ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Panel de Control de Pagos y Roadmap */}
-            <Card className="p-5 space-y-4 border-2 border-purple-500/40 bg-bg-900/90 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-              <div className="flex items-center justify-between border-b border-slate-700 pb-3">
-                <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider flex items-center gap-2">
-                  <Receipt className="w-4 h-4 text-purple-400" /> Control de Pago de Proveedor
-                </h3>
-                <Badge
-                  text={
-                    selectedFactura.estado === 'pagada'
-                      ? 'Totalmente Pagada'
-                      : selectedFactura.estado === 'parcial'
-                      ? 'Parcialmente Pagada'
-                      : 'Pendiente de Pago'
-                  }
-                  color={
-                    selectedFactura.estado === 'pagada'
-                      ? 'green'
-                      : selectedFactura.estado === 'parcial'
-                      ? 'blue'
-                      : 'yellow'
-                  }
-                />
-              </div>
+      {selectedFactura ? (() => {
+        const totalPagado = selectedFactura.total_pagado ?? (selectedFactura.estado === 'pagada' || selectedFactura.estado === 'abonada' ? selectedFactura.total : 0)
+        const saldoPendiente = Math.max(0, selectedFactura.total - totalPagado)
+        const isAbonada = selectedFactura.estado === 'pagada' || selectedFactura.estado === 'abonada' || saldoPendiente <= 0.01
+        const isParcial = (selectedFactura.estado === 'parcial' || totalPagado > 0) && !isAbonada
 
-              {/* ROADMAP VISUAL DE PAGOS (Píldoras Rectangulares con esquinas redondeadas y texto centrado) */}
-              <div className="py-2">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Roadmap de Pagos</p>
-                <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                  {/* Estado 1: Pendiente */}
-                  <div
-                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
-                      selectedFactura.estado === 'pendiente' || selectedFactura.estado === 'parcial' || selectedFactura.estado === 'pagada'
-                        ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-purple-900/30 font-bold'
-                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
-                    }`}
-                  >
-                    <span className="text-xs uppercase tracking-wider font-extrabold">1. Pendiente</span>
-                  </div>
+        // Contorno dinámico según estado del pago
+        let cardBorderClass = 'border-[3px] border-orange-500 bg-orange-950/10 shadow-[0_0_20px_rgba(249,115,22,0.25)]'
+        if (isAbonada) {
+          cardBorderClass = 'border-[3px] border-emerald-500 bg-emerald-950/15 shadow-[0_0_20px_rgba(16,185,129,0.3)]'
+        } else if (isParcial) {
+          cardBorderClass = 'border-[3px] border-blue-500 bg-blue-950/15 shadow-[0_0_20px_rgba(59,130,246,0.3)]'
+        }
 
-                  {/* Estado 2: Parcial */}
-                  <div
-                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
-                      selectedFactura.estado === 'parcial' || selectedFactura.estado === 'pagada'
-                        ? 'bg-blue-600/30 border-blue-400 text-blue-200 shadow-blue-900/30 font-bold'
-                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
-                    }`}
-                  >
-                    <span className="text-xs uppercase tracking-wider font-extrabold">2. Parcial</span>
-                  </div>
+        const ultPago = (selectedFactura.pagos && selectedFactura.pagos.length > 0)
+          ? selectedFactura.pagos[0]
+          : null
 
-                  {/* Estado 3: Pagada / Liquidada */}
-                  <div
-                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
-                      selectedFactura.estado === 'pagada'
-                        ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)] font-bold'
-                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
-                    }`}
-                  >
-                    <span className="text-xs uppercase tracking-wider font-extrabold">3. Liquidada ✓</span>
-                  </div>
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Panel de Control de Abonos con borde dinámico */}
+              <Card className={`p-5 space-y-4 rounded-2xl transition-all ${cardBorderClass}`}>
+                <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+                  <h3 className="text-sm font-black text-purple-300 uppercase tracking-wider flex items-center gap-2">
+                    <Receipt className="w-4 h-4 text-purple-400" /> Control de Abono de Proveedor
+                  </h3>
                 </div>
-              </div>
 
-              {/* Métricas de Importe, Saldo y Último Abono (Tamaño x 1.5) */}
-              {(() => {
-                const totalPagado = selectedFactura.total_pagado ?? (selectedFactura.estado === 'pagada' ? selectedFactura.total : 0)
-                const saldoPendiente = Math.max(0, selectedFactura.total - totalPagado)
-                const ultPago = (selectedFactura.pagos && selectedFactura.pagos.length > 0)
-                  ? selectedFactura.pagos[0] // Primer elemento es el más reciente
-                  : null
-
-                return (
-                  <div className="space-y-3">
+                {/* Métricas de Importe, Saldo y Último Abono (Tamaño x 1.5) */}
+                <div className="space-y-3">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-bg-800/90 p-4 rounded-xl border border-slate-700">
                       <div>
                         <span className="text-sm sm:text-base text-slate-400 block font-bold mb-0.5">Total Factura</span>
@@ -794,9 +839,7 @@ export function FacturasRecibidasPage() {
                       )}
                     </div>
                   </div>
-                )
-              })()}
-            </Card>
+                </Card>
 
             {/* Ficha resumen de la Factura Recibida */}
             <Card className="p-5 space-y-4 border border-slate-700 bg-bg-900/80">
@@ -917,7 +960,7 @@ export function FacturasRecibidasPage() {
             </Card>
           </div>
         </div>
-      ) : (
+      )})() : (
         /* ── LISTADO DE TARJETAS DE FACTURAS RECIBIDAS (ESTILO EMITIDAS CON ROADMAP Y EXP/FAC) ── */
         <div className="space-y-3">
           {facturasFiltradas.length === 0 ? (
@@ -951,6 +994,7 @@ export function FacturasRecibidasPage() {
 
               const presRel = f.presupuesto_id ? presupuestos.find((p) => p.id === f.presupuesto_id) : null
               const clienteRel = presRel ? clientes.find((c) => c.id === presRel.cliente_id) : null
+              const expId = presRel && clienteRel ? getExpediente(presRel, clienteRel, clientes) : (presRel ? presRel.numero : 'S/N')
 
               return (
                 <div
@@ -959,77 +1003,72 @@ export function FacturasRecibidasPage() {
                 >
                   {/* Panel de Información de la Factura Recibida */}
                   <div className="flex-1 min-w-0 space-y-2.5">
-                    {/* Línea 1: REGISTRO (Morado) y FACTURA PROVEEDOR (16px) */}
-                    <div className="flex items-center justify-between w-full font-mono tracking-wider font-extrabold uppercase" style={{ fontSize: '16px' }}>
-                      <span className="text-purple-400 font-black flex items-center gap-1.5">
-                        <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 text-xs">
-                          {numReg}
-                        </span>
-                      </span>
-                      <span className="text-slate-400 font-bold truncate max-w-[50%] text-right">
-                        FAC: {f.numero}
+                    {/* Línea 1: Nombre del Proveedor centrado (sin cuadrito FR) */}
+                    <div className="w-full text-center">
+                      <span className="text-white font-black uppercase truncate block tracking-wider" style={{ fontSize: '19px' }}>
+                        {proveedorNombre(f.proveedor_id)}
                       </span>
                     </div>
 
-                    {/* Línea 2: Proveedor centrado en mayúsculas (18px) */}
-                    <div className="text-white font-black uppercase truncate leading-none w-full text-center block" style={{ fontSize: '18px', textAlign: 'center' }}>
-                      {proveedorNombre(f.proveedor_id)}
-                    </div>
+                    {/* Línea 2: Fecha a la izquierda, Expediente centrado (sin FAC) e Importe Total a la derecha */}
+                    <div className="flex items-center justify-between w-full font-mono text-slate-300 font-extrabold text-sm sm:text-base">
+                      {/* Izquierda: Fecha */}
+                      <span className="text-slate-400 font-semibold tracking-normal text-xs sm:text-sm">
+                        {new Date(f.fecha).toLocaleDateString('es-ES')}
+                      </span>
 
-                    {/* Línea 3: Estado de pago, badge y Presupuesto Relacionado */}
-                    <div className="flex items-center justify-between w-full text-xs flex-wrap gap-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-slate-400 font-semibold">Estado:</span>
-                        <Badge
-                          text={estadoTexto}
-                          color={estadoColor}
-                        />
-                      </div>
+                      {/* Centro: Número de Expediente */}
+                      <span className="text-purple-300 bg-purple-950/50 px-2.5 py-0.5 rounded-lg border border-purple-500/30 text-xs sm:text-sm font-black tracking-wider">
+                        {expId}
+                      </span>
 
-                      {presRel && (
-                        <div className="flex items-center gap-1 bg-cyan-950/40 px-2 py-0.5 rounded-md border border-cyan-500/30 text-[11px] font-bold text-cyan-300">
-                          <span>Presupuesto:</span>
-                          <span className="text-white">{presRel.numero}</span>
-                          {clienteRel && <span className="text-cyan-400/80">({clienteRel.nombre})</span>}
-                        </div>
-                      )}
-
-                      {f.fotos_recibos && f.fotos_recibos.length > 0 && (
-                        <span className="text-purple-300 flex items-center gap-1 text-[11px] font-bold">
-                          <Camera className="w-3.5 h-3.5" /> {f.fotos_recibos.length} comprobante(s)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Línea 4: Fecha a la izquierda y Total / Pendiente a la derecha (20px) */}
-                    <div className="flex items-center justify-between w-full text-slate-400 font-bold uppercase tracking-wider" style={{ fontSize: '18px' }}>
-                      <span className="text-sm font-semibold">{new Date(f.fecha).toLocaleDateString('es-ES')}</span>
-                      <div className="flex items-center gap-3">
+                      {/* Derecha: Importe Total */}
+                      <div className="flex items-center gap-2 text-right">
                         {saldoPendiente > 0 && isParcial && (
-                          <span className="text-xs text-blue-400 font-black">
-                            Resto Abono: {saldoPendiente.toFixed(2)} €
+                          <span className="text-xs text-blue-400 font-black tracking-normal">
+                            Resto: {saldoPendiente.toFixed(2)} €
                           </span>
                         )}
-                        <span className="text-white font-black tabular-nums">{f.total.toFixed(2)} €</span>
+                        <span className="text-white font-black text-base sm:text-lg tabular-nums">
+                          {f.total.toFixed(2)} €
+                        </span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Panel de Botones de Acción */}
-                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-                    <button
-                      onClick={() => setSelectedFactura(f)}
-                      className="px-4 py-2.5 rounded-xl bg-purple-900/30 text-purple-200 border border-purple-500/40 hover:bg-purple-800/40 hover:text-purple-100 text-xs font-extrabold tracking-wider uppercase transition-all flex-1 sm:flex-initial text-center shadow"
-                    >
-                      Control de Pago
-                    </button>
-                    <button
-                      onClick={() => deleteFactura(f.id)}
-                      className="p-2.5 rounded-xl bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-700 transition-all"
-                      title="Eliminar"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    {/* Línea 3: Botones de Acción (VER ESTADO + Icono Flotante Imágenes + Eliminar) */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-700/50 gap-2">
+                      <button
+                        onClick={() => setSelectedFactura(f)}
+                        className="px-4 py-2 rounded-xl bg-purple-900/40 text-purple-200 border border-purple-500/50 hover:bg-purple-800/50 hover:text-white text-xs font-black tracking-wider uppercase transition-all shadow active:scale-95 flex items-center gap-2"
+                      >
+                        <Receipt className="w-3.5 h-3.5 text-purple-400" />
+                        VER ESTADO
+                      </button>
+
+                      <div className="flex items-center gap-2">
+                        {/* Botón flotante de Imágenes / Comprobantes */}
+                        <button
+                          onClick={() => openFacturaImageViewer(f)}
+                          className="p-2 rounded-xl bg-purple-500/10 hover:bg-purple-500/25 text-purple-300 border border-purple-500/40 transition-all flex items-center justify-center active:scale-95 shadow-[0_0_10px_rgba(168,85,247,0.2)]"
+                          title="Ver imágenes de la factura y recibos"
+                        >
+                          <ImageIcon className="w-4 h-4 text-purple-400" />
+                          {((f.fotos_recibos?.length || 0) + (f.archivo_url ? 1 : 0) + (f.pagos?.filter(p => p.recibo_foto)?.length || 0)) > 0 && (
+                            <span className="ml-1.5 text-[11px] font-bold text-purple-300">
+                              {(f.fotos_recibos?.length || 0) + (f.archivo_url ? 1 : 0) + (f.pagos?.filter(p => p.recibo_foto)?.length || 0)}
+                            </span>
+                          )}
+                        </button>
+
+                        <button
+                          onClick={() => deleteFactura(f.id)}
+                          className="p-2 rounded-xl bg-slate-800 hover:bg-red-950/40 text-slate-400 hover:text-red-400 border border-slate-700 transition-all active:scale-95"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
@@ -1454,7 +1493,7 @@ export function FacturasRecibidasPage() {
         </div>
       )}
 
-      {/* Visor de Comprobante / Foto de Recibo */}
+      {/* Visor de Comprobante / Foto de Recibo Individual */}
       {viewerFoto && (
         <div
           className="fixed inset-0 bg-black/90 z-[70] flex items-center justify-center p-4"
@@ -1475,6 +1514,20 @@ export function FacturasRecibidasPage() {
           </div>
         </div>
       )}
+
+      {/* Visor Global de Imágenes de Factura Recibida con Matrícula si está vinculada */}
+      <GlobalImageViewer
+        isOpen={galleryViewerOpen}
+        onClose={() => {
+          setGalleryViewerOpen(false)
+          setGalleryActiveFacturaId(null)
+        }}
+        images={galleryImages}
+        matricula={galleryMatricula}
+        title={galleryTitle}
+        onAddImage={handleAddFacturaImage}
+        onDeleteImage={handleDeleteFacturaImage}
+      />
     </div>
   )
 }
@@ -1842,11 +1895,7 @@ export function ProveedoresPage() {
                           <span className="text-slate-300">FAC: {f.numero}</span>
                         </div>
 
-                        <div className="flex items-center justify-between text-xs pt-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-slate-400 font-semibold">Estado:</span>
-                            <Badge text={estadoTexto} color={estadoColor} />
-                          </div>
+                        <div className="flex items-center justify-end text-xs pt-1">
                           <span className="text-slate-400 font-semibold">
                             {new Date(f.fecha).toLocaleDateString('es-ES')}
                           </span>

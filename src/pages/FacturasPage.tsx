@@ -104,7 +104,9 @@ export function FacturasPage() {
     setFacturas((data ?? []).map(f => ({
       ...f,
       enviado_email_at: (f as any).enviado_email_at || localStorage.getItem(`factura_${f.id}_email_at`),
-      enviado_whatsapp_at: (f as any).enviado_whatsapp_at || localStorage.getItem(`factura_${f.id}_wa_at`)
+      enviado_email_2_at: (f as any).enviado_email_2_at || localStorage.getItem(`factura_${f.id}_email_2_at`),
+      enviado_whatsapp_at: (f as any).enviado_whatsapp_at || localStorage.getItem(`factura_${f.id}_wa_at`),
+      enviado_whatsapp_2_at: (f as any).enviado_whatsapp_2_at || localStorage.getItem(`factura_${f.id}_wa_2_at`)
     })))
     setLoading(false)
   }
@@ -573,9 +575,32 @@ export function FacturasPage() {
     const vehiculo = selectedFactura.vehiculo_id ? vehiculos.find(v => v.id === selectedFactura.vehiculo_id) : null
     sendFacturaByEmail({ ...selectedFactura, observaciones }, cliente, vehiculo, config)
     const nowIso = new Date().toISOString()
-    localStorage.setItem(`factura_${selectedFactura.id}_email_at`, nowIso)
-    setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
+
+    const isSecond = !!selectedFactura.enviado_email_at
+
+    if (isSecond) {
+      localStorage.setItem(`factura_${selectedFactura.id}_email_2_at`, nowIso)
+      setSelectedFactura({ ...selectedFactura, enviado_email_2_at: nowIso } as any)
+      if (selectedFactura.id !== 'draft') {
+        await supabase.from('facturas').update({
+          enviado_email_2_at: nowIso,
+          observaciones
+        } as any).eq('id', selectedFactura.id)
+      }
+    } else {
+      localStorage.setItem(`factura_${selectedFactura.id}_email_at`, nowIso)
+      setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
+      if (selectedFactura.id !== 'draft') {
+        await supabase.from('facturas').update({
+          enviado_email_at: nowIso,
+          observaciones
+        } as any).eq('id', selectedFactura.id)
+      }
+    }
+
+    loadFacturas()
     playSuccessChime()
+    showToast(isSecond ? "SEGUNDO ENVÍO POR EMAIL REGISTRADO Y GUARDADO" : "FACTURA ENVIADA POR EMAIL Y GUARDADA", 'success')
     setModalEnvioOpen(true)
   }
 
@@ -588,8 +613,10 @@ export function FacturasPage() {
   }
 
   const getEstadoVisual = (f: Factura): { text: string, color: 'yellow' | 'green' | 'red' | 'gray' } => {
-    if (f.estado_cobro === 'pagada') return { text: 'ABONADA', color: 'green' }
-    if (f.estado_cobro === 'parcial') return { text: 'COBRO PARCIAL', color: 'yellow' }
+    if (f.total <= 0 || f.estado_cobro === 'pagada' || (f.total_abonado >= f.total && f.total > 0)) {
+      return { text: 'ABONADA', color: 'green' }
+    }
+    if (f.estado_cobro === 'parcial' || f.total_abonado > 0) return { text: 'COBRO PARCIAL', color: 'yellow' }
     
     const isEnviada = !!(f.enviado_email_at || f.enviado_whatsapp_at)
     if (isEnviada) return { text: 'IMPAGADA', color: 'red' }
@@ -1257,7 +1284,9 @@ export function FacturasPage() {
                 const veh = selectedFactura.vehiculo_id ? vehiculos.find(v => v.id === selectedFactura.vehiculo_id) : null
 
                 const emailSentAt = (selectedFactura as any).enviado_email_at
+                const emailSent2At = (selectedFactura as any).enviado_email_2_at
                 const whatsappSentAt = (selectedFactura as any).enviado_whatsapp_at
+                const whatsappSent2At = (selectedFactura as any).enviado_whatsapp_2_at
 
                 const formatSentDate = (isoStr: string) => {
                   try {
@@ -1335,8 +1364,8 @@ export function FacturasPage() {
                           <Printer className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
                         </button>
 
-                        {/* 4. WHATSAPP (Bocadillo verde) */}
-                        {!whatsappSentAt && (
+                        {/* 5. WHATSAPP (Bocadillo verde) */}
+                        {!whatsappSent2At && (
                           <button
                             onClick={async () => {
                               try {
@@ -1354,9 +1383,31 @@ export function FacturasPage() {
 
                                 if (res.success) {
                                   const nowIso = new Date().toISOString()
-                                  localStorage.setItem(`factura_${selectedFactura.id}_wa_at`, nowIso)
-                                  setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
+                                  const isSecond = !!selectedFactura.enviado_whatsapp_at
+
+                                  if (isSecond) {
+                                    localStorage.setItem(`factura_${selectedFactura.id}_wa_2_at`, nowIso)
+                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_2_at: nowIso } as any)
+                                    if (selectedFactura.id !== 'draft') {
+                                      await supabase.from('facturas').update({
+                                        enviado_whatsapp_2_at: nowIso,
+                                        observaciones
+                                      } as any).eq('id', selectedFactura.id)
+                                    }
+                                  } else {
+                                    localStorage.setItem(`factura_${selectedFactura.id}_wa_at`, nowIso)
+                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
+                                    if (selectedFactura.id !== 'draft') {
+                                      await supabase.from('facturas').update({
+                                        enviado_whatsapp_at: nowIso,
+                                        observaciones
+                                      } as any).eq('id', selectedFactura.id)
+                                    }
+                                  }
+
+                                  loadFacturas()
                                   playSuccessChime()
+                                  showToast(isSecond ? "SEGUNDO ENVÍO POR WHATSAPP REGISTRADO Y GUARDADO" : "FACTURA ENVIADA POR WHATSAPP Y GUARDADA", 'success')
                                   setModalEnvioOpen(true)
                                 }
                               } catch (e: any) {
@@ -1384,16 +1435,26 @@ export function FacturasPage() {
                       </div>
                       
                       {/* ESTADOS DE ENVÍO */}
-                      {(emailSentAt || whatsappSentAt) && (
+                      {(emailSentAt || whatsappSentAt || emailSent2At || whatsappSent2At) && (
                         <div className="flex flex-col items-center justify-center gap-2 mt-4">
                           {whatsappSentAt && (
                             <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
                               ENVIADO POR WHATSAPP EL {formatSentDate(whatsappSentAt)}
                             </div>
                           )}
+                          {whatsappSent2At && (
+                            <div className="w-full max-w-sm text-center font-bold text-emerald-300 bg-emerald-500/20 px-4 py-3 rounded-xl border-2 border-emerald-400 shadow-sm uppercase">
+                              SEGUNDO ENVÍO POR WHATSAPP EL {formatSentDate(whatsappSent2At)}
+                            </div>
+                          )}
                           {emailSentAt && (
                             <div className="w-full max-w-sm text-center font-bold text-green-400 bg-green-500/10 px-4 py-3 rounded-xl border-2 border-green-500 shadow-sm uppercase">
                               ENVIADO POR EMAIL EL {formatSentDate(emailSentAt)}
+                            </div>
+                          )}
+                          {emailSent2At && (
+                            <div className="w-full max-w-sm text-center font-bold text-emerald-300 bg-emerald-500/20 px-4 py-3 rounded-xl border-2 border-emerald-400 shadow-sm uppercase">
+                              SEGUNDO ENVÍO POR EMAIL EL {formatSentDate(emailSent2At)}
                             </div>
                           )}
                         </div>
