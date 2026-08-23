@@ -230,7 +230,7 @@ export function BalancesPage() {
       })
 
   return (
-    <div>
+    <div className="w-full overflow-x-auto pb-6">
       <PageHeader title="BALANCES">
         <div className="flex items-center gap-2">
           <button
@@ -356,25 +356,27 @@ export function BalancesPage() {
         {totalIngresos === 0 && totalGastos === 0 ? (
           <EmptyState icon={<Scale className="w-12 h-12" />} title="Sin datos" subtitle="No hay facturas en los últimos 4 trimestres" />
         ) : (
-          <div className="h-80 lg:h-96 w-full -ml-4 mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[...datosTrimestrales].reverse()} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="ingresos" name="Ingresos" fill="#22d3ee" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="gastos" name="Gastos" fill="#f87171" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="beneficio" name="Beneficio neto" radius={[4, 4, 0, 0]}>
-                  {
-                    [...datosTrimestrales].reverse().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.beneficio >= 0 ? '#4ade80' : '#ef4444'} />
-                    ))
-                  }
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full overflow-x-auto pb-2">
+            <div className="h-80 lg:h-96 min-w-[520px] w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[...datosTrimestrales].reverse()} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                  <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="ingresos" name="Ingresos" fill="#22d3ee" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="gastos" name="Gastos" fill="#f87171" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="beneficio" name="Beneficio neto" radius={[4, 4, 0, 0]}>
+                    {
+                      [...datosTrimestrales].reverse().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.beneficio >= 0 ? '#4ade80' : '#ef4444'} />
+                      ))
+                    }
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </Card>
@@ -388,25 +390,27 @@ export function BalancesPage() {
         {totalIVADif === 0 && datosTrimestrales.every((d) => d.ivaRepercutido === 0) ? (
           <EmptyState icon={<Receipt className="w-12 h-12" />} title="Sin datos de IVA" subtitle="No hay facturas con IVA en los últimos 4 trimestres" />
         ) : (
-          <div className="h-80 lg:h-96 w-full -ml-4 mt-2">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={[...datosTrimestrales].reverse()} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                <Bar dataKey="ivaSoportado" name="IVA Soportado" fill="#60a5fa" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="ivaRepercutido" name="IVA Repercutido" fill="#c084fc" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="difIVA" name="Diferencia" radius={[4, 4, 0, 0]}>
-                  {
-                    [...datosTrimestrales].reverse().map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.difIVA >= 0 ? '#fbbf24' : '#ef4444'} />
-                    ))
-                  }
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="w-full overflow-x-auto pb-2">
+            <div className="h-80 lg:h-96 min-w-[520px] w-full mt-2">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={[...datosTrimestrales].reverse()} margin={{ top: 20, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                  <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                  <Bar dataKey="ivaSoportado" name="IVA Soportado" fill="#60a5fa" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="ivaRepercutido" name="IVA Repercutido" fill="#c084fc" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="difIVA" name="Diferencia" radius={[4, 4, 0, 0]}>
+                    {
+                      [...datosTrimestrales].reverse().map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.difIVA >= 0 ? '#fbbf24' : '#ef4444'} />
+                      ))
+                    }
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </Card>
@@ -429,27 +433,29 @@ export function BalancesPage() {
           <EmptyState icon={<Calculator className="w-12 h-12" />} title="Sin datos" subtitle="No hay datos suficientes para el cálculo fiscal" />
         ) : (
           <>
-            <div className="h-80 lg:h-96 w-full -ml-4 mb-4 mt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={[...datosTrimestrales].reverse().map(d => ({ ...d, importeFiscal: d.beneficio * tasaFiscal }))} 
-                  margin={{ top: 20, right: 0, left: 0, bottom: 0 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
-                  <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                  <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-                  <Legend wrapperStyle={{ paddingTop: '20px' }} />
-                  <Bar dataKey="difIVA" name="Diferencia IVA" radius={[4, 4, 0, 0]}>
-                    {
-                      [...datosTrimestrales].reverse().map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.difIVA >= 0 ? '#f59e0b' : '#ef4444'} />
-                      ))
-                    }
-                  </Bar>
-                  <Bar dataKey="importeFiscal" name={`Pago sobre beneficio (${tasaFiscal * 100}%)`} fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="w-full overflow-x-auto pb-2">
+              <div className="h-80 lg:h-96 min-w-[520px] w-full mb-4 mt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart 
+                    data={[...datosTrimestrales].reverse().map(d => ({ ...d, importeFiscal: d.beneficio * tasaFiscal }))} 
+                    margin={{ top: 20, right: 10, left: -10, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                    <XAxis dataKey="label" stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                    <YAxis stroke="#9ca3af" tick={{ fill: '#9ca3af', fontSize: 12 }} />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                    <Legend wrapperStyle={{ paddingTop: '20px' }} />
+                    <Bar dataKey="difIVA" name="Diferencia IVA" radius={[4, 4, 0, 0]}>
+                      {
+                        [...datosTrimestrales].reverse().map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.difIVA >= 0 ? '#f59e0b' : '#ef4444'} />
+                        ))
+                      }
+                    </Bar>
+                    <Bar dataKey="importeFiscal" name={`Pago sobre beneficio (${tasaFiscal * 100}%)`} fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t border-bg-700">
