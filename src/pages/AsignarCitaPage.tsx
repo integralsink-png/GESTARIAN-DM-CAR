@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { supabase } from '../lib/supabase';
-import { playSuccessChime, playRadioTuningStatic } from '../lib/sound';
+import { playSuccessChime, playTimepickerTickSound } from '../lib/sound';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronUp, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { MatriculaBadge } from '../components/UI';
 
@@ -67,10 +67,10 @@ export function AsignarCitaPage() {
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const firstDayIndex = (new Date(currentYear, currentMonth, 1).getDay() + 6) % 7; // Monday = 0
 
-  // Scroll de rueda vintage tuning con sonido analógico
+  // Scroll de rueda vintage tuning con sonido sutil de reloj
   const handleWheelTuning = (e: React.WheelEvent) => {
     e.preventDefault();
-    playRadioTuningStatic();
+    playTimepickerTickSound();
     if (e.deltaY > 0) {
       setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
     } else {
@@ -78,7 +78,7 @@ export function AsignarCitaPage() {
     }
   };
 
-  // Arrastre táctil en la rueda tuning con sonido analógico
+  // Arrastre táctil en la rueda tuning con sonido sutil de reloj
   const handleTouchStart = (e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
   };
@@ -88,7 +88,7 @@ export function AsignarCitaPage() {
     const currentY = e.touches[0].clientY;
     const diff = dragStartY.current - currentY;
     if (Math.abs(diff) > 16) {
-      playRadioTuningStatic();
+      playTimepickerTickSound();
       if (diff > 0) {
         setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
       } else {
@@ -176,7 +176,7 @@ export function AsignarCitaPage() {
   const [horaDisplay, minutoDisplay] = currentTime.split(':');
 
   return (
-    <div className="fixed inset-0 z-50 bg-bg-950 text-white flex flex-col justify-between p-3 sm:p-4 overflow-hidden select-none touch-none w-screen h-screen">
+    <div className="min-h-screen bg-bg-950 text-white flex flex-col justify-between p-3 sm:p-4 select-none touch-none w-full pb-[145px]">
       {/* Toast Centrado con Glow */}
       <AnimatePresence>
         {showSuccessToast && createPortal(
@@ -196,8 +196,8 @@ export function AsignarCitaPage() {
         )}
       </AnimatePresence>
 
-      {/* Header Superior (98% ancho) */}
-      <div className="w-[98%] mx-auto flex items-center justify-between border-b border-bg-800 pb-2 shrink-0">
+      {/* Header Superior */}
+      <div className="w-full max-w-md mx-auto flex items-center justify-between border-b border-bg-800 pb-2 shrink-0">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -249,25 +249,25 @@ export function AsignarCitaPage() {
         </div>
       </div>
 
-      {/* Contenedor Central: 98% ancho de pantalla */}
-      <div className="flex-1 flex flex-col justify-around py-1 w-[98%] mx-auto overflow-hidden gap-2">
-        {/* 1. Tarjeta del Mes (98% ancho de pantalla) */}
+      {/* Conjunto Centrado: Calendario + Hora + Botones (espacio reducido a la mitad y centrado) */}
+      <div className="flex-1 flex flex-col justify-center items-center gap-1.5 sm:gap-2 w-full max-w-md mx-auto my-auto py-1">
+        {/* 1. Tarjeta del Mes (subida 20px) */}
         <motion.div
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
           onDragEnd={handleDragEnd}
-          className="w-full bg-bg-800/95 border border-bg-700/80 rounded-2xl p-3 sm:p-4 shadow-xl cursor-grab active:cursor-grabbing"
+          className="w-full bg-bg-800/95 border border-bg-700/80 rounded-2xl p-2.5 sm:p-3 shadow-xl cursor-grab active:cursor-grabbing -mt-5"
         >
           {/* Cabecera del Mes */}
-          <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center justify-between mb-1.5">
             <button
               onClick={handlePrevMonth}
               className="p-1 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes anterior"
             >
-              <ChevronLeft className="w-10 h-10 text-cyan-400" />
+              <ChevronLeft className="w-8 h-8 sm:w-9 sm:h-9 text-cyan-400" />
             </button>
-            <span className="font-black text-2xl sm:text-3xl text-white tracking-widest uppercase">
+            <span className="font-black text-xl sm:text-2xl text-white tracking-widest uppercase">
               {MESES[currentMonth]} {currentYear}
             </span>
             <button
@@ -275,29 +275,29 @@ export function AsignarCitaPage() {
               className="p-1 text-slate-400 hover:text-white hover:bg-bg-700/50 rounded-xl transition-all active:scale-90"
               title="Mes siguiente"
             >
-              <ChevronRight className="w-10 h-10 text-cyan-400" />
+              <ChevronRight className="w-8 h-8 sm:w-9 sm:h-9 text-cyan-400" />
             </button>
           </div>
 
-          {/* Días de la semana (98% del ancho de la tarjeta) */}
-          <div className="w-[98%] mx-auto grid grid-cols-7 gap-1 text-center font-bold text-[24px] sm:text-[27px] mb-1 leading-none">
+          {/* Días de la semana */}
+          <div className="w-[98%] mx-auto grid grid-cols-7 gap-1 text-center font-bold text-[20px] sm:text-[23px] mb-0.5 leading-none">
             {DIAS_SEMANA.map((d, i) => {
               let colorClass = 'text-slate-400';
               if (d === 'S') colorClass = 'text-blue-400 font-bold';
               if (d === 'D') colorClass = 'text-rose-500 font-bold';
 
               return (
-                <div key={i} className={`py-1 ${colorClass}`}>
+                <div key={i} className={`py-0.5 ${colorClass}`}>
                   {d}
                 </div>
               );
             })}
           </div>
 
-          {/* Grid de días (98% del ancho de la tarjeta, peso tipográfico reducido a font-semibold/font-medium) */}
+          {/* Grid de días */}
           <div className="w-[98%] mx-auto grid grid-cols-7 gap-1 text-center">
             {Array.from({ length: firstDayIndex }).map((_, i) => (
-              <div key={`empty-${i}`} className="h-10 sm:h-11" />
+              <div key={`empty-${i}`} className="h-9 sm:h-10" />
             ))}
 
             {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -312,7 +312,7 @@ export function AsignarCitaPage() {
                 <button
                   key={dayNum}
                   onClick={() => setSelectedDay(dayNum)}
-                  className={`h-10 sm:h-11 rounded-xl text-[26px] sm:text-[29px] flex items-center justify-center transition-all active:scale-90 leading-none ${
+                  className={`h-9 sm:h-10 rounded-xl text-[22px] sm:text-[25px] flex items-center justify-center transition-all active:scale-90 leading-none ${
                     isSelected
                       ? 'bg-cyan-500 text-bg-950 font-bold shadow-[0_0_15px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
                       : isToday
@@ -327,27 +327,27 @@ export function AsignarCitaPage() {
           </div>
         </motion.div>
 
-        {/* 2. Selector de Hora Flotante (Fuera de tarjeta, 98% ancho de pantalla) */}
-        <div className="w-[98%] mx-auto py-2 flex items-center justify-between gap-3 sm:gap-6">
-          {/* A la izquierda: Etiqueta "Hora:" flotante */}
+        {/* 2. Selector de Hora Flotante (Espacio reducido a la mitad) */}
+        <div className="w-full py-1 flex items-center justify-between gap-2 sm:gap-4">
+          {/* A la izquierda: Etiqueta "Hora:" */}
           <div className="flex items-center gap-2 shrink-0">
-            <span className="font-black text-3xl sm:text-4xl text-cyan-400 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
+            <span className="font-black text-2xl sm:text-3xl text-cyan-400 tracking-wider uppercase drop-shadow-[0_0_10px_rgba(6,182,212,0.4)]">
               Hora:
             </span>
           </div>
 
           {/* Al centro: Display flotante de la hora seleccionada */}
-          <div className="flex items-center justify-center gap-1.5 py-1 px-4 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
-            <span className="text-4xl sm:text-5xl font-black text-white tracking-tight tabular-nums">
+          <div className="flex items-center justify-center gap-1.5 py-0.5 px-3.5 rounded-2xl bg-cyan-500/10 border-2 border-cyan-500/40 shadow-[0_0_20px_rgba(6,182,212,0.25)]">
+            <span className="text-3xl sm:text-4xl font-black text-white tracking-tight tabular-nums">
               {horaDisplay}
             </span>
-            <span className="text-3xl sm:text-4xl font-black text-cyan-400 animate-pulse pb-1">:</span>
-            <span className="text-4xl sm:text-5xl font-black text-cyan-300 tracking-tight tabular-nums">
+            <span className="text-2xl sm:text-3xl font-black text-cyan-400 animate-pulse pb-0.5">:</span>
+            <span className="text-3xl sm:text-4xl font-black text-cyan-300 tracking-tight tabular-nums">
               {minutoDisplay}
             </span>
           </div>
 
-          {/* A la derecha: Rueda Vintage Tuning flotante interactiva */}
+          {/* A la derecha: Rueda Vintage Tuning */}
           <div
             ref={wheelRef}
             onWheel={handleWheelTuning}
@@ -357,8 +357,8 @@ export function AsignarCitaPage() {
             className="flex items-center gap-2 cursor-ns-resize group select-none shrink-0"
             title="Gira la rueda o haz scroll para ajustar la hora"
           >
-            {/* Rueda Vintage Tuning Estilizada */}
-            <div className="relative w-16 sm:w-20 h-16 sm:h-20 rounded-2xl bg-gradient-to-b from-slate-700 via-slate-900 to-slate-700 border-2 border-amber-400/80 shadow-[0_0_15px_rgba(251,191,36,0.35)] flex flex-col justify-between py-1 px-2 overflow-hidden active:scale-95 transition-transform">
+            {/* Rueda Vintage Tuning */}
+            <div className="relative w-14 sm:w-16 h-14 sm:h-16 rounded-2xl bg-gradient-to-b from-slate-700 via-slate-900 to-slate-700 border-2 border-amber-400/80 shadow-[0_0_15px_rgba(251,191,36,0.35)] flex flex-col justify-between py-1 px-2 overflow-hidden active:scale-95 transition-transform">
               <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-transparent to-black/30 pointer-events-none" />
               <div className="flex flex-col justify-between h-full w-full py-0.5 z-10">
                 <div className="h-0.5 w-full bg-slate-500 rounded-full opacity-60" />
@@ -373,50 +373,50 @@ export function AsignarCitaPage() {
               <div className="absolute inset-y-0 right-1 w-1 bg-red-500/90 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
             </div>
 
-            {/* Micro flechas de ayuda */}
+            {/* Micro flechas */}
             <div className="flex flex-col gap-1">
               <button
                 onClick={() => {
-                  playRadioTuningStatic();
+                  playTimepickerTickSound();
                   setSelectedTimeIndex((prev) => Math.max(0, prev - 1));
                 }}
                 className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90 border border-slate-700"
                 title="+15 min"
               >
-                <ChevronUp className="w-4 h-4" />
+                <ChevronUp className="w-3.5 h-3.5" />
               </button>
               <button
                 onClick={() => {
-                  playRadioTuningStatic();
+                  playTimepickerTickSound();
                   setSelectedTimeIndex((prev) => Math.min(TIME_SLOTS.length - 1, prev + 1));
                 }}
                 className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all active:scale-90 border border-slate-700"
                 title="-15 min"
               >
-                <ChevronLeft className="w-4 h-4 -rotate-90" />
+                <ChevronLeft className="w-3.5 h-3.5 -rotate-90" />
               </button>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Footer: Botones con altura x0.7, misma anchura (50%), texto blanco y grande */}
-      <div className="w-[98%] mx-auto grid grid-cols-2 gap-3 pt-2 border-t border-bg-800 shrink-0">
-        <button
-          onClick={() => navigate(-1)}
-          disabled={guardando}
-          className="py-2.5 px-4 rounded-2xl font-black text-lg sm:text-xl border-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-white transition-all active:scale-95 uppercase tracking-wider text-center flex items-center justify-center"
-        >
-          CANCELAR
-        </button>
+        {/* 3. Botones CANCELAR y ASIGNAR CITA (bajados 40px) */}
+        <div className="w-full grid grid-cols-2 gap-2.5 pt-1 mt-10 shrink-0">
+          <button
+            onClick={() => navigate(-1)}
+            disabled={guardando}
+            className="py-2.5 px-4 rounded-2xl font-black text-base sm:text-lg border-2 border-slate-700 bg-slate-800 hover:bg-slate-700 text-white transition-all active:scale-95 uppercase tracking-wider text-center flex items-center justify-center"
+          >
+            CANCELAR
+          </button>
 
-        <button
-          onClick={handleAsignarCita}
-          disabled={guardando}
-          className="py-2.5 px-4 rounded-2xl font-black text-lg sm:text-xl bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center uppercase tracking-wider text-center"
-        >
-          <span>{guardando ? 'ASIGNANDO...' : 'ASIGNAR CITA'}</span>
-        </button>
+          <button
+            onClick={handleAsignarCita}
+            disabled={guardando}
+            className="py-2.5 px-4 rounded-2xl font-black text-base sm:text-lg bg-emerald-600 hover:bg-emerald-500 text-white border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all hover:scale-[1.01] active:scale-95 flex items-center justify-center uppercase tracking-wider text-center"
+          >
+            <span>{guardando ? 'ASIGNANDO...' : 'ASIGNAR CITA'}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

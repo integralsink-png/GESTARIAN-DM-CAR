@@ -35,6 +35,8 @@ import {
   ImageIcon,
   FolderOpen,
   CheckCircle2,
+  ArrowUpDown,
+  ChevronDown,
 } from "lucide-react";
 import { PresupuestoIcon, ExpedienteFolderIcon } from "../components/CustomIcons";
 import { GlobalImageViewer } from "../components/GlobalImageViewer";
@@ -228,6 +230,17 @@ function ConceptoMobileCard({
   );
 }
 
+type SortOption = 'nuevos' | 'antiguos' | 'pendientes' | 'confirmados' | 'cerrados' | 'nombre';
+
+const SORT_LABELS: Record<SortOption, string> = {
+  nuevos: 'Más nuevos',
+  antiguos: 'Más antiguos',
+  pendientes: 'Pendientes',
+  confirmados: 'Confirmados',
+  cerrados: 'Cerrados',
+  nombre: 'Por nombre',
+};
+
 export function PresupuestosPage() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -240,6 +253,8 @@ export function PresupuestosPage() {
 
   const [search, setSearch] = useState("");
   const [showSearchInput, setShowSearchInput] = useState(false);
+  const [sortOrder, setSortOrder] = useState<SortOption>('nuevos');
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [expandedClienteId, setExpandedClienteId] = useState<string | null>(clienteIdFromNav ?? null);
   const [allVehiculos, setAllVehiculos] = useState<Record<string, Vehiculo>>({});
   const [vehiculos, setVehiculos] = useState<Vehiculo[]>([]);
@@ -779,52 +794,141 @@ export function PresupuestosPage() {
         </button>
       </PageHeader>
 
-      {/* Barra de búsqueda y botón de nuevo presupuesto */}
+      {/* Barra de búsqueda, botón de nuevo presupuesto centrado y desplegable de orden */}
       {!showForm && !clienteIdFromNav && (
-        <div className="mb-4 flex gap-4 items-center w-full">
-          {showSearchInput ? (
-            <div className="relative flex-1 flex items-center gap-2">
-              <input
-                type="text"
-                autoFocus
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar por cliente, matrícula o número de presupuesto..."
-                className="flex-1 bg-bg-800 border border-bg-600 rounded-xl px-4 py-3 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
-              />
-              <button
-                onClick={() => {
-                  setShowSearchInput(false);
-                  setSearch('');
-                }}
-                className="text-slate-400 hover:text-white p-2 shrink-0"
-                title="Cerrar búsqueda"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-          ) : (
-            <>
-              <button
-                onClick={() => setShowSearchInput(true)}
-                className="w-12 h-12 flex items-center justify-center text-slate-450 hover:text-white shrink-0 transition-transform active:scale-95 bg-transparent border-0 outline-none p-0"
-                title="Buscar"
-              >
-                <Search className="w-8 h-8" />
-              </button>
+        <div className="mb-4 flex flex-col gap-2.5 w-full">
+          <div className="flex items-center justify-between gap-2.5 sm:gap-3 w-full">
+            {/* 1. Lupa a la izquierda */}
+            <button
+              onClick={() => setShowSearchInput(!showSearchInput)}
+              className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all active:scale-95 shrink-0 ${
+                showSearchInput
+                  ? 'bg-cyan-500/20 text-cyan-400 border-2 border-cyan-500/60 shadow-[0_0_12px_rgba(8,145,178,0.4)]'
+                  : 'text-slate-400 hover:text-white bg-bg-800/80 border border-slate-700 hover:bg-bg-750'
+              }`}
+              title={showSearchInput ? "Ocultar búsqueda" : "Buscar presupuestos"}
+              aria-label="Buscar"
+            >
+              <Search className="w-6 h-6" />
+            </button>
+
+            {/* 2. Botón de nuevo presupuesto centrado en la pantalla (a la derecha de la lupa) */}
+            <div className="flex-1 flex justify-center">
               <button
                 onClick={() => {
                   resetForm();
                   setShowForm(true);
                 }}
-                className="flex-1 h-12 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 font-extrabold shadow-[0_0_12px_rgba(8,145,178,0.3)] gap-1.5 uppercase text-sm tracking-wider"
+                className="w-full max-w-xs h-12 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/60 flex items-center justify-center hover:bg-cyan-500/30 transition-transform active:scale-95 font-black shadow-[0_0_12px_rgba(8,145,178,0.3)] gap-2 uppercase text-xs sm:text-sm tracking-wider px-3"
                 title="Añadir nuevo presupuesto"
                 aria-label="Añadir nuevo presupuesto"
               >
-                <Plus className="w-5 h-5" /> NUEVO PRESUPUESTO
+                <Plus className="w-5 h-5 shrink-0" />
+                <span className="truncate">NUEVO PRESUPUESTO</span>
               </button>
-            </>
-          )}
+            </div>
+
+            {/* 3. Botón desplegable para seleccionar el orden */}
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setShowSortDropdown(!showSortDropdown)}
+                className={`h-12 px-3 sm:px-4 rounded-2xl border flex items-center gap-1.5 sm:gap-2 transition-all active:scale-95 text-xs sm:text-sm font-black uppercase tracking-wider ${
+                  showSortDropdown
+                    ? 'bg-amber-500/20 text-amber-300 border-2 border-amber-400/80 shadow-[0_0_12px_rgba(245,158,11,0.3)]'
+                    : 'bg-bg-800/80 hover:bg-bg-750 text-slate-200 border-slate-700 hover:border-slate-600'
+                }`}
+                title="Seleccionar orden de los presupuestos"
+                aria-label="Ordenar presupuestos"
+              >
+                <ArrowUpDown className="w-4 h-4 text-amber-400 shrink-0" />
+                <span className="hidden sm:inline">{SORT_LABELS[sortOrder]}</span>
+                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showSortDropdown ? 'rotate-180 text-amber-400' : ''}`} />
+              </button>
+
+              {/* Menú Desplegable con opciones de orden */}
+              <AnimatePresence>
+                {showSortDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowSortDropdown(false)} 
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-14 z-50 w-52 bg-slate-900/95 backdrop-blur-md border-2 border-amber-400/60 rounded-2xl p-1.5 shadow-[0_15px_35px_rgba(0,0,0,0.8),0_0_20px_rgba(245,158,11,0.2)] flex flex-col gap-1 select-none"
+                    >
+                      <div className="px-3 py-1.5 text-[11px] font-black text-amber-400/80 uppercase tracking-widest border-b border-slate-800">
+                        Ordenar por
+                      </div>
+                      {(['nuevos', 'antiguos', 'pendientes', 'confirmados', 'cerrados', 'nombre'] as SortOption[]).map((opt) => {
+                        const isSelected = sortOrder === opt;
+                        return (
+                          <button
+                            key={opt}
+                            onClick={() => {
+                              setSortOrder(opt);
+                              setShowSortDropdown(false);
+                            }}
+                            className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-left uppercase tracking-wide ${
+                              isSelected
+                                ? 'bg-amber-500/20 text-amber-300 font-black border border-amber-400/50'
+                                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+                            }`}
+                          >
+                            <span>{SORT_LABELS[opt]}</span>
+                            {isSelected && <Check className="w-4 h-4 text-amber-400 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Campo de búsqueda expandible */}
+          <AnimatePresence>
+            {showSearchInput && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="relative flex items-center gap-2 w-full pt-1 overflow-hidden"
+              >
+                <input
+                  type="text"
+                  autoFocus
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Buscar por cliente, matrícula o número de presupuesto..."
+                  className="flex-1 bg-bg-800 border border-bg-600 rounded-xl px-4 py-2.5 text-sm text-white focus:border-cyan-500 focus:outline-none transition-colors shadow-inner"
+                />
+                {search && (
+                  <button
+                    onClick={() => setSearch('')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all shrink-0"
+                  >
+                    Limpiar
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setShowSearchInput(false);
+                    setSearch('');
+                  }}
+                  className="text-slate-400 hover:text-white p-2 shrink-0"
+                  title="Cerrar búsqueda"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
       )}
 
@@ -1590,10 +1694,94 @@ export function PresupuestosPage() {
               );
             }
 
-            // Ordenar alfabéticamente por nombre de cliente
-            clientesConPresupuestos.sort((a, b) =>
-              (a.cliente.nombre || '').localeCompare(b.cliente.nombre || '', 'es', { sensitivity: 'base' })
-            );
+            // Helper para determinar si un presupuesto está cerrado
+            const isPresupuestoCerrado = (p: Presupuesto) => {
+              if (p.estado === 'cerrado') return true;
+              return facturas.some(f => f.presupuesto_id === p.id || (f.vehiculo_id === p.vehiculo_id && f.confirmada));
+            };
+
+            const getClientTimestamp = (clientPresups: Presupuesto[], mode: 'max' | 'min') => {
+              if (clientPresups.length === 0) return 0;
+              const times = clientPresups.map(p => new Date(p.created_at || 0).getTime());
+              return mode === 'max' ? Math.max(...times) : Math.min(...times);
+            };
+
+            // 1. Ordenar presupuestos individuales dentro de cada cliente
+            clientesConPresupuestos.forEach(({ clientPresups }) => {
+              clientPresups.sort((a, b) => {
+                const timeA = new Date(a.created_at || 0).getTime();
+                const timeB = new Date(b.created_at || 0).getTime();
+                if (sortOrder === 'antiguos') {
+                  return timeA - timeB;
+                }
+                if (sortOrder === 'pendientes') {
+                  const aPend = a.estado !== 'aceptado';
+                  const bPend = b.estado !== 'aceptado';
+                  if (aPend && !bPend) return -1;
+                  if (!aPend && bPend) return 1;
+                  return timeB - timeA;
+                }
+                if (sortOrder === 'confirmados') {
+                  const aConf = a.estado === 'aceptado';
+                  const bConf = b.estado === 'aceptado';
+                  if (aConf && !bConf) return -1;
+                  if (!aConf && bConf) return 1;
+                  return timeB - timeA;
+                }
+                if (sortOrder === 'cerrados') {
+                  const aCerr = isPresupuestoCerrado(a);
+                  const bCerr = isPresupuestoCerrado(b);
+                  if (aCerr && !bCerr) return -1;
+                  if (!aCerr && bCerr) return 1;
+                  return timeB - timeA;
+                }
+                // default ('nuevos' y 'nombre')
+                return timeB - timeA;
+              });
+            });
+
+            // 2. Ordenar las tarjetas de cliente según el criterio seleccionado
+            clientesConPresupuestos.sort((a, b) => {
+              if (sortOrder === 'nombre') {
+                return (a.cliente.nombre || '').localeCompare(b.cliente.nombre || '', 'es', { sensitivity: 'base' });
+              }
+              if (sortOrder === 'antiguos') {
+                const minA = getClientTimestamp(a.clientPresups, 'min');
+                const minB = getClientTimestamp(b.clientPresups, 'min');
+                return minA - minB;
+              }
+              if (sortOrder === 'pendientes') {
+                const hasPendA = a.clientPresups.some(p => p.estado !== 'aceptado');
+                const hasPendB = b.clientPresups.some(p => p.estado !== 'aceptado');
+                if (hasPendA && !hasPendB) return -1;
+                if (!hasPendA && hasPendB) return 1;
+                const maxA = getClientTimestamp(a.clientPresups, 'max');
+                const maxB = getClientTimestamp(b.clientPresups, 'max');
+                return maxB - maxA;
+              }
+              if (sortOrder === 'confirmados') {
+                const hasConfA = a.clientPresups.some(p => p.estado === 'aceptado');
+                const hasConfB = b.clientPresups.some(p => p.estado === 'aceptado');
+                if (hasConfA && !hasConfB) return -1;
+                if (!hasConfA && hasConfB) return 1;
+                const maxA = getClientTimestamp(a.clientPresups, 'max');
+                const maxB = getClientTimestamp(b.clientPresups, 'max');
+                return maxB - maxA;
+              }
+              if (sortOrder === 'cerrados') {
+                const hasCerrA = a.clientPresups.some(isPresupuestoCerrado);
+                const hasCerrB = b.clientPresups.some(isPresupuestoCerrado);
+                if (hasCerrA && !hasCerrB) return -1;
+                if (!hasCerrA && hasCerrB) return 1;
+                const maxA = getClientTimestamp(a.clientPresups, 'max');
+                const maxB = getClientTimestamp(b.clientPresups, 'max');
+                return maxB - maxA;
+              }
+              // default: 'nuevos'
+              const maxA = getClientTimestamp(a.clientPresups, 'max');
+              const maxB = getClientTimestamp(b.clientPresups, 'max');
+              return maxB - maxA;
+            });
 
             return clientesConPresupuestos.map(({ cliente, clientPresups }) => {
               const isExpanded = expandedClienteId === cliente.id;
@@ -1860,7 +2048,7 @@ export function PresupuestosPage() {
         document.body
       )}
 
-      {/* Modal Informativo de Presupuesto Enviado Directo con botones grandes */}
+      {/* Modal Informativo de Presupuesto Enviado Directo con botón VER EXPEDIENTE */}
       {modalEnvioOpen && createPortal(
         <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-all duration-300">
           <AnimatePresence mode="wait">
@@ -1875,28 +2063,55 @@ export function PresupuestosPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
+              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-6">
                 PRESUPUESTO ENVIADO CORRECTAMENTE
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3">
+                {/* Botón VER EXPEDIENTE para acceder directamente al Roadmap */}
                 <button
                   onClick={() => {
                     setModalEnvioOpen(false);
-                    handleVolver();
+                    const currentP = editingId ? presupuestos.find(p => p.id === editingId) : null;
+                    const pId = editingId || currentP?.id;
+                    const vId = selectedVehiculoId || currentP?.vehiculo_id;
+                    const cId = selectedClienteId || currentP?.cliente_id;
+                    const veh = vehiculos.find(v => v.id === vId);
+                    const cli = clientes.find(c => c.id === cId);
+                    navigate('/expedientes', {
+                      state: {
+                        expandPresupuestoId: pId,
+                        expandVehiculoId: vId,
+                        clienteId: cId,
+                        search: veh?.matricula || cli?.nombre || ''
+                      }
+                    });
                   }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[28px] sm:text-[32px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-black text-xl sm:text-2xl leading-none border-2 border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-wider"
                 >
-                  VOLVER
+                  <FolderOpen className="w-6 h-6 sm:w-7 sm:h-7 text-amber-200 fill-amber-200/40 shrink-0" />
+                  <span>VER EXPEDIENTE</span>
                 </button>
-                <button
-                  onClick={() => {
-                    setModalEnvioOpen(false);
-                  }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[28px] sm:text-[32px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
-                >
-                  ACEPTAR
-                </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setModalEnvioOpen(false);
+                      handleVolver();
+                    }}
+                    className="py-3.5 sm:py-4 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg sm:text-xl leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                  >
+                    VOLVER
+                  </button>
+                  <button
+                    onClick={() => {
+                      setModalEnvioOpen(false);
+                    }}
+                    className="py-3.5 sm:py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                  >
+                    ACEPTAR
+                  </button>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>

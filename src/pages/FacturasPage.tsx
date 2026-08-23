@@ -32,14 +32,6 @@ export function FacturasPage() {
     mode?: string;
   } | null
 
-  const handleVolver = () => {
-    if (navState) {
-      navigate(-1)
-    } else {
-      setSelectedFactura(null)
-    }
-  }
-
   const [activeTab, setActiveTab] = useState<'emitidas' | 'recibidas'>('emitidas')
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
@@ -49,6 +41,32 @@ export function FacturasPage() {
   const [config, setConfig] = useState<Configuracion | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedFactura, setSelectedFactura] = useState<Factura | null>(null)
+  const [isEditingDraft, setIsEditingDraft] = useState(false)
+  const [hasPendingChanges, setHasPendingChanges] = useState(false)
+  const [showExitConfirmModal, setShowExitConfirmModal] = useState(false)
+
+  const handleVolver = () => {
+    if (selectedFactura?.id === 'draft' || hasPendingChanges || isEditingDraft) {
+      setShowExitConfirmModal(true)
+    } else {
+      if (navState) {
+        navigate(-1)
+      } else {
+        setSelectedFactura(null)
+      }
+    }
+  }
+
+  const salirDirecto = () => {
+    setShowExitConfirmModal(false)
+    setIsEditingDraft(false)
+    setHasPendingChanges(false)
+    if (navState) {
+      navigate(-1)
+    } else {
+      setSelectedFactura(null)
+    }
+  }
   const [cobros, setCobros] = useState<Cobro[]>([])
   const [showRegistro, setShowRegistro] = useState(false)
   const [trimestreFilter, setTrimestreFilter] = useState('')
@@ -70,7 +88,6 @@ export function FacturasPage() {
   const [showCobroPanel, setShowCobroPanel] = useState(false);
   const [nuevoAbono, setNuevoAbono] = useState('');
   const [modalEnvioOpen, setModalEnvioOpen] = useState(false);
-  const [isEditingDraft, setIsEditingDraft] = useState(false);
 
 
 
@@ -103,6 +120,7 @@ export function FacturasPage() {
     const { data } = await supabase.from('facturas').select('*').order('created_at', { ascending: false })
     setFacturas((data ?? []).map(f => ({
       ...f,
+      observaciones: (f as any).observaciones || localStorage.getItem(`factura_${f.id}_observaciones`) || undefined,
       enviado_email_at: (f as any).enviado_email_at || localStorage.getItem(`factura_${f.id}_email_at`),
       enviado_email_2_at: (f as any).enviado_email_2_at || localStorage.getItem(`factura_${f.id}_email_2_at`),
       enviado_whatsapp_at: (f as any).enviado_whatsapp_at || localStorage.getItem(`factura_${f.id}_wa_at`),
@@ -351,62 +369,120 @@ export function FacturasPage() {
     if (obs) setObservaciones(obs)
   }
 
+  const isFacturaBloqueada = (f: Factura | null): boolean => {
+    if (!f) return false
+    return !!(f.enviado_email_at || f.enviado_whatsapp_at)
+  }
+
   async function confirmarFactura() {
-    if (!selectedFactura || selectedFactura.id !== 'draft') return
-    
-    // Comprobar estrictamente si ya existe para no duplicar facturas
-    if (selectedFactura.reparacion_id) {
-      const { data: existing } = await supabase.from('facturas').select('*').eq('reparacion_id', selectedFactura.reparacion_id).maybeSingle()
-      if (existing) {
-        setSelectedFactura(existing as Factura)
-        showToast("La factura ya estaba guardada", 'info')
-        return
-      }
-    }
-
-    // Al confirmar, recalculamos el número para evitar colisiones si se crearon otras
-    const yearSuffix = String(new Date().getFullYear()).slice(-2)
-    const prefix = `F${yearSuffix}`
-    const { data: todas } = await supabase.from('facturas').select('numero').like('numero', `${prefix}%`)
-    let maxNum = 0
-    for (const f of (todas || [])) {
-      if (f.numero && f.numero.startsWith(prefix)) {
-        const numPart = parseInt(f.numero.substring(prefix.length), 10)
-        if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart
-      }
-    }
-    const finalNumero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
-
-    const { data, error } = await supabase.from('facturas').insert({
-      numero: finalNumero,
-      reparacion_id: selectedFactura.reparacion_id,
-      cliente_id: selectedFactura.cliente_id,
-      vehiculo_id: selectedFactura.vehiculo_id,
-      conceptos: selectedFactura.conceptos,
-      total: selectedFactura.total,
-      total_abonado: 0,
-      estado_cobro: 'pendiente',
-      fecha: selectedFactura.fecha
-    }).select().single()
-
-    if (error) {
-      alert('Error al confirmar factura: ' + error.message)
+    if (!selectedFactura) return
+    // Si estaba editando, validar y cerrar modo edición
+    if (isEditingDraft) {
+      setIsEditingDraft(false)
+      setHasPendingChanges(true)
+      showToast("Ha modificado la factura, pulse GUARDAR para actualizar", 'info', { duration: 4000, disableBounce: true })
+      setTimeout(() => {
+        const btnGuardar = document.getElementById('btn-guardar-a4')
+        if (btnGuardar) btnGuardar.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 200)
       return
     }
 
-    await loadFacturas()
-    setSelectedFactura(data)
-    playSuccessChime()
-    showToast("FACTURA GENERADA", 'success')
+    if (selectedFactura.id === 'draft') {
+      showToast("Borrador revisado. Pulse GUARDAR para registrar en BD", 'info', { duration: 3500, disableBounce: true })
+      setTimeout(() => {
+        const btnGuardar = document.getElementById('btn-guardar-a4')
+        if (btnGuardar) btnGuardar.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 200)
+    } else {
+      showToast("Factura revisada", 'info', { duration: 2500, disableBounce: true })
+    }
+  }
 
-    // Aviso recordatorio para enviar factura (verde, texto blanco, sin animación, 5 segundos)
-    setTimeout(() => {
-      showToast(
-        "Ya puedes enviar la factura por Email o WhatsApp al cliente pulsando los iconos que encontrarás más abajo",
-        'success',
-        { duration: 5000, disableBounce: true }
-      )
-    }, 1500)
+  async function registrarFactura() {
+    if (!selectedFactura) return
+
+    // Caso 1: Factura en Borrador -> Insertar en BD
+    if (selectedFactura.id === 'draft') {
+      if (selectedFactura.reparacion_id) {
+        const { data: existing } = await supabase.from('facturas').select('*').eq('reparacion_id', selectedFactura.reparacion_id).maybeSingle()
+        if (existing) {
+          setSelectedFactura(existing as Factura)
+          setIsEditingDraft(false)
+          setHasPendingChanges(false)
+          showToast("La factura ya estaba guardada", 'info', { disableBounce: true })
+          return
+        }
+      }
+
+      const yearSuffix = String(new Date().getFullYear()).slice(-2)
+      const prefix = `F${yearSuffix}`
+      const { data: todas } = await supabase.from('facturas').select('numero').like('numero', `${prefix}%`)
+      let maxNum = 0
+      for (const f of (todas || [])) {
+        if (f.numero && f.numero.startsWith(prefix)) {
+          const numPart = parseInt(f.numero.substring(prefix.length), 10)
+          if (!isNaN(numPart) && numPart > maxNum) maxNum = numPart
+        }
+      }
+      const finalNumero = `${prefix}${String(maxNum + 1).padStart(4, '0')}`
+
+      const { data, error } = await supabase.from('facturas').insert({
+        numero: finalNumero,
+        reparacion_id: selectedFactura.reparacion_id,
+        cliente_id: selectedFactura.cliente_id,
+        vehiculo_id: selectedFactura.vehiculo_id,
+        conceptos: selectedFactura.conceptos,
+        total: selectedFactura.total,
+        total_abonado: 0,
+        estado_cobro: selectedFactura.total <= 0 ? 'pagada' : 'pendiente',
+        fecha: selectedFactura.fecha
+      }).select().single()
+
+      if (error) {
+        alert('Error al guardar factura: ' + error.message)
+        return
+      }
+
+      if (data?.id && observaciones) {
+        localStorage.setItem(`factura_${data.id}_observaciones`, observaciones)
+      }
+
+      await loadFacturas()
+      setSelectedFactura({ ...(data as Factura), observaciones })
+      setIsEditingDraft(false)
+      setHasPendingChanges(false)
+      playSuccessChime()
+      showToast("FACTURA GENERADA Y GUARDADA", 'success')
+      return
+    }
+
+    // Caso 2: Factura Existente -> Actualizar en BD
+    const { data: updated, error } = await supabase.from('facturas').update({
+      conceptos: selectedFactura.conceptos,
+      total: selectedFactura.total
+    } as any).eq('id', selectedFactura.id).select().single()
+
+    if (error) {
+      alert('Error al actualizar factura: ' + error.message)
+      return
+    }
+
+    if (selectedFactura.id && observaciones) {
+      localStorage.setItem(`factura_${selectedFactura.id}_observaciones`, observaciones)
+    }
+
+    await loadFacturas()
+    if (updated) setSelectedFactura({ ...(updated as Factura), observaciones })
+    setIsEditingDraft(false)
+    setHasPendingChanges(false)
+    playSuccessChime()
+    showToast("EXPEDIENTE ACTUALIZADO", 'success')
+  }
+
+  async function guardarYSalir() {
+    await registrarFactura()
+    salirDirecto()
   }
 
   useEffect(() => {
@@ -504,10 +580,6 @@ export function FacturasPage() {
     showToast("FACTURA ABONADA", 'success')
   }
 
-  function registrarFactura() {
-    showToast("FACTURA GUARDADA", 'success')
-  }
-
   async function eliminarFactura(id: string) {
     if (!confirm('¿Eliminar esta factura? Esta acción no se puede deshacer.')) return
     await supabase.from('cobros').delete().eq('factura_id', id)
@@ -578,22 +650,24 @@ export function FacturasPage() {
 
     const isSecond = !!selectedFactura.enviado_email_at
 
+    if (selectedFactura.id && observaciones) {
+      localStorage.setItem(`factura_${selectedFactura.id}_observaciones`, observaciones)
+    }
+
     if (isSecond) {
       localStorage.setItem(`factura_${selectedFactura.id}_email_2_at`, nowIso)
-      setSelectedFactura({ ...selectedFactura, enviado_email_2_at: nowIso } as any)
+      setSelectedFactura({ ...selectedFactura, enviado_email_2_at: nowIso, observaciones } as any)
       if (selectedFactura.id !== 'draft') {
         await supabase.from('facturas').update({
-          enviado_email_2_at: nowIso,
-          observaciones
+          enviado_email_2_at: nowIso
         } as any).eq('id', selectedFactura.id)
       }
     } else {
       localStorage.setItem(`factura_${selectedFactura.id}_email_at`, nowIso)
-      setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso } as any)
+      setSelectedFactura({ ...selectedFactura, enviado_email_at: nowIso, observaciones } as any)
       if (selectedFactura.id !== 'draft') {
         await supabase.from('facturas').update({
-          enviado_email_at: nowIso,
-          observaciones
+          enviado_email_at: nowIso
         } as any).eq('id', selectedFactura.id)
       }
     }
@@ -834,24 +908,23 @@ export function FacturasPage() {
           {/* Panel izquierdo: control de cobro + acciones */}
           <div className="space-y-4" id="control-cobro">
             {selectedFactura.id === 'draft' ? (
-              <div className="bg-amber-900/20 border-[3px] border-amber-500/60 rounded-2xl p-6 text-center shadow-[0_0_20px_rgba(245,158,11,0.15)]">
-                <h3 className="text-xl font-bold text-amber-400 mb-2 uppercase tracking-widest">Borrador de Factura</h3>
-                <p className="text-sm text-amber-200/70 mb-6">Esta factura aún no se ha guardado en el sistema.</p>
-                <div className="flex flex-col gap-4 max-w-sm mx-auto">
-                  <button
-                    onClick={confirmarFactura}
-                    className="relative w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-lg tracking-widest uppercase shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 overflow-hidden"
-                  >
-                    {/* Animación SOLO de la línea de borde blanco del botón confirmar */}
-                    <span className="absolute inset-0 border-[2px] border-white rounded-xl animate-pulse pointer-events-none"></span>
-                    <Check className="w-6 h-6 relative z-10" />
-                    <span className="relative z-10">CONFIRMAR</span>
-                  </button>
+              !isEditingDraft && (
+                <div className="bg-amber-900/20 border-[3px] border-amber-500/60 rounded-2xl p-6 text-center shadow-[0_0_20px_rgba(245,158,11,0.15)]">
+                  <h3 className="text-xl font-bold text-amber-400 mb-2 uppercase tracking-widest">Borrador de Factura</h3>
+                  <p className="text-sm text-amber-200/70 mb-6">Esta factura aún no se ha guardado en el sistema.</p>
+                  <div className="flex flex-col gap-4 max-w-sm mx-auto">
+                    <button
+                      onClick={confirmarFactura}
+                      className="relative w-full py-4 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-black text-lg tracking-widest uppercase shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2 overflow-hidden"
+                    >
+                      {/* Animación SOLO de la línea de borde blanco del botón confirmar */}
+                      <span className="absolute inset-0 border-[2px] border-white rounded-xl animate-pulse pointer-events-none"></span>
+                      <Check className="w-6 h-6 relative z-10" />
+                      <span className="relative z-10">CONFIRMAR</span>
+                    </button>
 
-                  {/* Botón EDITAR en la tarjeta (cuando no está en modo edición) */}
-                  {!isEditingDraft && (
-                    <motion.button
-                      layoutId="draft-edit-save-button"
+                    {/* Botón EDITAR en la tarjeta (al pulsar desaparece la tarjeta y toma el control GUARDAR) */}
+                    <button
                       onClick={() => {
                         setIsEditingDraft(true)
                         setTimeout(() => {
@@ -866,17 +939,17 @@ export function FacturasPage() {
                     >
                       <Edit3 className="w-5 h-5" />
                       EDITAR
-                    </motion.button>
-                  )}
+                    </button>
 
-                  <button
-                    onClick={handleVolver}
-                    className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold tracking-widest uppercase border border-slate-800 transition-all active:scale-95"
-                  >
-                    VOLVER
-                  </button>
+                    <button
+                      onClick={handleVolver}
+                      className="w-full py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 font-bold tracking-widest uppercase border border-slate-800 transition-all active:scale-95"
+                    >
+                      VOLVER
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )
             ) : (
             <Card className="p-5">
               <h3 className="text-sm font-semibold text-white mb-4">Control de Cobro</h3>
@@ -1111,27 +1184,19 @@ export function FacturasPage() {
                 })()}
               </div>
 
-              {/* Botón GUARDAR flotante que vuela animadamente junto al titular */}
-              {selectedFactura.id === 'draft' && isEditingDraft && (
+              {/* Botón CONFIRMAR flotante que aparece junto al titular al estar en modo edición */}
+              {isEditingDraft && (
                 <motion.button
                   layoutId="draft-edit-save-button"
                   initial={{ opacity: 0, scale: 0.8, x: 20 }}
                   animate={{ opacity: 1, scale: 1, x: 0 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                  onClick={() => {
-                    setIsEditingDraft(false)
-                    setTimeout(() => {
-                      const controlEl = document.getElementById('control-cobro')
-                      if (controlEl) {
-                        controlEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-                      }
-                    }, 100)
-                  }}
+                  onClick={confirmarFactura}
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm tracking-wider uppercase shadow-xl shadow-emerald-900/40 border-2 border-emerald-400 flex items-center justify-center gap-2 active:scale-95 shrink-0"
                 >
                   <Check className="w-5 h-5" />
-                  GUARDAR
+                  CONFIRMAR
                 </motion.button>
               )}
             </div>
@@ -1158,6 +1223,7 @@ export function FacturasPage() {
                             type="text"
                             value={c.descripcion}
                             onChange={(e) => {
+                              setHasPendingChanges(true)
                               const newConceptos = [...(selectedFactura.conceptos ?? [])]
                               newConceptos[i] = { ...c, descripcion: e.target.value }
                               const newTotal = newConceptos.reduce((acc, curr) => acc + (curr.cantidad * curr.precio), 0)
@@ -1178,6 +1244,7 @@ export function FacturasPage() {
                             step="1"
                             value={c.cantidad}
                             onChange={(e) => {
+                              setHasPendingChanges(true)
                               const qty = Math.max(1, parseFloat(e.target.value) || 1)
                               const newConceptos = [...(selectedFactura.conceptos ?? [])]
                               newConceptos[i] = { ...c, cantidad: qty }
@@ -1198,6 +1265,7 @@ export function FacturasPage() {
                             step="0.01"
                             value={c.precio}
                             onChange={(e) => {
+                              setHasPendingChanges(true)
                               const pr = Math.max(0, parseFloat(e.target.value) || 0)
                               const newConceptos = [...(selectedFactura.conceptos ?? [])]
                               newConceptos[i] = { ...c, precio: pr }
@@ -1217,6 +1285,7 @@ export function FacturasPage() {
                         <td className="py-2 text-center">
                           <button
                             onClick={() => {
+                              setHasPendingChanges(true)
                               const newConceptos = (selectedFactura.conceptos ?? []).filter((_, idx) => idx !== i)
                               const newTotal = newConceptos.reduce((acc, curr) => acc + (curr.cantidad * curr.precio), 0)
                               setSelectedFactura({ ...selectedFactura, conceptos: newConceptos, total: newTotal })
@@ -1239,6 +1308,7 @@ export function FacturasPage() {
               <div className="mb-4">
                 <button
                   onClick={() => {
+                    setHasPendingChanges(true)
                     const newConceptos = [...(selectedFactura.conceptos ?? []), { descripcion: '', cantidad: 1, precio: 0 }]
                     setSelectedFactura({ ...selectedFactura, conceptos: newConceptos })
                   }}
@@ -1382,25 +1452,27 @@ export function FacturasPage() {
                                 })
 
                                 if (res.success) {
+                                  if (selectedFactura.id && observaciones) {
+                                    localStorage.setItem(`factura_${selectedFactura.id}_observaciones`, observaciones)
+                                  }
+
                                   const nowIso = new Date().toISOString()
                                   const isSecond = !!selectedFactura.enviado_whatsapp_at
 
                                   if (isSecond) {
                                     localStorage.setItem(`factura_${selectedFactura.id}_wa_2_at`, nowIso)
-                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_2_at: nowIso } as any)
+                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_2_at: nowIso, observaciones } as any)
                                     if (selectedFactura.id !== 'draft') {
                                       await supabase.from('facturas').update({
-                                        enviado_whatsapp_2_at: nowIso,
-                                        observaciones
+                                        enviado_whatsapp_2_at: nowIso
                                       } as any).eq('id', selectedFactura.id)
                                     }
                                   } else {
                                     localStorage.setItem(`factura_${selectedFactura.id}_wa_at`, nowIso)
-                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso } as any)
+                                    setSelectedFactura({ ...selectedFactura, enviado_whatsapp_at: nowIso, observaciones } as any)
                                     if (selectedFactura.id !== 'draft') {
                                       await supabase.from('facturas').update({
-                                        enviado_whatsapp_at: nowIso,
-                                        observaciones
+                                        enviado_whatsapp_at: nowIso
                                       } as any).eq('id', selectedFactura.id)
                                     }
                                   }
@@ -1463,23 +1535,30 @@ export function FacturasPage() {
                       {/* LÍNEA 2: GUARDAR | EDITAR | VOLVER */}
                       <div className="flex items-center justify-center gap-3 pt-1">
                         <button
+                          id="btn-guardar-a4"
                           onClick={registrarFactura}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95"
+                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95 flex items-center gap-1.5"
                         >
+                          <Save className="w-4 h-4" />
                           GUARDAR
                         </button>
 
-                        <button
-                          onClick={() => {
-                            const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
-                            if (firstInput) firstInput.focus()
-                          }}
-                          className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 shadow transition-all active:scale-95 flex items-center justify-center"
-                          title="EDITAR"
-                          aria-label="EDITAR"
-                        >
-                          <Edit3 className="w-5 h-5 text-cyan-400" />
-                        </button>
+                        {!isFacturaBloqueada(selectedFactura) && (
+                          <button
+                            onClick={() => {
+                              setIsEditingDraft(true)
+                              setTimeout(() => {
+                                const firstInput = document.querySelector('.gestarian-paper input') as HTMLInputElement
+                                if (firstInput) firstInput.focus()
+                              }, 150)
+                            }}
+                            className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 shadow transition-all active:scale-95 flex items-center justify-center"
+                            title="EDITAR"
+                            aria-label="EDITAR"
+                          >
+                            <Edit3 className="w-5 h-5 text-cyan-400" />
+                          </button>
+                        )}
 
                         <button
                           onClick={handleVolver}
@@ -1674,28 +1753,107 @@ export function FacturasPage() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center mx-auto mb-5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.4)]">
                 <CheckCircle2 className="w-9 h-9" />
               </div>
-              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-8">
+              <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-white mb-6">
                 FACTURA ENVIADA CORRECTAMENTE
               </h3>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-3">
+                {/* Botón VER EXPEDIENTE */}
                 <button
                   onClick={() => {
                     setModalEnvioOpen(false);
-                    handleVolver();
+                    const vId = selectedFactura?.vehiculo_id;
+                    const cId = selectedFactura?.cliente_id;
+                    const p = presupuestos.sort((a,b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).find(pr => pr.vehiculo_id === vId);
+                    const veh = vehiculos.find(v => v.id === vId);
+                    const cli = clientes.find(c => c.id === cId);
+                    navigate('/expedientes', {
+                      state: {
+                        expandPresupuestoId: p?.id,
+                        expandVehiculoId: vId,
+                        clienteId: cId,
+                        search: veh?.matricula || cli?.nombre || ''
+                      }
+                    });
                   }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-[22px] sm:text-[26px] leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-white font-black text-xl sm:text-2xl leading-none border-2 border-amber-300 shadow-[0_0_25px_rgba(245,158,11,0.4)] transition-all active:scale-95 flex items-center justify-center gap-3 uppercase tracking-wider"
                 >
-                  VOLVER
+                  <FolderOpen className="w-6 h-6 sm:w-7 sm:h-7 text-amber-200 fill-amber-200/40 shrink-0" />
+                  <span>VER EXPEDIENTE</span>
                 </button>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => {
+                      setModalEnvioOpen(false);
+                      handleVolver();
+                    }}
+                    className="py-3.5 sm:py-4 px-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-black text-lg sm:text-xl leading-none border border-slate-700 hover:border-slate-600 transition-all active:scale-95 shadow-md flex items-center justify-center gap-2 uppercase tracking-wider"
+                  >
+                    VOLVER
+                  </button>
+                  <button
+                    onClick={() => {
+                      setModalEnvioOpen(false);
+                    }}
+                    className="py-3.5 sm:py-4 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg sm:text-xl leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                  >
+                    ACEPTAR
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>,
+        document.body
+      )}
+
+      {/* Modal Confirmación Salida sin Guardar */}
+      {showExitConfirmModal && createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-300">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="exit-confirm-modal"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="bg-slate-900 border-[3px] border-amber-500 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-[0_25px_60px_rgba(0,0,0,0.9),0_0_30px_rgba(245,158,11,0.25)] text-center text-white"
+            >
+              <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center mx-auto mb-5 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.3)]">
+                <FileText className="w-8 h-8" />
+              </div>
+              <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-white mb-3">
+                {selectedFactura?.id === 'draft' ? "FACTURA NO GUARDADA" : "CAMBIOS PENDIENTES"}
+              </h3>
+              <p className="text-sm text-slate-300 mb-8 leading-relaxed">
+                {selectedFactura?.id === 'draft' 
+                  ? "Esta factura está en borrador y no se ha guardado en la base de datos. ¿Deseas guardarla antes de salir?"
+                  : "Hay modificaciones sin guardar en la factura. ¿Deseas guardarlas antes de salir?"}
+              </p>
+
+              <div className="flex flex-col gap-3">
                 <button
-                  onClick={() => {
-                    setModalEnvioOpen(false);
-                  }}
-                  className="py-4 sm:py-5 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-[22px] sm:text-[26px] leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
+                  onClick={guardarYSalir}
+                  className="w-full py-4 px-6 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-lg leading-none border-2 border-emerald-400/80 shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-all active:scale-95 flex items-center justify-center gap-2 uppercase tracking-wider"
                 >
-                  ACEPTAR
+                  <Save className="w-5 h-5" />
+                  GUARDAR Y SALIR
                 </button>
+                <div className="grid grid-cols-2 gap-3 mt-1">
+                  <button
+                    onClick={() => setShowExitConfirmModal(false)}
+                    className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-sm border border-slate-700 transition-all active:scale-95 uppercase tracking-wide"
+                  >
+                    CONTINUAR EDITANDO
+                  </button>
+                  <button
+                    onClick={salirDirecto}
+                    className="py-3 px-4 rounded-xl bg-red-950/60 hover:bg-red-900/80 text-red-300 font-bold text-sm border border-red-800/60 transition-all active:scale-95 uppercase tracking-wide"
+                  >
+                    SALIR SIN GUARDAR
+                  </button>
+                </div>
               </div>
             </motion.div>
           </AnimatePresence>

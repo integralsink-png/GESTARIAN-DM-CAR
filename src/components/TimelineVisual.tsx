@@ -22,7 +22,6 @@ interface TimelineVisualProps {
 
 export function TimelineVisual({ steps }: TimelineVisualProps) {
   const [confirmStepId, setConfirmStepId] = useState<string | null>(null);
-  const [animatingStepId, setAnimatingStepId] = useState<string | null>(null);
   const [flashingStepId, setFlashingStepId] = useState<string | null>(null);
 
   return (
@@ -31,12 +30,10 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
         const isPresupuesto = step.id === 'presupuesto';
         const isPresupuestoPendiente = isPresupuesto && (step.title === 'Presupuesto Pendiente' || step.color === 'amber');
         const isConfirming = confirmStepId === step.id;
-        const isBursting = animatingStepId === step.id;
         const isFlashing = flashingStepId === step.id;
 
-        // Si esta parada está en animación de aceptación activa
-        const effectiveColor = isBursting ? 'emerald' : step.color;
-        const effectiveTitle = isBursting ? 'Presupuesto Aceptado' : step.title;
+        const effectiveColor = step.color;
+        const effectiveTitle = step.title;
         
         let bgClass = 'bg-slate-700/20 border-slate-600 text-slate-300';
         if (effectiveColor === 'emerald') {
@@ -54,35 +51,31 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
         }
 
         let borderAnimClass = '';
-        if (step.animatedBorder && !isBursting && !isFlashing) {
+        if (step.animatedBorder && !isFlashing) {
           if (effectiveColor === 'emerald') borderAnimClass = 'animated-contour-border-emerald';
           else if (effectiveColor === 'amber' || effectiveColor === 'yellow') borderAnimClass = 'animated-contour-border-amber';
           else borderAnimClass = 'animated-contour-border';
         }
 
-        const burstAnimClass = isBursting ? 'animated-step-burst' : '';
-        const flashAnimClass = isFlashing ? 'roadmap-flash' : '';
+        const flashAnimClass = isFlashing ? 'roadmap-contour-flash' : '';
 
         // Renderizado especial cuando está en fase de confirmación previa
-        if (isPresupuestoPendiente && isConfirming && !isBursting) {
+        if (isPresupuestoPendiente && isConfirming) {
           return (
             <React.Fragment key={step.id}>
-              <div className={`w-full max-w-sm rounded-xl border-[2px] p-3 flex items-center justify-between transition-all bg-emerald-500/25 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.35)] ${flashAnimClass}`}>
+              <div className={`w-full max-w-sm rounded-xl border-[2px] p-3 flex items-center justify-between transition-all bg-emerald-500/25 border-emerald-400 ${flashAnimClass ? flashAnimClass : 'shadow-[0_0_20px_rgba(16,185,129,0.35)]'}`}>
                 <div 
                   onClick={() => {
-                    setConfirmStepId(null);
+                    if (isFlashing) return;
                     setFlashingStepId(step.id);
+                    playLongSuccessChime();
                     setTimeout(() => {
                       setFlashingStepId(null);
-                      setAnimatingStepId(step.id);
-                      playLongSuccessChime();
-                      setTimeout(() => {
-                        setAnimatingStepId(null);
-                        if (step.action?.onClick) {
-                          step.action.onClick();
-                        }
-                      }, 500);
-                    }, 800);
+                      setConfirmStepId(null);
+                      if (step.action?.onClick) {
+                        step.action.onClick();
+                      }
+                    }, 350);
                   }}
                   className="flex-1 text-center font-extrabold uppercase tracking-wider text-sm md:text-base py-2 cursor-pointer active:scale-95 transition-transform text-white"
                 >
@@ -103,7 +96,7 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
           );
         }
 
-        const isInteractive = !!step.action && effectiveColor !== 'slate' && !isBursting;
+        const isInteractive = !!step.action && effectiveColor !== 'slate' && !isFlashing;
         const Container = isInteractive ? 'button' : 'div';
         const containerProps = isInteractive ? { 
           onClick: () => {
@@ -113,9 +106,9 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
               step.action!.onClick();
             }
           },
-          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all cursor-pointer active:scale-95 ${bgClass} ${borderAnimClass} ${burstAnimClass}`
+          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all cursor-pointer active:scale-95 ${bgClass} ${borderAnimClass} ${flashAnimClass}`
         } : {
-          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all ${bgClass} ${borderAnimClass} ${burstAnimClass}`
+          className: `w-full max-w-sm rounded-xl border-[2px] p-4 text-center transition-all ${bgClass} ${borderAnimClass} ${flashAnimClass}`
         };
 
         return (
@@ -125,7 +118,7 @@ export function TimelineVisual({ steps }: TimelineVisualProps) {
                 <span className="font-bold uppercase tracking-wider text-sm md:text-base">
                   {effectiveTitle}
                 </span>
-                {step.subtitle && !isBursting && (
+                {step.subtitle && (
                   <span className="font-black uppercase tracking-wider text-xs md:text-sm text-emerald-300 drop-shadow-[0_0_10px_rgba(52,211,153,0.9)] mt-0.5">
                     {step.subtitle}
                   </span>

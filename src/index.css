@@ -965,22 +965,27 @@ select:focus {
   }
 }
 
-/* ── Animación Flash para Roadmap (Dos flashes rápidos) ── */
-@keyframes roadmap-flash {
-  0%, 100% { border-color: rgba(255, 255, 255, 0); }
-  50% { border-color: rgba(255, 255, 255, 1); }
-}
-.roadmap-flash {
-  animation: roadmap-flash 0.4s ease-in-out 2;
+/* ── Animación Flash para Roadmap (Dos flashes rápidos sin glow de la línea de contorno) ── */
+@keyframes roadmap-contour-flash {
+  0%, 100% {
+    border-color: rgba(52, 211, 153, 0.2);
+    box-shadow: none !important;
+    filter: none !important;
+    drop-shadow: none !important;
+  }
+  50% {
+    border-color: rgba(52, 211, 153, 1);
+    box-shadow: none !important;
+    filter: none !important;
+    drop-shadow: none !important;
+  }
 }
 
-
-/* ── Animación Flash para Roadmap (Dos flashes rápidos) ── */
-@keyframes roadmap-flash {
-  0%, 100% { border-color: rgba(255, 255, 255, 0); }
-  50% { border-color: rgba(255, 255, 255, 1); }
-}
-.roadmap-flash {
-  animation: roadmap-flash 0.4s ease-in-out 2;
+.roadmap-contour-flash {
+  animation: roadmap-contour-flash 0.16s ease-in-out 2 !important;
+  box-shadow: none !important;
+  filter: none !important;
+  drop-shadow: none !important;
+  transform: none !important;
 }
 

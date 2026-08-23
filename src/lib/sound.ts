@@ -78,8 +78,61 @@ export function playLongSuccessChime() {
 }
 
 /**
- * Sintetiza el sonido característico de sintonización de radio analógica antigua:
- * Ruido blanco filtrado en banda variable + silbido heterodino de onda corta intentando sintonizar sin fijar.
+ * Sonido sutil y elegante de mecanismo de reloj / ajuste horario (Precision Timepiece Clockwork Tick).
+ * Genera un micro-clic acústico de escape de reloj suizo muy agradable y discreto.
+ */
+let clockAudioCtx: AudioContext | null = null;
+
+export function playTimepickerTickSound() {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    
+    if (!clockAudioCtx || clockAudioCtx.state === 'closed') {
+      clockAudioCtx = new AudioContextClass();
+    }
+    const ctx = clockAudioCtx;
+    if (ctx.state === 'suspended') ctx.resume();
+
+    const now = ctx.currentTime;
+    const duration = 0.04; // 40ms micro-clic de reloj
+
+    // 1. Clic metálico sutil de escape de reloj (agudo nítido)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(2400, now);
+    osc1.frequency.exponentialRampToValueAtTime(1600, now + duration);
+    
+    gain1.gain.setValueAtTime(0.08, now);
+    gain1.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + duration);
+
+    // 2. Micro-impulso resonante de mecanismo (cuerpo de rueda horaria dentada)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(920, now);
+    osc2.frequency.exponentialRampToValueAtTime(420, now + duration * 0.7);
+
+    gain2.gain.setValueAtTime(0.05, now);
+    gain2.gain.exponentialRampToValueAtTime(0.0001, now + duration * 0.7);
+
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + duration * 0.7);
+  } catch (e) {
+    console.warn('Clock tick sound failed:', e);
+  }
+}
+
+/**
+ * Sintetiza el sonido característico de sintonización de radio analógica antigua
  */
 let radioAudioCtx: AudioContext | null = null;
 

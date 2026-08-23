@@ -43,175 +43,147 @@ export function ExpedientePage() {
     }
   }, [viewerOpen, cliente?.id, vehiculo?.id])
 
-  useEffect(() => {
-    let cancelled = false
+  const loadExpediente = async (showLoading = true) => {
+    if (!vehiculoId) {
+      setLoading(false)
+      return
+    }
 
-    async function loadExpediente() {
-      if (!vehiculoId) {
+    try {
+      if (showLoading) setLoading(true)
+
+      // ------------------------------------------------------------
+      // 1. VEHÍCULO
+      // ------------------------------------------------------------
+      const { data: vData, error: vError } = await supabase
+        .from('vehiculos')
+        .select('*')
+        .eq('id', vehiculoId)
+        .maybeSingle()
+
+      if (vError) console.error('Error loading vehiculo:', vError)
+
+      if (!vData) {
+        setVehiculo(null)
+        setCliente(null)
         setLoading(false)
         return
       }
 
-      try {
-        setLoading(true)
+      setVehiculo(vData)
 
-        // ------------------------------------------------------------
-        // 1. VEHÍCULO
-        // ------------------------------------------------------------
-        const { data: vData, error: vError } = await supabase
-          .from('vehiculos')
+      // ------------------------------------------------------------
+      // 2. CLIENTE
+      // ------------------------------------------------------------
+      const { data: cData, error: cError } = await supabase
+        .from('clientes')
+        .select('*')
+        .eq('id', vData.cliente_id)
+        .maybeSingle()
+
+      if (cError) console.error('Error loading cliente:', cError)
+
+      setCliente(cData)
+
+      // ------------------------------------------------------------
+      // 3. ÚLTIMO PRESUPUESTO
+      //
+      // 3. PRESUPUESTO DEL EXPEDIENTE
+      let pData: Presupuesto | null = null
+      const targetPresupuestoId = (location.state as any)?.presupuestoId
+      if (targetPresupuestoId) {
+        const { data, error: pError } = await supabase
+          .from('presupuestos')
           .select('*')
-          .eq('id', vehiculoId)
+          .eq('id', targetPresupuestoId)
           .maybeSingle()
-
-        if (vError) console.error('Error loading vehiculo:', vError)
-
-        if (cancelled) return
-
-        if (!vData) {
-          setVehiculo(null)
-          setCliente(null)
-          setLoading(false)
-          return
-        }
-
-        setVehiculo(vData)
-
-        // ------------------------------------------------------------
-        // 2. CLIENTE
-        // ------------------------------------------------------------
-        const { data: cData, error: cError } = await supabase
-          .from('clientes')
+        if (pError) throw pError
+        pData = data
+      } else {
+        const { data, error: pError } = await supabase
+          .from('presupuestos')
           .select('*')
-          .eq('id', vData.cliente_id)
+          .eq('vehiculo_id', vehiculoId)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .maybeSingle()
-
-        if (cError) console.error('Error loading cliente:', cError)
-
-        if (cancelled) return
-
-        setCliente(cData)
-
-        // ------------------------------------------------------------
-        // 3. ÚLTIMO PRESUPUESTO
-        //
-        // 3. PRESUPUESTO DEL EXPEDIENTE
-        let pData: Presupuesto | null = null
-        const targetPresupuestoId = (location.state as any)?.presupuestoId
-        if (targetPresupuestoId) {
-          const { data, error: pError } = await supabase
-            .from('presupuestos')
-            .select('*')
-            .eq('id', targetPresupuestoId)
-            .maybeSingle()
-          if (pError) throw pError
-          pData = data
-        } else {
-          const { data, error: pError } = await supabase
-            .from('presupuestos')
-            .select('*')
-            .eq('vehiculo_id', vehiculoId)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (pError) throw pError
-          pData = data
-        }
-
-        if (cancelled) return
-        setPresupuesto(pData)
-
-        // 4. CITA VINCULADA AL PRESUPUESTO
-        let ciData: Cita | null = null
-        if (pData?.id) {
-          const { data, error: ciError } = await supabase
-            .from('citas')
-            .select('*')
-            .eq('presupuesto_id', pData.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (ciError) throw ciError
-          ciData = data
-        }
-
-        if (cancelled) return
-        setCita(ciData)
-
-        // 5. REPARACIÓN VINCULADA A LA CITA
-        let rData: Reparacion | null = null
-        if (ciData?.id) {
-          const { data, error: rError } = await supabase
-            .from('reparaciones')
-            .select('*')
-            .eq('cita_id', ciData.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (rError) throw rError
-          rData = data
-        }
-
-        if (cancelled) return
-        setReparacion(rData)
-
-        // 6. FACTURA VINCULADA ESTRICTAMENTE A LA REPARACIÓN DE ESTE EXPEDIENTE
-        let fData: Factura | null = null
-        if (rData?.id) {
-          const { data, error: fError } = await supabase
-            .from('facturas')
-            .select('*')
-            .eq('reparacion_id', rData.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-          if (fError) throw fError
-          fData = data
-        }
-
-        if (cancelled) return
-        if (fData) {
-          fData = {
-            ...fData,
-            enviado_email_at: fData.enviado_email_at || localStorage.getItem(`factura_${fData.id}_email_at`),
-            enviado_whatsapp_at: fData.enviado_whatsapp_at || localStorage.getItem(`factura_${fData.id}_wa_at`)
-          }
-        }
-        setFactura(fData)
-
-        // ------------------------------------------------------------
-        // 7. ÚLTIMO COBRO DE LA FACTURA
-        // ------------------------------------------------------------
-        if (fData) {
-          const { data: cData } = await supabase
-            .from('cobros')
-            .select('*')
-            .eq('factura_id', fData.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle()
-            
-          if (!cancelled) setUltimoCobro(cData)
-        }
-
-      } catch (err: any) {
-        console.error('Error cargando expediente:', err)
-
-        if (!cancelled) {
-          showToast('Error cargando expediente', 'error')
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (pError) throw pError
+        pData = data
       }
-    }
 
-    loadExpediente()
+      setPresupuesto(pData)
 
-    return () => {
-      cancelled = true
+      // 4. CITA VINCULADA AL PRESUPUESTO
+      let ciData: Cita | null = null
+      if (pData?.id) {
+        const { data, error: ciError } = await supabase
+          .from('citas')
+          .select('*')
+          .eq('presupuesto_id', pData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (ciError) throw ciError
+        ciData = data
+      }
+
+      setCita(ciData)
+
+      // 5. REPARACIÓN VINCULADA A LA CITA
+      let rData: Reparacion | null = null
+      if (ciData?.id) {
+        const { data, error: rError } = await supabase
+          .from('reparaciones')
+          .select('*')
+          .eq('cita_id', ciData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (rError) throw rError
+        rData = data
+      }
+
+      setReparacion(rData)
+
+      // 6. FACTURA VINCULADA ESTRICTAMENTE A LA REPARACIÓN DE ESTE EXPEDIENTE
+      let fData: Factura | null = null
+      if (rData?.id) {
+        const { data, error: fError } = await supabase
+          .from('facturas')
+          .select('*')
+          .eq('reparacion_id', rData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+        if (fError) throw fError
+        fData = data
+      }
+
+      setFactura(fData)
+
+      // 7. COBROS
+      if (fData?.id) {
+        const { data: cobrosData } = await supabase
+          .from('cobros')
+          .select('*')
+          .eq('factura_id', fData.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+
+        setUltimoCobro(cobrosData?.[0] || null)
+      } else {
+        setUltimoCobro(null)
+      }
+    } catch (err: any) {
+      console.error('Error cargando expediente:', err)
+      showToast('Error al cargar expediente', 'error')
+    } finally {
+      if (showLoading) setLoading(false)
     }
+  }
+
+  useEffect(() => {
+    loadExpediente(true)
   }, [vehiculoId, showToast, location.key])
 
   // ------------------------------------------------------------
@@ -249,7 +221,7 @@ export function ExpedientePage() {
   }
 
   const onRefresh = () => {
-    window.location.reload()
+    loadExpediente(false)
   }
 
   const roadmapActions: RoadmapActions = {

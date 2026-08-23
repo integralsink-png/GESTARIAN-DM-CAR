@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Cita, Cliente, Vehiculo, Presupuesto } from '../lib/types'
 import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
-import { Calendar, ArrowLeft, ImageIcon, Trash2 } from 'lucide-react'
+import { Calendar, ArrowLeft, ImageIcon, Trash2, CalendarClock } from 'lucide-react'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { getExpediente } from '../lib/utils'
@@ -164,11 +164,59 @@ export function CitasPage() {
                 onTouchEnd={cancelLongPress}
                 className={`relative p-4 sm:p-5 rounded-2xl border-[3px] bg-bg-800/90 transition-all select-none ${borderClass}`}
               >
-                {/* LÍNEA 1: Nombre del titular (x1.5 tamaño, sin recuadro de estado) */}
-                <div className="flex items-center justify-between">
-                  <h2 className="text-xl sm:text-2xl font-black text-white capitalize tracking-wide truncate">
+                {/* LÍNEA 1: Nombre del titular + Botón de acción a la derecha */}
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-xl sm:text-2xl font-black text-white capitalize tracking-wide truncate flex-1 min-w-0">
                     {clienteNombre(cita.cliente_id).toLowerCase()}
                   </h2>
+
+                  {/* Botón de acción según estado */}
+                  {(cita.estado === 'confirmada' || cita.estado === 'completada') ? (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate('/asignar-cita', {
+                          state: {
+                            vehiculoId: cita.vehiculo_id,
+                            clienteId: cita.cliente_id,
+                            presupuestoId: cita.presupuesto_id,
+                            citaId: cita.id,
+                            clienteNombre: clienteNombre(cita.cliente_id),
+                            matricula: v?.matricula,
+                          }
+                        })
+                      }}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 text-xs font-black uppercase tracking-wider hover:bg-cyan-500/30 transition-all active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      MODIFICAR
+                    </button>
+                  ) : (cita.fecha && cita.hora) ? (
+                    <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/60 text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      PENDIENTE
+                    </span>
+                  ) : (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate('/asignar-cita', {
+                          state: {
+                            vehiculoId: cita.vehiculo_id,
+                            clienteId: cita.cliente_id,
+                            presupuestoId: cita.presupuesto_id,
+                            citaId: cita.id,
+                            clienteNombre: clienteNombre(cita.cliente_id),
+                            matricula: v?.matricula,
+                          }
+                        })
+                      }}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 text-xs font-black uppercase tracking-wider hover:bg-emerald-500/30 transition-all active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
+                    >
+                      <CalendarClock className="w-3.5 h-3.5" />
+                      ASIGNAR
+                    </button>
+                  )}
                 </div>
 
                 {/* LÍNEA 2: Número de expediente flotante (x1.5), Fecha y Hora repartidas equitativamente */}
@@ -176,7 +224,15 @@ export function CitasPage() {
                   <div
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                      navigate('/expedientes', {
+                        state: {
+                          search: v?.matricula || expNum,
+                          expandPresupuestoId: p?.id,
+                          expandVehiculoId: cita.vehiculo_id,
+                          expandExpedienteId: expNum,
+                          expandCitaId: cita.id,
+                        },
+                      })
                     }}
                     className="cursor-pointer hover:brightness-125 transition-all shrink-0"
                     title="Ver Expediente"
@@ -238,7 +294,17 @@ export function CitasPage() {
                   <div className="flex-1 flex items-center justify-center gap-5 sm:gap-8 ml-2 sm:ml-4" onClick={(e) => e.stopPropagation()}>
                     {/* 1. Icono flotante Expediente (carpeta con E dentro) */}
                     <button
-                      onClick={() => navigate('/expedientes', { state: { search: v?.matricula || expNum } })}
+                      onClick={() =>
+                        navigate('/expedientes', {
+                          state: {
+                            search: v?.matricula || expNum,
+                            expandPresupuestoId: p?.id,
+                            expandVehiculoId: cita.vehiculo_id,
+                            expandExpedienteId: expNum,
+                            expandCitaId: cita.id,
+                          },
+                        })
+                      }
                       className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
                       title="Expediente"
                       aria-label="Expediente"

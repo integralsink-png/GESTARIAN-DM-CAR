@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Radio, Mic, MicOff, Volume2, Loader2, Sparkles } from 'lucide-react';
+import { Radio, Mic, MicOff, Volume2, Loader2, Sparkles, PhoneOff } from 'lucide-react';
 import { processMetisMessage } from '../lib/metisAiEngine';
 import { transcribeAudio } from '../services/aiProviderService';
 

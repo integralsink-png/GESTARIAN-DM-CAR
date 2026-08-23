@@ -148,6 +148,7 @@ function TarjetaExpediente({
     onAceptarPresupuesto: async (presupuestoId) => {
       const { error } = await supabase.from('presupuestos').update({ estado: 'aceptado' }).eq('id', presupuestoId)
       if (!error) {
+        showToast('PRESUPUESTO ACEPTADO', 'success')
         onRefresh()
       } else {
         showToast('Error al aceptar presupuesto', 'error')
@@ -491,18 +492,18 @@ export function ExpedientesPage() {
   const [search, setSearch] = useState(location.state?.search ?? '')
   const [showSearchInput, setShowSearchInput] = useState(false)
   const [openId, setOpenId] = useState<string | null>(
-    location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId ?? null
+    location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId ?? location.state?.expandCitaId ?? null
   )
 
   useEffect(() => {
-    const targetId = location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId
+    const targetId = location.state?.expandPresupuestoId ?? location.state?.expandExpedienteId ?? location.state?.expandVehiculoId ?? location.state?.expandCitaId
     if (targetId) {
       setOpenId(targetId)
     }
-  }, [location.state?.expandPresupuestoId, location.state?.expandExpedienteId, location.state?.expandVehiculoId])
+  }, [location.state?.expandPresupuestoId, location.state?.expandExpedienteId, location.state?.expandVehiculoId, location.state?.expandCitaId])
 
-  const load = useCallback(async () => {
-    setLoading(true)
+  const load = useCallback(async (showLoading = true) => {
+    if (showLoading) setLoading(true)
 
     const fechaLimite = new Date()
     fechaLimite.setMonth(fechaLimite.getMonth() - 3)
@@ -813,7 +814,11 @@ export function ExpedientesPage() {
 
           {filtered.map((row) => {
             const cardUniqueId = row.presupuesto?.id ?? row.expedienteId
-            const isCardOpen = openId === cardUniqueId || openId === row.expedienteId || openId === row.vehiculoId
+            const isCardOpen =
+              openId === cardUniqueId ||
+              openId === row.expedienteId ||
+              openId === row.vehiculoId ||
+              (!!row.cita?.id && openId === row.cita.id)
 
             return (
               <TarjetaExpediente
@@ -822,13 +827,16 @@ export function ExpedientesPage() {
                 isOpen={isCardOpen}
                 onToggle={() =>
                   setOpenId((prev) =>
-                    prev === cardUniqueId || prev === row.expedienteId || prev === row.vehiculoId
+                    prev === cardUniqueId ||
+                    prev === row.expedienteId ||
+                    prev === row.vehiculoId ||
+                    (!!row.cita?.id && prev === row.cita.id)
                       ? null
                       : cardUniqueId
                   )
                 }
                 onDelete={handleDelete}
-                onRefresh={load}
+                onRefresh={() => load(false)}
               />
             )
           })}
