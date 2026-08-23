@@ -11,6 +11,15 @@ if ('performance' in window && performance.getEntriesByType) {
   }
 }
 
+// Register service worker to enable PWA installation on mobile
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.log('SW registration failed:', err)
+    })
+  })
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
