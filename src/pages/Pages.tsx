@@ -513,18 +513,6 @@ export function FacturasRecibidasPage() {
       {/* ── VISOR DE DETALLE Y CONTROL DE PAGO SI HAY UNA FACTURA SELECCIONADA ── */}
       {selectedFactura ? (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setSelectedFactura(null)}
-              className="px-4 py-2 rounded-xl bg-slate-800 text-purple-300 border border-purple-500/40 hover:bg-slate-700 font-bold text-xs flex items-center gap-2 active:scale-95 transition-all"
-            >
-              <ArrowLeft className="w-4 h-4" /> VOLVER AL LISTADO
-            </button>
-            <span className="text-xs font-bold text-purple-300 uppercase">
-              {selectedFactura.numero_registro || 'Registro'}
-            </span>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Panel de Control de Pagos y Roadmap */}
             <Card className="p-5 space-y-4 border-2 border-purple-500/40 bg-bg-900/90 shadow-[0_0_20px_rgba(168,85,247,0.15)]">
@@ -550,62 +538,46 @@ export function FacturasRecibidasPage() {
                 />
               </div>
 
-              {/* ROADMAP VISUAL DE PAGOS */}
+              {/* ROADMAP VISUAL DE PAGOS (Píldoras Rectangulares con esquinas redondeadas y texto centrado) */}
               <div className="py-2">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2">Roadmap de Pagos</p>
-                <div className="flex items-center justify-between relative">
-                  <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-slate-700 z-0"></div>
-                  <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-purple-500 transition-all z-0"
-                    style={{
-                      width:
-                        selectedFactura.estado === 'pagada'
-                          ? '100%'
-                          : selectedFactura.estado === 'parcial'
-                          ? '50%'
-                          : '0%',
-                    }}
-                  ></div>
-
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-2.5">Roadmap de Pagos</p>
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {/* Estado 1: Pendiente */}
-                  <div className="flex flex-col items-center relative z-10">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 ${
+                  <div
+                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
                       selectedFactura.estado === 'pendiente' || selectedFactura.estado === 'parcial' || selectedFactura.estado === 'pagada'
-                        ? 'bg-purple-600 border-white text-white'
-                        : 'bg-slate-800 border-slate-600 text-slate-400'
-                    }`}>
-                      1
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-300 mt-1">Pendiente</span>
+                        ? 'bg-purple-600/30 border-purple-400 text-purple-200 shadow-purple-900/30 font-bold'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
+                    }`}
+                  >
+                    <span className="text-xs uppercase tracking-wider font-extrabold">1. Pendiente</span>
                   </div>
 
                   {/* Estado 2: Parcial */}
-                  <div className="flex flex-col items-center relative z-10">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 ${
+                  <div
+                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
                       selectedFactura.estado === 'parcial' || selectedFactura.estado === 'pagada'
-                        ? 'bg-purple-600 border-white text-white'
-                        : 'bg-slate-800 border-slate-600 text-slate-400'
-                    }`}>
-                      2
-                    </div>
-                    <span className="text-[10px] font-bold text-slate-300 mt-1">Parcial</span>
+                        ? 'bg-blue-600/30 border-blue-400 text-blue-200 shadow-blue-900/30 font-bold'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
+                    }`}
+                  >
+                    <span className="text-xs uppercase tracking-wider font-extrabold">2. Parcial</span>
                   </div>
 
-                  {/* Estado 3: Pagada */}
-                  <div className="flex flex-col items-center relative z-10">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black border-2 ${
+                  {/* Estado 3: Pagada / Liquidada */}
+                  <div
+                    className={`py-2.5 px-3 rounded-xl border flex flex-col items-center justify-center text-center transition-all shadow-md ${
                       selectedFactura.estado === 'pagada'
-                        ? 'bg-emerald-500 border-white text-white shadow-[0_0_10px_rgba(16,185,129,0.5)]'
-                        : 'bg-slate-800 border-slate-600 text-slate-400'
-                    }`}>
-                      ✓
-                    </div>
-                    <span className="text-[10px] font-bold text-emerald-400 mt-1">Liquidada</span>
+                        ? 'bg-emerald-600/30 border-emerald-400 text-emerald-200 shadow-[0_0_12px_rgba(16,185,129,0.3)] font-bold'
+                        : 'bg-slate-800/60 border-slate-700 text-slate-400 font-medium'
+                    }`}
+                  >
+                    <span className="text-xs uppercase tracking-wider font-extrabold">3. Liquidada ✓</span>
                   </div>
                 </div>
               </div>
 
-              {/* Métricas de Importe, Saldo y Último Abono */}
+              {/* Métricas de Importe, Saldo y Último Abono (Tamaño x 1.5) */}
               {(() => {
                 const totalPagado = selectedFactura.total_pagado ?? (selectedFactura.estado === 'pagada' ? selectedFactura.total : 0)
                 const saldoPendiente = Math.max(0, selectedFactura.total - totalPagado)
@@ -615,33 +587,33 @@ export function FacturasRecibidasPage() {
 
                 return (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 bg-bg-800/80 p-3.5 rounded-xl border border-slate-700">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-bg-800/90 p-4 rounded-xl border border-slate-700">
                       <div>
-                        <span className="text-[11px] text-slate-400 block font-semibold">Total Factura</span>
-                        <span className="text-base sm:text-lg font-black text-white">{selectedFactura.total.toFixed(2)} €</span>
+                        <span className="text-sm sm:text-base text-slate-400 block font-bold mb-0.5">Total Factura</span>
+                        <span className="text-2xl sm:text-3xl font-black text-white">{selectedFactura.total.toFixed(2)} €</span>
                       </div>
                       <div>
-                        <span className="text-[11px] text-slate-400 block font-semibold">Total Abonado</span>
-                        <span className="text-base sm:text-lg font-black text-purple-300">{totalPagado.toFixed(2)} €</span>
+                        <span className="text-sm sm:text-base text-slate-400 block font-bold mb-0.5">Total Abonado</span>
+                        <span className="text-2xl sm:text-3xl font-black text-purple-300">{totalPagado.toFixed(2)} €</span>
                       </div>
                       <div className="text-left sm:text-right col-span-2 sm:col-span-1">
-                        <span className="text-[11px] text-blue-400 block font-bold">Resto Abono</span>
-                        <span className="text-base sm:text-lg font-black text-blue-400">
+                        <span className="text-sm sm:text-base text-blue-400 block font-black mb-0.5">Resto Abono</span>
+                        <span className="text-2xl sm:text-3xl font-black text-blue-400">
                           {saldoPendiente.toFixed(2)} €
                         </span>
                       </div>
                     </div>
 
-                    {/* Fecha de Último Abono */}
-                    <div className="flex items-center justify-between p-2.5 rounded-xl bg-purple-950/30 border border-purple-500/30 text-xs">
-                      <span className="text-purple-300 font-bold">Fecha de Último Abono:</span>
+                    {/* Ultimo abono */}
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-purple-950/30 border border-purple-500/30 text-sm sm:text-base">
+                      <span className="text-purple-300 font-bold">Ultimo abono:</span>
                       {ultPago ? (
                         <span className="font-mono font-bold text-white">
                           {new Date(ultPago.fecha).toLocaleDateString('es-ES')} {new Date(ultPago.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                           <span className="text-emerald-400 ml-1.5 font-black">(+{ultPago.importe.toFixed(2)} €)</span>
                         </span>
                       ) : (
-                        <span className="text-slate-500 italic">Sin abonos registrados</span>
+                        <span className="text-slate-500 italic text-xs sm:text-sm">Sin abonos registrados</span>
                       )}
                     </div>
 
@@ -830,9 +802,18 @@ export function FacturasRecibidasPage() {
             <Card className="p-5 space-y-4 border border-slate-700 bg-bg-900/80">
               <div className="flex items-center justify-between border-b border-slate-700 pb-3">
                 <h3 className="text-sm font-bold text-white uppercase tracking-wider">Datos del Documento</h3>
-                <span className="text-xs font-mono text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-500/40">
-                  {selectedFactura.numero_registro || 'FR'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-purple-300 bg-purple-950/60 px-2.5 py-1 rounded-md border border-purple-500/40 font-bold">
+                    {selectedFactura.numero_registro || 'FR'}
+                  </span>
+                  <button
+                    onClick={() => setSelectedFactura(null)}
+                    className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all border border-slate-700"
+                    title="Cerrar detalle"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
 
               <div className="space-y-2.5 text-sm">
@@ -898,7 +879,7 @@ export function FacturasRecibidasPage() {
                   <span className="font-semibold text-white">{new Date(selectedFactura.fecha).toLocaleDateString('es-ES')}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-slate-800">
-                  <span className="text-slate-400">Fecha Último Abono:</span>
+                  <span className="text-slate-400">Ultimo abono:</span>
                   <span className="font-semibold text-purple-300">
                     {selectedFactura.pagos && selectedFactura.pagos.length > 0
                       ? `${new Date(selectedFactura.pagos[0].fecha).toLocaleDateString('es-ES')} (${selectedFactura.pagos[0].importe.toFixed(2)} €)`
