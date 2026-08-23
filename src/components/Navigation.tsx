@@ -330,6 +330,7 @@ export function MobileFooter() {
                   flex-direction: column;
                   align-items: center;
                   justify-content: center;
+                  text-align: center;
                   gap: 3px;
                   border-radius: 12px;
                   border-width: 1px;
@@ -342,23 +343,29 @@ export function MobileFooter() {
                   width: 100%;
                   height: 100%;
                   min-height: 0;
-                  animation-duration: 1.0s, 0.4s;
-                  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1), ease-out;
-                  animation-fill-mode: backwards, none;
+                  animation-duration: 1.0s;
+                  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+                  animation-fill-mode: backwards;
                   backdrop-filter: blur(12px);
                 }
                 .bento-btn span {
                   color: #e2e8f0;
                   font-weight: 800;
-                  font-size: 1.25rem;
-                  line-height: 1.2;
+                  font-size: 1.3125rem;
+                  line-height: 1.15;
                   text-align: center;
                   letter-spacing: -0.01em;
+                  width: 100%;
+                  display: block;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  white-space: nowrap;
+                  padding: 0 2px;
                 }
                 .bento-btn .bento-plus {
                   color: #e2e8f0;
                   font-weight: 900;
-                  font-size: 2rem;
+                  font-size: 2.1rem;
                   line-height: 1;
                   text-align: center;
                 }
@@ -369,14 +376,9 @@ export function MobileFooter() {
                   border-width: 2.5px;
                   box-shadow: 0 0 20px rgba(255,255,255,0.3);
                 }
-                @keyframes bentoGlowFlash {
-                  0% { box-shadow: 0 0 0 transparent; }
-                  30% { box-shadow: 0 0 25px var(--btn-color); border-color: #fff; }
-                  100% { box-shadow: 0 0 0 transparent; border-color: var(--btn-color); }
-                }
               `}</style>
 
-              {/* 1. INICIO */}
+              {/* 1. INICIO (x0.8 -> span 5) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/')
                 if (!item) return null
@@ -385,7 +387,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.03s, 0.32s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 5', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.03s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -393,7 +395,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 2. EXPEDIENTES */}
+              {/* 2. EXPEDIENTES (x1.2 -> span 7) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/expedientes')
                 if (!item) return null
@@ -402,7 +404,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromTopRight, bentoGlowFlash', animationDelay: '0.05s, 0.34s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 7', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromTopRight', animationDelay: '0.05s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -410,7 +412,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 3. CITAS */}
+              {/* 3. CITAS (x0.7 -> span 4) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/citas')
                 if (!item) return null
@@ -419,7 +421,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.08s, 0.37s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 4', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.08s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -427,7 +429,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 4. REPARACIONES */}
+              {/* 4. REPARACIONES (x1.3 -> span 8) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/reparaciones')
                 if (!item) return null
@@ -436,7 +438,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.11s, 0.40s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 8', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.11s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -444,7 +446,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 5. USUARIOS */}
+              {/* 5. USUARIOS (x0.9 -> span 5) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/usuarios')
                 if (!item) return null
@@ -453,7 +455,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.13s, 0.42s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 5', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.13s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -461,7 +463,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 6. FACTURACIÓN */}
+              {/* 6. FACTURACIÓN (x1.1 -> span 7) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/facturas')
                 if (!item) return null
@@ -470,7 +472,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.16s, 0.45s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 7', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.16s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -478,7 +480,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 7. BALANCES */}
+              {/* 7. BALANCES & PROVEEDORES (span 5 / span 7) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/balances')
                 if (!item) return null
@@ -487,7 +489,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.19s, 0.48s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 5', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.19s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -504,7 +506,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.21s, 0.50s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 7', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.21s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -512,7 +514,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 9. CLIENTES */}
+              {/* 9. CLIENTES (x0.8 -> span 5) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/clientes')
                 if (!item) return null
@@ -521,7 +523,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.24s, 0.53s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 5', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.24s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -529,7 +531,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 10. INCIDENCIAS */}
+              {/* 10. INCIDENCIAS (x1.2 -> span 7) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/incidencias')
                 if (!item) return null
@@ -538,7 +540,7 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.27s, 0.56s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 7', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.27s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
                     <span>{item.label}</span>
@@ -546,7 +548,7 @@ export function MobileFooter() {
                 )
               })()}
 
-              {/* 11. PRESUPUESTOS */}
+              {/* 11. PRESUPUESTOS (span 6 - 2px padding interior exacto) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/presupuestos')
                 if (!item) return null
@@ -555,15 +557,15 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.29s, 0.58s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 6', padding: '4px 2px', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromLeft', animationDelay: '0.29s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
-                    <span>{item.label}</span>
+                    <span style={{ padding: '0 2px' }}>{item.label}</span>
                   </button>
                 )
               })()}
 
-              {/* 12. CONFIGURACIÓN */}
+              {/* 12. CONFIGURACIÓN (span 6 - 2px padding interior exacto) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/configuracion')
                 if (!item) return null
@@ -572,10 +574,10 @@ export function MobileFooter() {
                 const isActive = location.pathname === item.path
                 return (
                   <button key={item.path} className={`bento-btn ${isActive ? 'active-page' : ''}`}
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.32s, 0.61s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 6', padding: '4px 2px', backgroundColor: `${color}4D`, borderColor: color, animationName: 'flyFromRight', animationDelay: '0.32s' }}
                     onClick={() => handleNavClick(item.path)}>
                     <Icon className="w-6 h-6 shrink-0" style={{ color }} strokeWidth={1.8} />
-                    <span>{item.label}</span>
+                    <span style={{ padding: '0 2px' }}>{item.label}</span>
                   </button>
                 )
               })()}
@@ -585,7 +587,7 @@ export function MobileFooter() {
                 const color = '#06b6d4'
                 return (
                   <button key="nuevo-presupuesto" className="bento-btn"
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}`, animationName: 'flyFromLeft, bentoGlowFlash', animationDelay: '0.35s, 0.64s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}`, animationName: 'flyFromLeft', animationDelay: '0.35s' }}
                     onClick={() => { playSound('click'); setMenuOpen(false); navigate('/presupuestos', { state: { openForm: true } }) }}>
                     <span className="bento-plus" style={{ color }}>+</span>
                     <span>Presupuesto</span>
@@ -598,7 +600,7 @@ export function MobileFooter() {
                 const color = '#10b981'
                 return (
                   <button key="nuevo-cliente" className="bento-btn"
-                    style={{ '--btn-color': color, gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}`, animationName: 'flyFromRight, bentoGlowFlash', animationDelay: '0.37s, 0.66s' } as React.CSSProperties}
+                    style={{ gridColumn: 'span 6', backgroundColor: `${color}4D`, borderColor: color, boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}`, animationName: 'flyFromRight', animationDelay: '0.37s' }}
                     onClick={() => { playSound('click'); setMenuOpen(false); navigate('/clientes', { state: { openNewModal: true } }) }}>
                     <span className="bento-plus" style={{ color }}>+</span>
                     <span>Cliente</span>
