@@ -5,13 +5,14 @@ import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } fr
 import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
 import { Chip, Stack, Switch, TextField } from '@mui/material'
-import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog } from 'lucide-react'
+import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog, ShieldCheck, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 // Servicios centralizados
 import { getAiConfig, getFallbackConfig, testAiConnection } from '../services/aiProviderService'
 import { getDocumentOcrConfig, testDocumentOcrConnection } from '../services/documentOcrService'
 import { getPlateRecognizerConfig, testPlateRecognizerConnection } from '../services/plateRecognizerService'
+import { can, hasRole, guardarPreferenciasUsuario, getPerfil } from '../services/authService'
 
 
 export function ConfiguracionPage() {
@@ -22,6 +23,10 @@ export function ConfiguracionPage() {
   const [saved, setSaved] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance } = useTheme()
+
+  const perfil = getPerfil()
+  const esDev = perfil?.esDeveloper || perfil?.email.toLowerCase() === 'iclomsinks@gmail.com'
+  const [vistaModo, setVistaModo] = useState<'usuario' | 'desarrollador'>(esDev ? 'desarrollador' : 'usuario')
 
   // ----------------------------------------------------
   // ESTADOS DE SERVICIOS Y CLAVES API (OBJETIVO 1, 2, 3)
@@ -326,46 +331,71 @@ export function ConfiguracionPage() {
     root.style.setProperty('--text-secondary', textColors.text_secondary)
     root.style.setProperty('--text-card', textColors.text_card)
 
-    // 3. Persistir en Supabase (Configuración + Claves API centralizadas)
-    await supabase.from('configuracion').upsert({
-      id: 1,
-      nombre_empresa: config.nombre_empresa,
-      cif: config.cif,
-      direccion: config.direccion,
-      telefono: config.telefono,
-      email: config.email,
-      email_gestoria: config.email_gestoria,
-      logo_color: config.logo_color,
-      logo_bn: config.logo_bn,
-      fondo_landscape: config.fondo_landscape,
-      fondo_portrait: config.fondo_portrait,
-      tipo_empresa: config.tipo_empresa,
-      color_fondo: appearance.color_fondo,
-      color_texto: appearance.color_texto,
-      color_glow_botones: appearance.color_glow_botones,
-      color_linea_botones: appearance.color_linea_botones,
-      color_relleno_campo: appearance.color_relleno_campo,
-      color_relleno_botones: appearance.color_relleno_botones,
-      color_relleno_paneles: appearance.color_relleno_paneles,
-      modo_diurno: appearance.modo_diurno,
-      animaciones_activadas: appearance.animaciones_activadas,
-      sonido_activado: appearance.sonido_activado,
-      // Guardar claves centralizadas para sincronizar todos los móviles/PCs
-      ai_provider: aiProvider,
-      ai_model: aiModel,
-      ai_api_key: aiApiKey,
-      doc_ocr_provider: docOcrProvider,
-      doc_ocr_model: docOcrModel,
-      doc_ocr_api_key: docOcrApiKey,
-      plate_api_key: plateApiKey,
-      plate_endpoint: plateEndpoint,
-      fallback_provider: fallbackProvider,
-      fallback_model: fallbackModel,
-      fallback_api_key: fallbackApiKey,
-      fallback_enabled: fallbackEnabled
-    }).eq('id', 1)
+    // Guardar preferencias personales en tabla preferencias_usuario
+    await guardarPreferenciasUsuario({
+      capaVisual: activeLayerIndex !== null ? activeLayerIndex.toString() : 'default',
+      tema: appearance.modo_diurno ? 'claro' : 'oscuro'
+    })
 
-    await saveThemeToDB(themeSettings)
+    // 3. Persistir Configuración Global solo si tiene permiso
+    const puedeConfigGlobal = can('configuracion_global') || hasRole('admin') || hasRole('developer') || getPerfil()?.esDeveloper
+
+    if (puedeConfigGlobal) {
+      await supabase.from('configuracion').upsert({
+        id: 1,
+        nombre_empresa: config.nombre_empresa,
+        cif: config.cif,
+        direccion: config.direccion,
+        telefono: config.telefono,
+        email: config.email,
+        email_gestoria: config.email_gestoria,
+        logo_color: config.logo_color,
+        logo_bn: config.logo_bn,
+        fondo_landscape: config.fondo_landscape,
+        fondo_portrait: config.fondo_portrait,
+        tipo_empresa: config.tipo_empresa,
+        color_fondo: appearance.color_fondo,
+        color_texto: appearance.color_texto,
+        color_glow_botones: appearance.color_glow_botones,
+        color_linea_botones: appearance.color_linea_botones,
+        color_relleno_campo: appearance.color_relleno_campo,
+        color_relleno_botones: appearance.color_relleno_botones,
+        color_relleno_paneles: appearance.color_relleno_paneles,
+        modo_diurno: appearance.modo_diurno,
+        animaciones_activadas: appearance.animaciones_activadas,
+        sonido_activado: appearance.sonido_activado,
+        // Guardar claves centralizadas para sincronizar todos los móviles/PCs
+        ai_provider: aiProvider,
+        ai_model: aiModel,
+        ai_api_key: aiApiKey,
+        doc_ocr_provider: docOcrProvider,
+        doc_ocr_model: docOcrModel,
+        doc_ocr_api_key: docOcrApiKey,
+        plate_api_key: plateApiKey,
+        plate_endpoint: plateEndpoint,
+        fallback_provider: fallbackProvider,
+        fallback_model: fallbackModel,
+        fallback_api_key: fallbackApiKey,
+        fallback_enabled: fallbackEnabled,
+        // Notificaciones y WhatsApp
+        email_api_key: config.email_api_key,
+        email_from: config.email_from,
+        notificaciones_activas: config.notificaciones_activas,
+        whatsapp_api_key: config.whatsapp_api_key,
+        whatsapp_phone_number_id: config.whatsapp_phone_number_id,
+        // Configuración de Planes PRO / FREE / ENTERPRISE
+        plan_activo: config.plan_activo || (config.pro_activo ? 'PRO' : 'FREE'),
+        precio_pro_mensual: config.precio_pro_mensual ?? 0,
+        precio_pro_anual: config.precio_pro_anual ?? 0,
+        precio_enterprise_mensual: config.precio_enterprise_mensual ?? 0,
+        precio_enterprise_anual: config.precio_enterprise_anual ?? 0,
+        dias_prueba_pro: config.dias_prueba_pro ?? 0,
+        pro_activo: config.pro_activo ?? false,
+        limite_usuarios_free: config.limite_usuarios_free ?? 3
+      }).eq('id', 1)
+
+      await saveThemeToDB(themeSettings)
+    }
 
     setSaving(false)
     setSaved(true)
@@ -457,7 +487,22 @@ export function ConfiguracionPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader title="CONFIGURACIÓN">
+      <PageHeader 
+        title={vistaModo === 'desarrollador' ? "CONFIGURACIÓN (DESARROLLADOR)" : "CONFIGURACIÓN DE USUARIO"}
+        subtitle={
+          vistaModo === 'desarrollador' ? (
+            <div className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
+              <p>Panel maestro de servicios IA, control de licencias,</p>
+              <p className="mt-0.5">portal cliente y personalización global.</p>
+            </div>
+          ) : (
+            <div className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
+              <p>Personalización de interfaz, datos fiscales,</p>
+              <p className="mt-0.5">comunicaciones, autorizados y operativa del taller.</p>
+            </div>
+          )
+        }
+      >
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -470,29 +515,70 @@ export function ConfiguracionPage() {
         </div>
       </PageHeader>
 
+      {/* SELECTOR DE MODO EXCLUSIVO PARA DESARROLLADOR */}
+      {esDev && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/90 border-2 border-indigo-500/40 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xs font-black text-white uppercase tracking-wider">Modo de Visualización de Configuración</p>
+              <p className="text-[11px] text-slate-400">Alterna para editar como Desarrollador o comprobar la vista del Usuario del Taller</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
+            <button
+              onClick={() => setVistaModo('usuario')}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                vistaModo === 'usuario'
+                  ? 'bg-teal-500 text-slate-950 shadow-[0_0_12px_rgba(20,184,166,0.6)] font-extrabold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Configuración Usuario
+            </button>
+            <button
+              onClick={() => setVistaModo('desarrollador')}
+              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
+                vistaModo === 'desarrollador'
+                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] font-extrabold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Configuración Desarrollador
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between bg-slate-900/60 p-4 rounded-2xl border border-slate-800 backdrop-blur-md">
-        <h2 className="text-xl font-black text-white tracking-tight">Panel de Control de Ajustes</h2>
+        <h2 className="text-xl font-black text-white tracking-tight">
+          {vistaModo === 'desarrollador' ? 'Panel de Ajustes Globales y Desarrollador' : 'Panel de Ajustes del Taller'}
+        </h2>
         <button 
           onClick={handleSave} 
           disabled={saving} 
-          className="flex items-center gap-2 text-white font-bold bg-cyan-600 hover:bg-cyan-500 transition-all rounded-xl px-5 py-2.5 shadow-lg active:scale-95 disabled:opacity-50"
+          className="flex items-center gap-2 text-white font-bold bg-cyan-600 hover:bg-cyan-500 transition-all rounded-xl px-5 py-2.5 shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
         >
           <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar todo'}
         </button>
       </div>
 
       {/* ================================================== */}
-      {/* SECCIÓN 1: INTELIGENCIA ARTIFICIAL Y SERVICIOS */}
+      {/* SECCIÓN 1: INTELIGENCIA ARTIFICIAL Y SERVICIOS (SOLO DESARROLLADOR) */}
       {/* ================================================== */}
+      {vistaModo === 'desarrollador' && (
       <div className="space-y-4">
         <div className="flex items-center gap-2 pt-2">
           <Sparkles className="w-6 h-6 text-cyan-400" />
-          <h2 className="text-xl font-black text-white uppercase tracking-tight">INTELIGENCIA ARTIFICIAL Y SERVICIOS</h2>
+          <h2 className="text-xl font-black text-white uppercase tracking-tight">GESTIÓN DE IA Y SERVICIOS (EXCLUSIVO DESARROLLADOR)</h2>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-          {/* 1. AYUDANTE IA GESTARIAN */}
+            {/* 1. AYUDANTE IA GESTARIAN */}
           <Card className="p-6 space-y-4 border border-cyan-500/20 shadow-xl relative overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1008,9 +1094,10 @@ export function ConfiguracionPage() {
 
         </div>
       </div>
+      )}
 
       {/* ================================================== */}
-      {/* SECCIÓN 2: PERSONALIZACIÓN DE LA INTERFAZ & 5 CAPAS (OBJETIVOS 4 & 5) */}
+      {/* SECCIÓN 2: PREFERENCIAS PERSONALES: PERSONALIZACIÓN & 5 CAPAS */}
       {/* ================================================== */}
       <Card className="p-6 space-y-6 border border-slate-800">
         <div className="flex items-center justify-between">
@@ -1207,131 +1294,709 @@ export function ConfiguracionPage() {
         </div>
       </Card>
 
-      {/* Datos Fiscales y Comunicaciones */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Building2 className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-white">Datos Fiscales</h2>
-          </div>
-          <div className="space-y-3">
-            <TextField
-              label="Nombre empresa"
-              value={config.nombre_empresa}
-              onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
-              {...sharedTextFieldProps}
-            />
-            <TextField
-              label="CIF / NIF"
-              value={config.cif}
-              onChange={(e) => setConfig({ ...config, cif: e.target.value })}
-              {...sharedTextFieldProps}
-            />
-            <TextField
-              label="Dirección"
-              value={config.direccion}
-              onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
-              {...sharedTextFieldProps}
-            />
-            <TextField
-              label="Teléfono"
-              value={config.telefono ?? ''}
-              onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
-              {...sharedTextFieldProps}
-            />
-            <TextField
-              label="Email"
-              value={config.email ?? ''}
-              onChange={(e) => setConfig({ ...config, email: e.target.value })}
-              type="email"
-              {...sharedTextFieldProps}
-            />
-          </div>
-        </Card>
+      {/* ================================================== */}
+      {/* SECCIÓN 3: CONFIGURACIÓN DE EMPRESA Y ADMINISTRACIÓN (GLOBAL) */}
+      {/* ================================================== */}
+      <div className="space-y-6">
+        {/* Datos Fiscales y Comunicaciones */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="w-5 h-5 text-[var(--primary)]" />
+                <h2 className="text-lg font-semibold text-white">Datos Fiscales</h2>
+              </div>
+              <div className="space-y-3">
+                <TextField
+                  label="Nombre empresa"
+                  value={config.nombre_empresa}
+                  onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="CIF / NIF"
+                  value={config.cif}
+                  onChange={(e) => setConfig({ ...config, cif: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Dirección"
+                  value={config.direccion}
+                  onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Teléfono"
+                  value={config.telefono ?? ''}
+                  onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
+                  {...sharedTextFieldProps}
+                />
+                <TextField
+                  label="Email"
+                  value={config.email ?? ''}
+                  onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                  type="email"
+                  {...sharedTextFieldProps}
+                />
+              </div>
+            </Card>
 
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Mail className="w-5 h-5 text-[var(--primary)]" />
-              <h2 className="text-lg font-semibold text-white">Comunicaciones & Gestoría</h2>
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-[var(--primary)]" />
+                  <h2 className="text-lg font-semibold text-white">Comunicaciones & Notificaciones</h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowHistoryModal(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/40 transition-colors"
+                >
+                  <History className="w-4 h-4" /> Historial de Envíos
+                </button>
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+                  <div>
+                    <span className="text-xs font-bold text-white block">Notificaciones Automáticas por Email</span>
+                    <span className="text-[10px] text-slate-400">Notificar al cliente cuando cambia el estado de su expediente</span>
+                  </div>
+                  <Switch
+                    checked={config.notificaciones_activas ?? false}
+                    onChange={(e) => setConfig({ ...config, notificaciones_activas: e.target.checked })}
+                    sx={{ '& .MuiSwitch-thumb': { bgcolor: '#06b6d4' }, '& .Mui-checked + .MuiSwitch-track': { bgcolor: '#06b6d4' } }}
+                  />
+                </div>
+
+                <TextField
+                  label="Email gestoría"
+                  type="email"
+                  value={config.email_gestoria ?? ''}
+                  onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
+                  placeholder="gestoria@asesoria.es"
+                  {...sharedTextFieldProps}
+                />
+
+                <TextField
+                  label="Email Remitente (From)"
+                  type="email"
+                  value={config.email_from ?? ''}
+                  onChange={(e) => setConfig({ ...config, email_from: e.target.value })}
+                  placeholder="notificaciones@taller.es"
+                  {...sharedTextFieldProps}
+                />
+
+                <TextField
+                  label="Email API Key (Resend / SendGrid)"
+                  type="password"
+                  value={config.email_api_key ?? ''}
+                  onChange={(e) => setConfig({ ...config, email_api_key: e.target.value })}
+                  placeholder="re_123456789..."
+                  {...sharedTextFieldProps}
+                />
+
+                <div className="pt-2 border-t border-slate-800 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-emerald-400">WhatsApp Business API</span>
+                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Preparado (Desactivado)</span>
+                  </div>
+
+                  <TextField
+                    label="WhatsApp Phone Number ID"
+                    value={config.whatsapp_phone_number_id ?? ''}
+                    onChange={(e) => setConfig({ ...config, whatsapp_phone_number_id: e.target.value })}
+                    placeholder="1092837465..."
+                    {...sharedTextFieldProps}
+                  />
+
+                  <TextField
+                    label="WhatsApp Access Token"
+                    type="password"
+                    value={config.whatsapp_api_key ?? ''}
+                    onChange={(e) => setConfig({ ...config, whatsapp_api_key: e.target.value })}
+                    placeholder="EAA..."
+                    {...sharedTextFieldProps}
+                  />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* ── SECCIÓN DE IMÁGENES DE PERSONALIZACIÓN DE LA APLICACIÓN ── */}
+          <Card className="p-6 border-cyan-500/30 bg-slate-900/90 shadow-xl rounded-2xl">
+            <div className="flex items-center gap-3 mb-4 border-b border-slate-800 pb-3">
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                <ImageIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white uppercase tracking-wider">Imágenes de Personalización Corporativa</h2>
+                <p className="text-xs text-slate-400">Fondos de pantalla y logotipos corporativos para la app y documentos oficiales</p>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setShowHistoryModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/40 transition-colors"
-            >
-              <History className="w-4 h-4" /> Historial de Envíos
-            </button>
-          </div>
-          <div className="space-y-3">
-            <TextField
-              label="Email gestoría"
-              type="email"
-              value={config.email_gestoria ?? ''}
-              onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
-              placeholder="gestoria@asesoria.es"
-              {...sharedTextFieldProps}
-            />
-          </div>
-        </Card>
-      </div>
 
-      <CommunicationHistoryModal
-        isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-      />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* 1. IMAGEN LANDSCAPE */}
+              <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-white text-sm uppercase tracking-wide text-cyan-400">1. IMAGEN LANDSCAPE</h3>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">1920 x 1080 px</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Imagen de fondo de pantalla para visualización en tablet landscape (horizontal) y escritorio de PC.
+                  </p>
+                </div>
 
-      <div className="flex justify-end pt-4">
-        <button onClick={handleSave} disabled={saving} className="flex items-center gap-2 text-white font-bold bg-cyan-600 hover:bg-cyan-500 transition-colors rounded-xl px-6 py-3 shadow-lg disabled:opacity-50">
-          <Save className="w-5 h-5" /> {saving ? 'Guardando...' : saved ? 'Guardado ✓' : 'Guardar Cambios de Configuración'}
-        </button>
-      </div>
+                <div className="flex flex-col items-center justify-center pt-2">
+                  {config.fondo_landscape ? (
+                    <div className="w-full space-y-3 flex flex-col items-center">
+                      <div className="w-full h-36 rounded-xl overflow-hidden border-2 border-cyan-500/40 bg-black/60 shadow-lg relative group">
+                        <img src={config.fondo_landscape} alt="Fondo Landscape" className="w-full h-full object-cover" />
+                      </div>
+                      <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-700 active:scale-95 shadow">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reemplazar Imagen</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                setConfig({ ...config, fondo_landscape: event.target?.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-8 border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-slate-900/40 hover:bg-cyan-500/5 group">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-cyan-300">Adjuntar Imagen Landscape</span>
+                      <span className="text-[10px] text-slate-500">JPG, PNG o WebP (1920x1080p)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (event) => {
+                              setConfig({ ...config, fondo_landscape: event.target?.result as string })
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
 
-      {/* ── Acceso a Usuarios ─────────────────────────────────── */}
-      <Card className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <HardDrive className="w-5 h-5 text-teal-400" />
-          <h2 className="text-lg font-semibold text-white">Administración</h2>
-        </div>
-        <button
-          onClick={() => navigate('/usuarios')}
-          className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors">
-              <UserCog className="w-5 h-5 text-teal-400" />
+              {/* 2. IMAGEN PORTRAIT */}
+              <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-white text-sm uppercase tracking-wide text-cyan-400">2. IMAGEN PORTRAIT</h3>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">1080 x 1920 px</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Imagen de fondo de pantalla para visualización en tablet portrait (vertical) y teléfonos móviles.
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center pt-2">
+                  {config.fondo_portrait ? (
+                    <div className="w-full space-y-3 flex flex-col items-center">
+                      <div className="w-32 h-44 rounded-xl overflow-hidden border-2 border-cyan-500/40 bg-black/60 shadow-lg relative group">
+                        <img src={config.fondo_portrait} alt="Fondo Portrait" className="w-full h-full object-cover" />
+                      </div>
+                      <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-700 active:scale-95 shadow">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reemplazar Imagen</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                setConfig({ ...config, fondo_portrait: event.target?.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-8 border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-slate-900/40 hover:bg-cyan-500/5 group">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-cyan-300">Adjuntar Imagen Portrait</span>
+                      <span className="text-[10px] text-slate-500">JPG, PNG o WebP (1080x1920p)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (event) => {
+                              setConfig({ ...config, fondo_portrait: event.target?.result as string })
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* 3. IMAGEN LOGOTIPO (COLOR) */}
+              <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-white text-sm uppercase tracking-wide text-cyan-400">3. IMAGEN LOGOTIPO (COLOR)</h3>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">250 x 250 px</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Logotipo a color para incrustar en el header de todas las páginas (excepto Inicio y menú footer). Actúa como botón de retorno que siempre redirige a la pantalla de Inicio. <strong className="text-cyan-300">Tamaño recomendado: 250x250px.</strong>
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center pt-2">
+                  {config.logo_color ? (
+                    <div className="w-full space-y-3 flex flex-col items-center">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-900 p-2 shadow-lg flex items-center justify-center">
+                        <img src={config.logo_color} alt="Logotipo Color" className="max-w-full max-h-full object-contain" />
+                      </div>
+                      <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-700 active:scale-95 shadow">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reemplazar Logotipo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                setConfig({ ...config, logo_color: event.target?.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-8 border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-slate-900/40 hover:bg-cyan-500/5 group">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-cyan-300">Adjuntar Logo a Color</span>
+                      <span className="text-[10px] text-slate-500">250x250px · PNG transparente recomendado</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (event) => {
+                              setConfig({ ...config, logo_color: event.target?.result as string })
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
+
+              {/* 4. LOGO B/N (DOCUMENTOS) */}
+              <div className="p-5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between space-y-4">
+                <div>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-extrabold text-white text-sm uppercase tracking-wide text-cyan-400">4. LOGO B/N (DOCUMENTOS)</h3>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">250 x 250 px</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                    Logotipo en blanco y negro para incrustar en facturas y presupuestos oficiales, situado justo a la izquierda de los datos fiscales de la empresa en la cabecera A4. <strong className="text-cyan-300">Tamaño recomendado: 250x250px.</strong>
+                  </p>
+                </div>
+
+                <div className="flex flex-col items-center justify-center pt-2">
+                  {config.logo_bn ? (
+                    <div className="w-full space-y-3 flex flex-col items-center">
+                      <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-slate-600 bg-white p-2 shadow-lg flex items-center justify-center">
+                        <img src={config.logo_bn} alt="Logo B/N" className="max-w-full max-h-full object-contain filter grayscale" />
+                      </div>
+                      <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-700 active:scale-95 shadow">
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reemplazar Logo B/N</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              const reader = new FileReader()
+                              reader.onload = (event) => {
+                                setConfig({ ...config, logo_bn: event.target?.result as string })
+                              }
+                              reader.readAsDataURL(file)
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <label className="w-full py-8 border-2 border-dashed border-slate-700 hover:border-cyan-500/60 rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all bg-slate-900/40 hover:bg-cyan-500/5 group">
+                      <div className="w-10 h-10 rounded-full bg-cyan-500/10 text-cyan-400 flex items-center justify-center group-hover:scale-110 transition-transform">
+                        <Upload className="w-5 h-5" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-300 group-hover:text-cyan-300">Adjuntar Logo B/N</span>
+                      <span className="text-[10px] text-slate-500">250x250px · PNG / JPG para impresión A4</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            const reader = new FileReader()
+                            reader.onload = (event) => {
+                              setConfig({ ...config, logo_bn: event.target?.result as string })
+                            }
+                            reader.readAsDataURL(file)
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="text-left">
-              <p className="font-bold text-white text-sm uppercase tracking-wide">Usuarios</p>
-              <p className="text-xs text-slate-400 mt-0.5">Gestión de usuarios y permisos del sistema</p>
-            </div>
-          </div>
-          <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-        </button>
-      </Card>
+          </Card>
 
-      {/* ── ZONA DE PELIGRO ─────────────────────────────────── */}
-      <Card className="p-6 mt-8 border-rose-500/30 bg-rose-950/10">
-        <div className="flex items-center gap-3 mb-4">
-          <XCircle className="w-5 h-5 text-rose-500" />
-          <h2 className="text-lg font-semibold text-rose-500">Zona de Peligro (Pruebas)</h2>
+          <CommunicationHistoryModal
+            isOpen={showHistoryModal}
+            onClose={() => setShowHistoryModal(false)}
+          />
+
+          {/* ── SECCIÓN DE GESTIÓN DEL TALLER / DESARROLLADOR ────────── */}
+          <Card className="p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <HardDrive className="w-5 h-5 text-teal-400" />
+              <h2 className="text-lg font-semibold text-white uppercase tracking-wider">
+                {vistaModo === 'desarrollador' ? 'Gestión del Desarrollador y Licencias' : 'Gestión del Taller (Autorizados)'}
+              </h2>
+            </div>
+
+            {vistaModo === 'desarrollador' ? (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {/* 1. Botón de acceso a la página de CONFIGURACIÓN de usuario para edición */}
+                <button
+                  type="button"
+                  onClick={() => setVistaModo('usuario')}
+                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
+                      <Building2 className="w-5 h-5 text-teal-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONFIGURACIÓN DE USUARIO</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Editar panel de usuario del taller</p>
+                    </div>
+                  </div>
+                  <Sparkles className="w-4 h-4 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+
+                {/* 2. Botón de USUARIOS para acceso al panel de control de licencias y usuarios registrados */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/licencias')}
+                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors shrink-0">
+                      <ShieldCheck className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONTROL DE USUARIOS</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Autorizar altas y fijar tarifas</p>
+                    </div>
+                  </div>
+                  <Sparkles className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+
+                {/* 3. Botón del PORTAL DEL CLIENTE FINAL */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/cliente/demo')}
+                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30 transition-colors shrink-0">
+                      <Car className="w-5 h-5 text-amber-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-white text-xs uppercase tracking-wide">PORTAL CLIENTE FINAL</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Seguimiento de expediente y normativa</p>
+                    </div>
+                  </div>
+                  <Sparkles className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate('/autorizados')}
+                  className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
+                      <UserCog className="w-6 h-6 text-teal-400" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-bold text-white text-sm uppercase tracking-wide">AUTORIZADOS (EMPLEADOS DEL TALLER)</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Gestionar operarios, mecánicos y permisos de acceso</p>
+                    </div>
+                  </div>
+                  <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </button>
+              </div>
+            )}
+          </Card>
+
+          {/* ── SECCIÓN DE PLAN DE SUSCRIPCIÓN (VISTA USUARIO VS DESARROLLADOR) ──── */}
+          {vistaModo === 'usuario' ? (
+            <Card className="p-6 mt-8 border-cyan-500/30 bg-slate-900/90 shadow-xl rounded-2xl">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-cyan-500 to-indigo-500 flex items-center justify-center text-slate-950 font-black shadow-md">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                      Su Plan de Suscripción Exclusivo
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Estado actual de su licencia del software GESTARIAN
+                    </p>
+                  </div>
+                </div>
+
+                <span className="px-3.5 py-1.5 rounded-full font-black text-xs uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                  Plan {config.plan_activo || (config.pro_activo ? 'PRO' : 'FREE')} Activo
+                </span>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  <p className="font-bold text-white text-sm">
+                    Modalidad: <span className="text-cyan-400 font-black uppercase">{config.plan_activo || 'PRO (Periodo Promoción Gratuito)'}</span>
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Incluye gestión integral de expedientes, presupuestos A4, facturación con código QR AEAT y seguimiento para clientes.
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[11px] text-slate-500 block uppercase font-bold">Límite Autorizados</span>
+                  <span className="text-base font-black text-white font-mono">{config.limite_usuarios_free ?? 3} Empleados</span>
+                </div>
+              </div>
+            </Card>
+          ) : (
+            <Card className="p-6 mt-8 border-cyan-500/40 bg-slate-900/90 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-cyan-500 to-indigo-500 flex items-center justify-center text-slate-950 font-black shadow-md">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                      Planes y Suscripciones GESTARIAN (Tarifas Globales)
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Configuración de precios y planes FREE, PRO y ENTERPRISE (Desarrollador)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Selector de Plan Activo */}
+                <div className="flex items-center gap-1.5 bg-slate-950 p-1.5 rounded-xl border border-slate-800">
+                  {(['FREE', 'PRO', 'ENTERPRISE'] as const).map((p) => {
+                    const currentPlan = config.plan_activo || (config.pro_activo ? 'PRO' : 'FREE')
+                    const isSelected = currentPlan === p
+                    return (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() =>
+                          setConfig({
+                            ...config,
+                            plan_activo: p,
+                            pro_activo: p === 'PRO' || p === 'ENTERPRISE'
+                          })
+                        }
+                        className={`px-3 py-1.5 rounded-lg text-xs font-black uppercase transition-all ${
+                          isSelected
+                            ? p === 'ENTERPRISE'
+                              ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.5)]'
+                              : p === 'PRO'
+                              ? 'bg-amber-500 text-slate-950 shadow-[0_0_12px_rgba(245,158,11,0.5)]'
+                              : 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.5)]'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Precio Mensual PRO */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Precio PRO Mensual (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={config.precio_pro_mensual ?? 0}
+                    onChange={(e) => setConfig({ ...config, precio_pro_mensual: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-cyan-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Tarifa mensual plan PRO</span>
+                </div>
+
+                {/* Precio Anual PRO */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Precio PRO Anual (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={config.precio_pro_anual ?? 0}
+                    onChange={(e) => setConfig({ ...config, precio_pro_anual: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-cyan-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Tarifa anual plan PRO</span>
+                </div>
+
+                {/* Días de Prueba Gratuita */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Prueba Gratuita (Días)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={config.dias_prueba_pro ?? 0}
+                    onChange={(e) => setConfig({ ...config, dias_prueba_pro: parseInt(e.target.value, 10) || 0 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-cyan-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Período de promoción o prueba de cortesía</span>
+                </div>
+
+                {/* Precio Mensual ENTERPRISE */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Precio ENTERPRISE Mensual (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={config.precio_enterprise_mensual ?? 0}
+                    onChange={(e) => setConfig({ ...config, precio_enterprise_mensual: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-indigo-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Tarifa mensual Enterprise</span>
+                </div>
+
+                {/* Precio Anual ENTERPRISE */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Precio ENTERPRISE Anual (€)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={config.precio_enterprise_anual ?? 0}
+                    onChange={(e) => setConfig({ ...config, precio_enterprise_anual: parseFloat(e.target.value) || 0 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-indigo-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Tarifa anual Enterprise</span>
+                </div>
+
+                {/* Límite Usuarios Plan FREE */}
+                <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5">
+                  <label className="text-xs font-bold text-slate-300 block uppercase tracking-wider">
+                    Límite Autorizados FREE
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={config.limite_usuarios_free ?? 3}
+                    onChange={(e) => setConfig({ ...config, limite_usuarios_free: parseInt(e.target.value, 10) || 1 })}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white font-bold focus:border-cyan-400 outline-none"
+                  />
+                  <span className="text-[10px] text-slate-400 block">Tope de empleados en modo gratuito</span>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* ── ZONA DE PELIGRO ─────────────────────────────────── */}
+          <Card className="p-6 mt-8 border-rose-500/30 bg-rose-950/10">
+            <div className="flex items-center gap-3 mb-4">
+              <XCircle className="w-5 h-5 text-rose-500" />
+              <h2 className="text-lg font-semibold text-rose-500">Zona de Peligro (Pruebas)</h2>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-bold text-white text-sm">Vaciar Datos Operativos</p>
+                <p className="text-xs text-rose-400 mt-1 max-w-xl">
+                  Elimina todos los expedientes, presupuestos, citas, reparaciones, facturas y balances. 
+                  <strong> Los clientes y vehículos se conservarán intactos.</strong>
+                </p>
+              </div>
+              <button
+                onClick={() => setShowResetModal(true)}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg transition-colors whitespace-nowrap"
+              >
+                RESET DATOS DE PRUEBA
+              </button>
+            </div>
+          </Card>
         </div>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-white text-sm">Vaciar Datos Operativos</p>
-            <p className="text-xs text-rose-400 mt-1 max-w-xl">
-              Elimina todos los expedientes, presupuestos, citas, reparaciones, facturas y balances. 
-              <strong> Los clientes y vehículos se conservarán intactos.</strong>
-            </p>
-          </div>
-          <button
-            onClick={() => setShowResetModal(true)}
-            className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-lg shadow-lg transition-colors whitespace-nowrap"
-          >
-            RESET DATOS DE PRUEBA
-          </button>
-        </div>
-      </Card>
 
       {/* ── MODAL DE RESET ─────────────────────────────────── */}
       {showResetModal && (

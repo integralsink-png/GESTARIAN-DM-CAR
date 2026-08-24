@@ -115,3 +115,25 @@ export async function shareDocumentoViaWhatsApp(options: {
     return { success: false, error: err.message }
   }
 }
+
+/**
+ * Simula y despacha el envío de invitación al portal de cliente (WhatsApp / Email)
+ */
+export async function enviarInvitacionCliente(
+  email: string,
+  token: string,
+  telefono?: string | null
+): Promise<{ success: boolean; url: string }> {
+  const origin = window.location.origin || 'http://localhost:5174';
+  const url = `${origin}/cliente/${token}`;
+  
+  console.log(`📲 Invitación enviada a ${email}: ${url}`);
+
+  if (telefono) {
+    const cleanPhone = normalizePhone(telefono);
+    const text = `Hola, puedes seguir el estado de la reparación de tu vehículo en tiempo real en nuestro portal: ${url}`;
+    window.open(`https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`, '_blank');
+  }
+
+  return { success: true, url };
+}

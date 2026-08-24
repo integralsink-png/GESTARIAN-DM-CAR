@@ -6,6 +6,7 @@ import { supabase } from '../lib/supabase';
 import { playSuccessChime, playTimepickerTickSound } from '../lib/sound';
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronUp, CheckCircle2, ArrowLeft } from 'lucide-react';
 import { MatriculaBadge } from '../components/UI';
+import { notificarModificacionCitaAlCliente } from '../services/notificationService';
 
 // Generar intervalos de 15 minutos desde 07:00 hasta 21:00
 const TIME_SLOTS: string[] = [];
@@ -33,6 +34,7 @@ export function AsignarCitaPage() {
     vehiculoId?: string;
     clienteId?: string;
     presupuestoId?: string;
+    citaId?: string;
     expedienteId?: string;
     clienteNombre?: string;
     matricula?: string;
@@ -117,33 +119,52 @@ export function AsignarCitaPage() {
     setGuardando(true);
 
     try {
-      const horaStr = TIME_SLOTS[selectedTimeIndex] || '12:00';
-      const dayFormatted = String(selectedDay).padStart(2, '0');
-      const monthFormatted = String(currentMonth + 1).padStart(2, '0');
-      const fechaStr = `${currentYear}-${monthFormatted}-${dayFormatted}`;
+      // 1. Insertar o actualizar la cita en la tabla `citas`
+      let citaIdTarget = state.citaId;
+      if (citaIdTarget) {
+        await supabase
+          .from('citas')
+          .update({
+            fecha: fechaStr,
+            hora: horaStr,
+            estado: 'confirmada',
+          })
+          .eq('id', citaIdTarget);
+      } else {
+        const citaData: any = {
+          fecha: fechaStr,
+          hora: horaStr,
+          estado: 'confirmada',
+        };
+        if (state.clienteId) citaData.cliente_id = state.clienteId;
+        if (state.vehiculoId) citaData.vehiculo_id = state.vehiculoId;
+        if (state.presupuestoId) citaData.presupuesto_id = state.presupuestoId;
 
-      // 1. Insertar la cita en la tabla `citas`
-      const citaData: any = {
-        fecha: fechaStr,
-        hora: horaStr,
-        estado: 'pendiente',
-      };
-
-      if (state.clienteId) citaData.cliente_id = state.clienteId;
-      if (state.vehiculoId) citaData.vehiculo_id = state.vehiculoId;
-      if (state.presupuestoId) citaData.presupuesto_id = state.presupuestoId;
-
-      const { error: citaError } = await supabase
-        .from('citas')
-        .insert(citaData)
-        .select()
-        .single();
-
-      if (citaError) {
-        console.error('Error insertando cita:', citaError);
+        const { data: nuevaCita } = await supabase
+          .from('citas')
+          .insert(citaData)
+          .select()
+          .single();
+        citaIdTarget = nuevaCita?.id;
       }
 
-      // 2. Marcar el presupuesto como aceptado en segundo plano si existe
+      // 2. Notificar al cliente de la cita asignada/propuesta
+      if (state.clienteId) {
+        const { data: cli } = await supabase.from('clientes').select('nombre, email').eq('id', state.clienteId).maybeSingle();
+        const { data: inv } = await supabase.from('cliente_invitaciones').select('token').eq('cliente_id', state.clienteId).maybeSingle();
+        if (cli?.email) {
+          void notificarModificacionCitaAlCliente({
+            clienteEmail: cli.email,
+            clienteNombre: cli.nombre || state.clienteNombre || 'Cliente',
+            matricula: state.matricula,
+            nuevaFecha: fechaStr,
+            nuevaHora: horaStr,
+            token: inv?.token
+          });
+        }
+      }
+
+      // 3. Marcar el presupuesto como aceptado si existe
       if (state.presupuestoId) {
         await supabase
           .from('presupuestos')
@@ -151,11 +172,11 @@ export function AsignarCitaPage() {
           .eq('id', state.presupuestoId);
       }
 
-      // 3. Sonido y Toast animado verde
+      // 4. Sonido y Toast animado verde
       playSuccessChime();
       setShowSuccessToast(true);
 
-      // 4. Regreso automático tras 2 segundos a Expedientes con roadmap abierto
+      // 5. Regreso automático tras 2 segundos a Expedientes con roadmap abierto
       setTimeout(() => {
         navigate('/expedientes', {
           state: {

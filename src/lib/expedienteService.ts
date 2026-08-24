@@ -120,28 +120,7 @@ export async function fetchExpedienteFotos(
     }
   }
 
-  // 4. Fotos en la tabla expediente_imagenes (Presupuesto Híbrido, OCR, Permisos, Trabajos)
-  if (vehiculoId || clienteId) {
-    try {
-      let query = supabase.from('expediente_imagenes').select('url')
-      if (vehiculoId) {
-        query = query.eq('vehiculo_id', vehiculoId)
-      } else if (clienteId) {
-        query = query.eq('cliente_id', clienteId)
-      }
-
-      const { data: expImgs } = await query
-      if (expImgs && Array.isArray(expImgs)) {
-        expImgs.forEach((row: any) => {
-          if (row.url && typeof row.url === 'string' && !result.includes(row.url)) {
-            result.push(row.url)
-          }
-        })
-      }
-    } catch (e) {
-      console.warn('Tabla expediente_imagenes inaccesible:', e)
-    }
-  }
+  // 4. Fotos acumuladas en presupuestos, facturas, citas, reparaciones
 
   // 5. Fotos acumuladas en presupuestos, facturas, citas, reparaciones
   const tables = ['presupuestos', 'facturas', 'citas', 'reparaciones']

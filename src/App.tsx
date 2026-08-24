@@ -23,17 +23,23 @@ import { ExpedientesPage } from './pages/ExpedientesPage'
 import { AsignarCitaPage } from './pages/AsignarCitaPage'
 import { NAV_ITEMS } from './lib/navigation'
 import {
+  FacturasRecibidasPage,
   ProveedoresPage,
-  IncidenciasPage, UsuariosPage,
-  ExpedientePage,
+  IncidenciasPage,
+  UsuariosPage,
+  UsuarioEditPage,
+  RegistroUsuarioTallerPage,
+  DatosEmpresaPage,
   ClienteAdminPage,
-  VehiculoAdminPage
+  VehiculoAdminPage,
+  ExpedientePage
 } from './pages/Pages'
+import { LicenciasPage } from './pages/LicenciasPage'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
-// NUEVO IMPORT: Añadimos tu componente de animación
 import { IntroAnimation } from './components/IntroAnimation'
+import { cargarPerfil, tieneLicenciaValida, getPerfil } from './services/authService'
 
 function BackgroundImage() {
   const [fondoLandscape, setFondoLandscape] = useState('/images/backgrounds/background_landscape.jpg')
@@ -364,7 +370,11 @@ function Layout() {
                   <Route path="/asignar-cita" element={<AsignarCitaPage />} />
                   <Route path="/proveedores" element={<ProveedoresPage />} />
                   <Route path="/incidencias" element={<IncidenciasPage />} />
-                  <Route path="/usuarios" element={<UsuariosPage />} />
+                  <Route path="/usuarios" element={<RegistroUsuarioTallerPage />} />
+                  <Route path="/autorizados" element={<UsuariosPage />} />
+                  <Route path="/autorizado-edit/:id" element={<UsuarioEditPage />} />
+                  <Route path="/usuario-edit/:id" element={<UsuarioEditPage />} />
+                  <Route path="/licencias" element={<LicenciasPage />} />
                   <Route path="/configuracion" element={<ConfiguracionPage />} />
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
@@ -393,6 +403,32 @@ function Layout() {
 export default function App() {
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('gestarian_intro_shown'))
   const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
+  const [profileReady, setProfileReady] = useState(false)
+  const [licenciaValida, setLicenciaValida] = useState(false)
+
+  useEffect(() => {
+    const testEmail = localStorage.getItem('gestarian_test_user') || 'iclomsinks@gmail.com'
+    cargarPerfil(testEmail)
+      .then(() => {
+        const perfil = getPerfil()
+        if (perfil?.esDeveloper || perfil?.rol?.toUpperCase().includes('JEFE') || perfil?.rol?.toUpperCase().includes('ADMIN')) {
+          setLicenciaValida(true)
+        } else {
+          setLicenciaValida(tieneLicenciaValida())
+        }
+        setProfileReady(true)
+      })
+      .catch((err: any) => {
+        console.error('Error al cargar perfil:', err)
+        const perfil = getPerfil()
+        if (perfil?.esDeveloper || perfil?.rol?.toUpperCase().includes('JEFE') || perfil?.rol?.toUpperCase().includes('ADMIN')) {
+          setLicenciaValida(true)
+        } else {
+          setLicenciaValida(tieneLicenciaValida())
+        }
+        setProfileReady(true)
+      })
+  }, [])
 
   // Efecto inicial para automatizar toda la secuencia de la animación en primer arranque
   useEffect(() => {
@@ -426,18 +462,26 @@ export default function App() {
       <ThemeProvider>
         <UIStateProvider>
           <ToastProvider>
-            {/* COMPONENTE DE INTRODUCCIÓN AUTOMÁTICO */}
-            <IntroAnimation 
-              showIntro={showIntro} 
-              introState={introState} 
-            />
-
-            <BrowserRouter>
-              <Routes>
-                <Route path="/cliente/:token" element={<ClientePage />} />
-                <Route path="/*" element={<Layout />} />
-              </Routes>
-            </BrowserRouter>
+            {showIntro ? (
+              <IntroAnimation showIntro={showIntro} introState={introState} />
+            ) : !profileReady ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <p>Cargando perfil...</p>
+              </div>
+            ) : !licenciaValida ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '20px', textAlign: 'center', color: '#fff' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Licencia no válida</h1>
+                <p style={{ color: '#94a3b8', maxWidth: '400px', marginBottom: '1rem' }}>Tu licencia de GESTARIAN no está activa o ha expirado. Contacta con el administrador.</p>
+                <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Estado: {getPerfil()?.licenciaEstado || 'Sin licencia'}</p>
+              </div>
+            ) : (
+              <BrowserRouter>
+                <Routes>
+                  <Route path="/cliente/:token" element={<ClientePage />} />
+                  <Route path="/*" element={<Layout />} />
+                </Routes>
+              </BrowserRouter>
+            )}
           </ToastProvider>
         </UIStateProvider>
       </ThemeProvider>

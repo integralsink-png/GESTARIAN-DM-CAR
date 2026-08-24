@@ -9,7 +9,6 @@ import {
 
 import { useGestures } from '../hooks/useGestures'
 import { useClima } from '../hooks/useClima'
-import { IntroAnimation } from '../components/IntroAnimation'
 import { PanelControlHeader } from '../components/PanelControlHeader'
 import { MetisAlertsSection } from '../components/MetisAlertsSection'
 import { MatriculaBadge } from '../components/UI'
@@ -50,9 +49,6 @@ export function InicioPage() {
   const [loading, setLoading] = useState(true)
   const [hora, setHora] = useState(new Date())
 
-  const [showIntro, setShowIntro] = useState(!sessionStorage.getItem('gestarian_intro_shown'))
-  const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
-
   const [showPanels, setShowPanels] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
   const [mostrarAvisos, setMostrarAvisos] = useState(false)
@@ -91,26 +87,12 @@ export function InicioPage() {
     const docEl = document.documentElement as HTMLElement & { webkitRequestFullscreen?: () => Promise<void>; msRequestFullscreen?: () => Promise<void> }
     const requestFs = docEl.requestFullscreen || docEl.webkitRequestFullscreen || docEl.msRequestFullscreen
     if (requestFs && !document.fullscreenElement) requestFs.call(docEl).catch(() => {})
-
-    if (showIntro) {
-      sessionStorage.setItem('gestarian_intro_shown', 'true')
-      setIntroState('fadeOut')
-      setTimeout(() => setShowIntro(false), 500)
-    }
   }
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (window.innerHeight - e.clientY <= 100) return
     if (!showPanels && !isFadingOut) setShowPanels(true)
   }
-
-  useEffect(() => {
-    if (sessionStorage.getItem('gestarian_intro_shown')) return
-    const t1 = setTimeout(() => setIntroState('grow'), 50)
-    const t2 = setTimeout(() => setIntroState('fadeOut'), 1500)
-    const t3 = setTimeout(() => { sessionStorage.setItem('gestarian_intro_shown', 'true'); setShowIntro(false) }, 2000)
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
-  }, [])
 
   useEffect(() => {
     async function load() {
@@ -180,27 +162,29 @@ export function InicioPage() {
           mostrarAvisos={mostrarAvisos} setMostrarAvisos={setMostrarAvisos} touchSelectable={panelInteractable}
         />
 
+        {/* Reloj Digital Permanente en Pantalla de Inicio (Tipografía calculadora, color blanco amarillento, peso alto) */}
+        <div className="relative z-10 w-full max-w-4xl mx-auto pt-[130px] flex flex-col items-center justify-center select-none px-4">
+          <div
+            className="font-black tracking-widest tabular-nums leading-none text-6xl sm:text-8xl md:text-9xl text-center"
+            style={{
+              fontFamily: "'Share Tech Mono', 'Orbitron', 'Courier New', monospace, system-ui",
+              fontWeight: 900,
+              color: '#fffde7', // Blanco amarillento cálido (calculadora LCD backlight)
+              textShadow: '0 0 25px rgba(254, 240, 138, 0.8), 0 0 50px rgba(253, 224, 71, 0.5), 0 0 80px rgba(234, 179, 8, 0.3)'
+            }}
+          >
+            {hora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </div>
+        </div>
+
         {showPanels && (
           <div
-            className={`relative z-10 space-y-6 pt-[130px] transition-opacity duration-500 ease-in-out
+            className={`relative z-10 space-y-6 pt-4 transition-opacity duration-500 ease-in-out
               ${isFadingOut ? 'opacity-0' : 'opacity-100'}
               ${!panelInteractable ? 'pointer-events-none select-none' : 'pointer-events-auto'}
             `}
           >
             <div className="w-full max-w-4xl mx-auto">
-              {/* Reloj Digital Grande Centrado con Glow Blanco */}
-              <div className="flex flex-col items-center justify-center my-4 py-2 select-none">
-                <div 
-                  className="font-black text-white tracking-widest tabular-nums leading-none text-5xl sm:text-7xl md:text-8xl"
-                  style={{
-                    fontFamily: "'Courier New', Courier, monospace, system-ui",
-                    textShadow: '0 0 20px rgba(255, 255, 255, 0.9), 0 0 40px rgba(255, 255, 255, 0.6), 0 0 60px rgba(255, 255, 255, 0.3)'
-                  }}
-                >
-                  {hora.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                </div>
-              </div>
-
               <MetisAlertsSection
                 mostrarAvisos={mostrarAvisos} totalAvisos={totalAvisos} touchSelectable={panelInteractable}
                 presupuestosPendientes={kpis.presupuestosPendientes} facturasPendienteCobro={kpis.facturasPendienteCobro}

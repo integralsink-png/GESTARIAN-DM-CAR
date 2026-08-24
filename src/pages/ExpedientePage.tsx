@@ -18,6 +18,7 @@ import { useToast } from '../lib/ToastContext'
 import { useGoBack } from '../lib/useGoBack'
 import { playSuccessChime } from '../lib/sound'
 import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
+import { notificarCambioEstado } from '../services/notificationService'
 
 export function ExpedientePage() {
   const { vehiculoId } = useParams<{ vehiculoId: string }>()
@@ -249,15 +250,18 @@ export function ExpedientePage() {
       }
     },
     onEnviarTaller: async (vehiculoId, clienteId, citaId) => {
-      const { error: repError } = await supabase.from('reparaciones').insert({
+      const { data: newRep, error: repError } = await supabase.from('reparaciones').insert({
         vehiculo_id: vehiculoId,
         cliente_id: clienteId,
         cita_id: citaId,
         estado: 'en_proceso'
-      })
+      }).select().maybeSingle()
       if (!repError) {
         if (citaId) {
           await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', citaId)
+        }
+        if (newRep?.id) {
+          void notificarCambioEstado(newRep.id, 'en_proceso')
         }
         playSuccessChime()
         showToast('ENVIADO A TALLER', 'success')
@@ -270,6 +274,7 @@ export function ExpedientePage() {
     onFinalizarReparacion: async (reparacionId) => {
       const { error } = await supabase.from('reparaciones').update({ estado: 'finalizado' }).eq('id', reparacionId)
       if (!error) {
+        void notificarCambioEstado(reparacionId, 'finalizado')
         playSuccessChime()
         showToast('REPARACIÓN FINALIZADA', 'success')
         onRefresh()

@@ -66,7 +66,18 @@ function getWhatsAppConfig(): WhatsAppBusinessConfig {
 }
 
 /**
- * Envía un mensaje de texto a través de WhatsApp Business API
+ * Envía un mensaje de texto a través de WhatsApp Business API (o simula en consola)
+ */
+export async function enviarMensajeWhatsApp(numero: string, mensaje: string): Promise<WhatsAppResponse> {
+  console.log(`💬 [WHATSAPP BUSINESS - PREPARADO]: Enviando a ${numero}\nMensaje: ${mensaje}`)
+  return {
+    success: true,
+    messageId: `wa_mock_${Date.now()}`
+  }
+}
+
+/**
+ * Envía un mensaje de texto a través de WhatsApp Business API (Implementación completa)
  */
 export async function sendWhatsAppMessage(message: WhatsAppMessage): Promise<WhatsAppResponse> {
   if (!isWhatsAppBusinessApiEnabled()) {

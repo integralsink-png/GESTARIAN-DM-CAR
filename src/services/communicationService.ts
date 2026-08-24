@@ -43,16 +43,31 @@ export class EmailAdapter implements CommunicationAdapter {
     try {
       console.log('[EmailAdapter dispatching]:', payload.recipient, payload.subject)
 
-      // Intento 1: Llamada a la Edge Function de Supabase / Resend
+      // Consultar claves configuradas en Supabase
+      const { data: config } = await supabase
+        .from('configuracion')
+        .select('email_api_key, email_from, notificaciones_activas')
+        .eq('id', 1)
+        .maybeSingle()
+
+      if (!config?.email_api_key) {
+        console.log(`📧 [SIMULACIÓN EMAIL - Sin API Key configurada]: Enviando a ${payload.recipient}\nAsunto: ${payload.subject}\nContenido:\n${payload.content}`)
+      }
+
+      // Intento: Llamada a la Edge Function de Supabase / Resend
       const { data, error } = await supabase.functions.invoke('send-communication', {
-        body: payload
+        body: {
+          ...payload,
+          apiKey: config?.email_api_key,
+          from: config?.email_from || 'notificaciones@gestarian.es'
+        }
       })
 
       if (!error && data && data.success !== false) {
         return { success: true, messageId: data?.messageId || data?.id || `email_${Date.now()}` }
       }
 
-      console.warn('[EmailAdapter] Edge Function no disponible o respondió error. Ejecutando fallback garantizado...', error?.message || data?.error)
+      console.warn('[EmailAdapter] Edge Function respondió o no está desplegada. Usando fallback de cliente...', error?.message || data?.error)
     } catch (e: any) {
       console.warn('[EmailAdapter] Excepción en llamada a Edge Function, ejecutando fallback local...', e?.message)
     }
@@ -73,6 +88,25 @@ export class EmailAdapter implements CommunicationAdapter {
 
     return { success: true, messageId: `email_client_${Date.now()}` }
   }
+}
+
+/**
+ * Función centralizada para enviar emails usando configuración de la BD
+ */
+export async function enviarEmail(
+  destino: string,
+  asunto: string,
+  cuerpo: string,
+  adjuntos: AttachmentPayload[] = []
+): Promise<AdapterResult> {
+  const adapter = new EmailAdapter()
+  return await adapter.send({
+    channel: 'email',
+    recipient: destino,
+    subject: asunto,
+    content: cuerpo,
+    attachments: adjuntos
+  })
 }
 
 // ── 2. WHATSAPP BUSINESS ADAPTADOR (Estructura Futura) ──

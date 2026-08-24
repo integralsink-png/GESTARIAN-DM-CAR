@@ -6,6 +6,8 @@ import { useTheme } from '../lib/theme'
 import { useUIState } from '../lib/uiStateContext'
 import { useMobileMode } from '../lib/mobileMode'
 import { MetisVoiceCall } from './MetisVoiceCall'
+import { can } from '../services/authService'
+import { supabase } from '../lib/supabase'
 
 // Paleta de colores vibrantes para el menú
 const MENU_COLORS = [
@@ -85,10 +87,19 @@ export function DesktopHeader() {
 
   if (mobileMode && !window.matchMedia('(min-width: 1024px)').matches) return null
 
-  const routes = NAV_ITEMS.filter((n) => n.path !== '/').map((n) => n.path)
+  const visibleNavItems = NAV_ITEMS.filter((item) => !item.permiso || can(item.permiso))
+  const routes = visibleNavItems.filter((n) => n.path !== '/').map((n) => n.path)
   const currentIdx = routes.indexOf(location.pathname)
   const prev = currentIdx > 0 ? routes[currentIdx - 1] : null
   const next = currentIdx >= 0 && currentIdx < routes.length - 1 ? routes[currentIdx + 1] : null
+
+  const [logoColor, setLogoColor] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.from('configuracion').select('logo_color').eq('id', 1).maybeSingle().then(({ data }) => {
+      if (data?.logo_color) setLogoColor(data.logo_color)
+    })
+  }, [])
 
   return (
     <header
@@ -99,10 +110,15 @@ export function DesktopHeader() {
       {!isInicio && (
         <button
           onClick={() => { playSound('click'); navigate('/') }}
-          className="shrink-0"
+          className="shrink-0 transition-transform active:scale-95"
           aria-label="Inicio"
+          title="Ir a Inicio"
         >
-          <img src={themeSettings.logo_url || "/images/logos/logo.jpg"} alt={themeSettings.commercial_name || "GESTARIAN"} className="w-8 h-8 rounded-lg object-cover" />
+          <img
+            src={logoColor || themeSettings.logo_url || "/images/logos/logo.jpg"}
+            alt={themeSettings.commercial_name || "GESTARIAN"}
+            className="w-8 h-8 rounded-lg object-contain bg-slate-900/60 p-0.5 border border-white/20 shadow-sm"
+          />
         </button>
       )}
 
@@ -116,7 +132,7 @@ export function DesktopHeader() {
       </button>
 
       <div className="flex-1 flex items-center gap-1 overflow-x-auto mx-2">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = location.pathname === item.path
           return (
             <button
@@ -449,7 +465,7 @@ export function MobileFooter() {
               {/* 5. USUARIOS (x0.9 -> span 5) */}
               {(() => {
                 const item = NAV_ITEMS.find(n => n.path === '/usuarios')
-                if (!item) return null
+                if (!item || (item.permiso && !can(item.permiso))) return null
                 const Icon = item.icon
                 const color = MENU_COLORS[10]
                 const isActive = location.pathname === item.path
@@ -626,13 +642,15 @@ export function DesktopFooter() {
 
   if (mobileMode || isA4Document) return null
 
+  const visibleFooterNav = FOOTER_NAV.filter((item) => !item.permiso || can(item.permiso))
+
   return (
     <div
       onMouseEnter={() => setFooterHover(true)}
       onMouseLeave={() => setFooterHover(false)}
       className={`hidden lg:flex gestarian-footer-bar ${footerVisible ? 'visible' : ''} fixed bottom-0 left-0 right-0 z-40 items-center justify-center gap-2 py-3 ${isInicio ? '' : 'gestarian-footer-gray'}`}
     >
-      {FOOTER_NAV.map((item) => (
+      {visibleFooterNav.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}

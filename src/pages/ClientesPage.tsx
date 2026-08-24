@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
@@ -14,10 +14,13 @@ import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteServi
 import { FacturaIcon, NuevoPresupuestoA4Icon, ExpedienteFolderIcon, HistorialPresupuestoA4Icon, WhatsAppWithPhoneIcon, NuevoVehiculoPlusIcon } from '../components/CustomIcons'
 import { getDropdownStaggerVariants, dropdownItemVariants, dropdownPanelVariants } from '../lib/dropdownAnimations'
 import { getExpediente } from '../lib/utils'
+import { enviarInvitacion } from '../services/notificationService'
+import { useToast } from '../lib/ToastContext'
 
 export function ClientesPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { showToast } = useToast()
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [showNuevoClienteModal, setShowNuevoClienteModal] = useState(false)
   const [vehiculos, setVehiculos] = useState<Record<string, Vehiculo[]>>({})
@@ -92,7 +95,6 @@ export function ClientesPage() {
   const [viewingVehFotos, setViewingVehFotos] = useState<{ vehId: string; matricula: string } | null>(null)
   const [confirmDeleteVehId, setConfirmDeleteVehId] = useState<string | null>(null)
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
-  const [clienteGuardadoId, setClienteGuardadoId] = useState<string | null>(null)
 
   useEffect(() => {
     if (viewingVehFotos) {
@@ -172,6 +174,11 @@ export function ClientesPage() {
     setLoading(false)
   }
 
+  async function loadVehiculosCliente(clienteId: string) {
+    const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', clienteId)
+    setVehiculos(prev => ({ ...prev, [clienteId]: vehs ?? [] }))
+  }
+
   async function loadPresupuestosCliente(clienteId: string) {
     const { data } = await supabase.from('presupuestos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false })
     setPresupuestosCliente(prev => ({ ...prev, [clienteId]: (data ?? []) as Presupuesto[] }))
@@ -204,6 +211,10 @@ export function ClientesPage() {
 
   // Guardar datos editados del cliente
   async function handleSaveCliente(clienteId: string) {
+    const clientePrev = clientes.find(c => c.id === clienteId)
+    const emailCambio = (editForm.email || '').trim().toLowerCase() !== (clientePrev?.email || '').trim().toLowerCase() && (editForm.email || '').trim() !== ''
+    const telCambio = (editForm.telefono || '').trim() !== (clientePrev?.telefono || '').trim() && (editForm.telefono || '').trim() !== ''
+
     await supabase.from('clientes').update({
       nombre: editForm.nombre,
       dni: editForm.dni || null,
@@ -211,15 +222,16 @@ export function ClientesPage() {
       email: editForm.email || null,
       direccion: editForm.direccion || null,
     }).eq('id', clienteId)
-    loadClientes()
-  }
 
-  // Eliminar vehículo
-  async function handleDeleteVehiculo(vehId: string, clienteId: string) {
-    if (!confirm('¿Eliminar este vehículo?')) return
-    await supabase.from('vehiculos').delete().eq('id', vehId)
-    const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', clienteId)
-    setVehiculos(prev => ({ ...prev, [clienteId]: vehs ?? [] }))
+    if (emailCambio || telCambio) {
+      console.log(`[Auto-Invitación ClientesPage] Cambios en cliente ${clienteId}. Enviando invitación...`)
+      void enviarInvitacion(clienteId, null, ['email'])
+      showToast('Datos actualizados e invitación enviada', 'success')
+    } else {
+      showToast('Datos del cliente actualizados', 'success')
+    }
+
+    loadClientes()
   }
 
   // Aceptar presupuesto
@@ -332,7 +344,11 @@ export function ClientesPage() {
         nuevoVehiculoId = vehRes.data?.id || null
       }
 
-      setClienteGuardadoId(clienteId || null)
+      // Disparar invitación automática por email si el cliente tiene email
+      if (clienteId) {
+        void enviarInvitacion(clienteId, null, ['email'])
+      }
+
       await loadClientes()
       setClientePopup(true)
       setTimeout(() => setClientePopup(false), 3000)
@@ -815,9 +831,21 @@ export function ClientesPage() {
                           <Input label="Email" value={editForm.email || ''} onChange={(v) => setEditForm({ ...editForm, email: v })} />
                           <Input label="Dirección" value={editForm.direccion || ''} onChange={(v) => setEditForm({ ...editForm, direccion: v })} />
                         </div>
-                        <Button size="sm" onClick={() => handleSaveCliente(cliente.id)}>
-                          <span className="flex items-center gap-1.5"><Save className="w-3.5 h-3.5" /> Guardar cambios</span>
-                        </Button>
+                        {(() => {
+                          const clientePrev = clientes.find(c => c.id === cliente.id)
+                          const emailCambio = (editForm.email || '').trim().toLowerCase() !== (clientePrev?.email || '').trim().toLowerCase() && (editForm.email || '').trim() !== ''
+                          const telCambio = (editForm.telefono || '').trim() !== (clientePrev?.telefono || '').trim() && (editForm.telefono || '').trim() !== ''
+                          const huboCambio = emailCambio || telCambio
+
+                          return (
+                            <Button size="sm" onClick={() => handleSaveCliente(cliente.id)} className={huboCambio ? 'bg-gradient-to-r from-cyan-600 to-emerald-600' : ''}>
+                              <span className="flex items-center gap-1.5">
+                                <Save className="w-3.5 h-3.5" />
+                                {huboCambio ? 'Guardar y enviar nueva invitación' : 'Guardar cambios'}
+                              </span>
+                            </Button>
+                          )
+                        })()}
                       </div>
                     )}
 
@@ -1197,11 +1225,10 @@ export function ClientesPage() {
                 {/* Botones inferiores: Guardar Cliente y Cancelar */}
                 <div className="flex gap-3">
                   <Button onClick={() => handleGuardarNuevoCliente(false)} size="md" className="flex-1 text-lg sm:text-xl font-bold py-4">
-                    Guardar Cliente
+                    Guardar y enviar invitación
                   </Button>
                   <Button variant="secondary" size="md" className="text-lg font-bold px-6 py-4" onClick={() => {
                     setShowNuevoClienteModal(false)
-                    setClienteGuardadoId(null)
                   }}>
                     Cancelar
                   </Button>

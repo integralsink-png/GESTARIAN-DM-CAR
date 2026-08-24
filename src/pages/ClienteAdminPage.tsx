@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Cliente, Vehiculo, Reparacion, Presupuesto, Factura, NotaVehiculo, Cita } from '../lib/types'
-import { Car, FileText, Receipt, Image as ImageIcon, StickyNote, Download, CheckCircle, Clock, AlertCircle, Loader2, Calendar } from 'lucide-react'
+import { Car, FileText, Receipt, Image as ImageIcon, StickyNote, Download, CheckCircle, Clock, AlertCircle, Loader2, Calendar, Mail, Send, User, Save } from 'lucide-react'
+import { enviarInvitacion } from '../services/notificationService'
+import { useToast } from '../lib/ToastContext'
 
 type EstadoReparacion = 'pendiente' | 'en_proceso' | 'completada' | 'entregado'
 
@@ -15,6 +16,7 @@ const ESTADO_INFO: Record<EstadoReparacion, { label: string; color: string; icon
 
 export function ClienteAdminPage() {
   const { id } = useParams<{ id: string }>()
+  const { showToast } = useToast()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [cliente, setCliente] = useState<Cliente | null>(null)
@@ -24,12 +26,102 @@ export function ClienteAdminPage() {
   const [facturas, setFacturas] = useState<Factura[]>([])
   const [notas, setNotas] = useState<NotaVehiculo[]>([])
   const [citas, setCitas] = useState<Cita[]>([])
-  const [tab, setTab] = useState<'seguimiento' | 'fotos' | 'presupuestos' | 'facturas' | 'notas' | 'citas'>('seguimiento')
+  const [tab, setTab] = useState<'datos' | 'seguimiento' | 'fotos' | 'presupuestos' | 'facturas' | 'notas' | 'citas'>('datos')
   
   const [bookingDate, setBookingDate] = useState('')
   const [bookingTime, setBookingTime] = useState('')
   const [bookingNotes, setBookingNotes] = useState('')
   const [bookingLoading, setBookingLoading] = useState(false)
+
+  const [sendingInvite, setSendingInvite] = useState(false)
+  const [inviteSuccess, setInviteSuccess] = useState<string | null>(null)
+
+  // Estados de edición del cliente y detección de cambios para auto-invitación
+  const [initialEmail, setInitialEmail] = useState('')
+  const [initialTelefono, setInitialTelefono] = useState('')
+  const [editNombre, setEditNombre] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editTelefono, setEditTelefono] = useState('')
+  const [editDni, setEditDni] = useState('')
+  const [editDireccion, setEditDireccion] = useState('')
+  const [savingCliente, setSavingCliente] = useState(false)
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null)
+
+  async function handleSendEmailInvitation() {
+    if (!cliente) return
+    setSendingInvite(true)
+    setInviteSuccess(null)
+    try {
+      const res = await enviarInvitacion(cliente.id, null, ['email'])
+      if (res.success) {
+        const msg = 'Invitación enviada por email con éxito'
+        setInviteSuccess('¡Invitación enviada por email con éxito!')
+        showToast(msg, 'success')
+        setTimeout(() => setInviteSuccess(null), 4000)
+      } else {
+        showToast(res.error || 'Error al enviar invitación.', 'error')
+      }
+    } catch (e: any) {
+      showToast('Error al enviar invitación: ' + e?.message, 'error')
+    } finally {
+      setSendingInvite(false)
+    }
+  }
+
+  async function handleSaveClienteData(e: React.FormEvent) {
+    e.preventDefault()
+    if (!cliente) return
+    setSavingCliente(true)
+    setSaveSuccessMsg(null)
+    try {
+      const { error: updateErr } = await supabase
+        .from('clientes')
+        .update({
+          nombre: editNombre,
+          email: editEmail || null,
+          telefono: editTelefono || null,
+          dni: editDni || null,
+          direccion: editDireccion || null
+        })
+        .eq('id', cliente.id)
+
+      if (updateErr) throw updateErr
+
+      // Verificar si hubo cambios en email o teléfono
+      const emailCambio = editEmail.trim().toLowerCase() !== initialEmail.trim().toLowerCase() && editEmail.trim() !== ''
+      const telefonoCambio = editTelefono.trim() !== initialTelefono.trim() && editTelefono.trim() !== ''
+
+      if (emailCambio || telefonoCambio) {
+        console.log(`[Auto-Invitación] Cambios detectados en cliente (Email: ${emailCambio}, Tel: ${telefonoCambio}). Disparando invitación...`)
+        const inviteRes = await enviarInvitacion(cliente.id, null, ['email'])
+        const msg = 'Datos actualizados e invitación enviada'
+        setSaveSuccessMsg(msg)
+        showToast(msg, 'success')
+      } else {
+        const msg = 'Datos del cliente actualizados'
+        setSaveSuccessMsg(msg)
+        showToast(msg, 'success')
+      }
+
+      // Actualizar valores iniciales y estado cliente
+      setInitialEmail(editEmail)
+      setInitialTelefono(editTelefono)
+      setCliente({
+        ...cliente,
+        nombre: editNombre,
+        email: editEmail,
+        telefono: editTelefono,
+        dni: editDni,
+        direccion: editDireccion
+      })
+
+      setTimeout(() => setSaveSuccessMsg(null), 4000)
+    } catch (err: any) {
+      showToast('Error al guardar datos: ' + err.message, 'error')
+    } finally {
+      setSavingCliente(false)
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -49,6 +141,13 @@ export function ClienteAdminPage() {
       }
 
       setCliente(cli)
+      setEditNombre(cli.nombre || '')
+      setEditEmail(cli.email || '')
+      setEditTelefono(cli.telefono || '')
+      setEditDni(cli.dni || '')
+      setEditDireccion(cli.direccion || '')
+      setInitialEmail(cli.email || '')
+      setInitialTelefono(cli.telefono || '')
 
       // Get first vehicle for now, or you could list them all
       const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', cli.id)
@@ -128,6 +227,7 @@ export function ClienteAdminPage() {
   }
 
   const tabs = [
+    { key: 'datos' as const, label: 'Datos Cliente', icon: User },
     { key: 'seguimiento' as const, label: 'Seguimiento', icon: Car },
     { key: 'fotos' as const, label: 'Fotos', icon: ImageIcon },
     { key: 'presupuestos' as const, label: 'Presupuestos', icon: FileText },
@@ -158,7 +258,24 @@ export function ClienteAdminPage() {
             </div>
           )}
           {cliente && (
-            <p className="text-xs text-white/40 mt-1">Hola, {cliente.nombre}</p>
+            <div className="flex flex-wrap items-center justify-between gap-3 mt-3 pt-3 border-t border-white/10">
+              <div>
+                <p className="text-xs text-white/70">Hola, <span className="text-white font-bold">{cliente.nombre}</span> ({cliente.email || 'Sin email'})</p>
+                {inviteSuccess && (
+                  <p className="text-[11px] text-emerald-400 font-semibold mt-0.5">{inviteSuccess}</p>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSendEmailInvitation}
+                disabled={sendingInvite || !cliente.email}
+                className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:hover:bg-cyan-600"
+              >
+                {sendingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                {sendingInvite ? 'Enviando...' : 'Enviar invitación por email'}
+              </button>
+            </div>
           )}
         </div>
       </div>
@@ -188,6 +305,110 @@ export function ClienteAdminPage() {
 
       {/* Content */}
       <div className="max-w-3xl mx-auto p-4 pb-12">
+        {tab === 'datos' && (
+          <div className="bg-bg-900/80 border border-bg-700 rounded-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-bg-700 pb-3">
+              <div className="flex items-center gap-2">
+                <User className="w-5 h-5 text-cyan-400" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">Ficha de Datos del Cliente</h3>
+              </div>
+              <span className="text-[11px] text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-full border border-cyan-500/20">
+                Auto-invitación activa al modificar email o teléfono
+              </span>
+            </div>
+
+            {saveSuccessMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400">
+                ✓ {saveSuccessMsg}
+              </div>
+            )}
+
+            <form onSubmit={handleSaveClienteData} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">Nombre Completo</label>
+                  <input
+                    type="text"
+                    required
+                    value={editNombre}
+                    onChange={(e) => setEditNombre(e.target.value)}
+                    className="w-full bg-bg-800 border border-bg-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">DNI / NIF</label>
+                  <input
+                    type="text"
+                    value={editDni}
+                    onChange={(e) => setEditDni(e.target.value)}
+                    placeholder="12345678X"
+                    className="w-full bg-bg-800 border border-bg-700 rounded-xl px-3.5 py-2.5 text-xs font-mono font-bold text-white focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">Correo Electrónico (Email)</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="cliente@ejemplo.com"
+                    className="w-full bg-bg-800 border border-bg-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-cyan-300 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-white/60 mb-1">Teléfono Móvil (WhatsApp)</label>
+                  <input
+                    type="tel"
+                    value={editTelefono}
+                    onChange={(e) => setEditTelefono(e.target.value)}
+                    placeholder="600123456"
+                    className="w-full bg-bg-800 border border-bg-700 rounded-xl px-3.5 py-2.5 text-xs font-bold text-emerald-300 focus:outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-white/60 mb-1">Dirección</label>
+                <input
+                  type="text"
+                  value={editDireccion}
+                  onChange={(e) => setEditDireccion(e.target.value)}
+                  placeholder="Calle / Avenida..."
+                  className="w-full bg-bg-800 border border-bg-700 rounded-xl px-3.5 py-2.5 text-xs font-medium text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                {(() => {
+                  const huboCambioContacto = (editEmail.trim().toLowerCase() !== initialEmail.trim().toLowerCase() && editEmail.trim() !== '') ||
+                                             (editTelefono.trim() !== initialTelefono.trim() && editTelefono.trim() !== '')
+                  return (
+                    <button
+                      type="submit"
+                      disabled={savingCliente}
+                      className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+                        huboCambioContacto
+                          ? 'bg-gradient-to-r from-cyan-600 to-emerald-600 hover:from-cyan-500 hover:to-emerald-500 text-white shadow-cyan-500/20 animate-pulse'
+                          : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                      }`}
+                    >
+                      {savingCliente ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      {savingCliente
+                        ? 'Guardando...'
+                        : huboCambioContacto
+                        ? 'Guardar y enviar nueva invitación'
+                        : 'Guardar cambios'}
+                    </button>
+                  )
+                })()}
+              </div>
+            </form>
+          </div>
+        )}
+
         {tab === 'seguimiento' && (
           <div className="space-y-3">
             {reparaciones.length === 0 ? (

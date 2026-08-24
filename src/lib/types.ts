@@ -130,6 +130,21 @@ export interface Configuracion {
   tipo_empresa: 'autonomo' | 'sociedad_limitada' | null
   animaciones_activadas: boolean | null
   sonido_activado: boolean | null
+  // Notificaciones & Comunicaciones
+  whatsapp_api_key?: string | null
+  whatsapp_phone_number_id?: string | null
+  email_api_key?: string | null
+  email_from?: string | null
+  notificaciones_activas?: boolean | null
+  // Configuración de Planes PRO / FREE / ENTERPRISE
+  plan_activo?: 'FREE' | 'PRO' | 'ENTERPRISE' | null
+  precio_pro_mensual?: number | null
+  precio_pro_anual?: number | null
+  precio_enterprise_mensual?: number | null
+  precio_enterprise_anual?: number | null
+  dias_prueba_pro?: number | null
+  pro_activo?: boolean | null
+  limite_usuarios_free?: number | null
 }
 
 export interface AppearanceSettings {
@@ -268,17 +283,95 @@ export interface ClienteInvitacion {
   created_at: string
 }
 
-export type RolUsuario = 'admin' | 'jefe' | 'operario'
+export interface Especialidad {
+  id: string
+  nombre: string
+  descripcion: string | null
+  created_at?: string
+}
+
+export interface EpigrafeIAE {
+  id: string
+  codigo: string
+  descripcion: string
+  created_at?: string
+}
+
+export interface Rol {
+  id: string
+  nombre: string
+  descripcion: string | null
+  parent_id: string | null
+  created_at?: string
+}
+
+export interface Permiso {
+  id: string
+  clave: string
+  descripcion: string | null
+  created_at?: string
+}
+
+export type RolUsuario = string
 
 export interface Usuario {
   id: string
   nombre: string
   email: string
-  rol: RolUsuario
-  puede_editar_precios: boolean
-  puede_enviar_gestoria: boolean
+  telefono?: string | null
+  rol?: string | null
+  rol_id?: string | null
+  roles?: Rol | null
+  especialidad_id?: string | null
+  especialidades?: Especialidad | null
+  epigrafe_iae_id?: string | null
+  epigrafes_iae?: EpigrafeIAE | null
+  jefe_id?: string | null
+  jefe?: Usuario | null
+  es_practicas?: boolean
+  fecha_contratacion?: string | null
+  salario_base?: number | null
+  es_pro?: boolean
+  stripe_customer_id?: string | null
+  taller_id?: string | null
+  puede_editar_precios?: boolean
+  puede_enviar_gestoria?: boolean
   activo: boolean
+  es_developer?: boolean
   created_at: string
+}
+
+export interface Suscripcion {
+  id: string
+  taller_id: string
+  stripe_customer_id?: string | null
+  stripe_subscription_id?: string | null
+  plan: 'mensual' | 'anual'
+  estado: 'activo' | 'cancelado' | 'vencido' | 'pendiente'
+  fecha_inicio: string
+  fecha_fin: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface PagoSuscripcion {
+  id: string
+  suscripcion_id: string
+  stripe_payment_intent_id?: string | null
+  importe: number
+  moneda: string
+  estado: 'exitoso' | 'fallido' | 'pendiente'
+  fecha: string
+}
+
+export interface Cupon {
+  id: string
+  codigo: string
+  descuento_porcentaje: number
+  valido_hasta?: string | null
+  usos_maximos?: number | null
+  usos_actuales: number
+  created_at?: string
 }
 
 export type PrioridadIncidencia =
