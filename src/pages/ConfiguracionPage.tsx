@@ -480,22 +480,7 @@ export function ConfiguracionPage() {
 
   return (
     <div className="space-y-6 pb-12">
-      <PageHeader 
-        title={vistaModo === 'desarrollador' ? "CONFIGURACIÓN (DESARROLLADOR)" : "CONFIGURACIÓN DE USUARIO"}
-        subtitle={
-          vistaModo === 'desarrollador' ? (
-            <div className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
-              <p>Panel maestro de servicios IA, control de licencias,</p>
-              <p className="mt-0.5">portal cliente y personalización global.</p>
-            </div>
-          ) : (
-            <div className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-xl mx-auto">
-              <p>Personalización de interfaz, datos fiscales,</p>
-              <p className="mt-0.5">comunicaciones, autorizados y operativa del taller.</p>
-            </div>
-          )
-        }
-      >
+      <PageHeader title="CONFIGURACIÓN">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
