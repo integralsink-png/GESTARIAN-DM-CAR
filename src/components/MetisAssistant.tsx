@@ -402,21 +402,22 @@ export function MetisAssistant() {
                   </div>
                 )}
 
-                {/* Acciones interactivas para el cron fiscal (Permiso) */}
+                {/* Acciones interactivas para el cron fiscal (Envío de informe trimestral) */}
                 {m.cronAction && (
-                  <div className="mt-2.5 max-w-[90%] w-full bg-cyan-950/95 border border-cyan-500/40 rounded-xl p-3.5 space-y-2">
+                  <div className="mt-2.5 max-w-[95%] w-full bg-slate-900/95 border border-cyan-500/40 rounded-xl p-3.5 space-y-2.5 shadow-lg">
                     <div className="flex flex-col gap-2 mt-1">
                       <button
                         onClick={handleCronPermission}
-                        className="w-full px-3 py-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-medium text-xs flex justify-center items-center transition-all border border-emerald-500/50"
+                        className="w-full py-2.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider flex justify-center items-center gap-1.5 transition-all shadow cursor-pointer text-center"
                       >
-                        Sí, enviar trimestre cerrado
+                        ENVIAR INFORME TRIMESTRAL A GESTORIA
                       </button>
+
                       <button
                         onClick={() => { playSound('click'); setOpen(false) }}
-                        className="w-full px-3 py-2 rounded-lg bg-bg-800 hover:bg-bg-700 text-slate-300 font-medium text-xs flex justify-center items-center transition-all border border-bg-600"
+                        className="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider flex justify-center items-center transition-all border border-slate-700 cursor-pointer text-center"
                       >
-                        Aún no, faltan gastos
+                        CANCELAR
                       </button>
                     </div>
                   </div>

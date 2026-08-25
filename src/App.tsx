@@ -16,6 +16,7 @@ import { PresupuestosPage } from './pages/PresupuestosPage'
 import { PresupuestoHibridoPage } from './pages/PresupuestoHibridoPage'
 import { CitasPage } from './pages/CitasPage'
 import { ReparacionesPage } from './pages/ReparacionesPage'
+import { AbonosParcialesPage } from './pages/AbonosParcialesPage'
 import { FacturasPage } from './pages/FacturasPage'
 import { BalancesPage } from './pages/BalancesPage'
 import { ConfiguracionPage } from './pages/ConfiguracionPage'
@@ -364,6 +365,7 @@ function Layout() {
                   <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
                   <Route path="/citas" element={<CitasPage />} />
                   <Route path="/reparaciones" element={<ReparacionesPage />} />
+                  <Route path="/abonos-parciales" element={<AbonosParcialesPage />} />
                   <Route path="/facturas" element={<FacturasPage />} />
                   <Route path="/balances" element={<BalancesPage />} />
                   <Route path="/expedientes" element={<ExpedientesPage />} />

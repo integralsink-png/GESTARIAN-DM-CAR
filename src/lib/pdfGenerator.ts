@@ -424,17 +424,6 @@ export function downloadPresupuestoPDF(
   doc.save(`Presupuesto_${numero}.pdf`)
 }
 
-export function downloadFacturaPDF(
-  factura: Partial<Factura>,
-  cliente?: Cliente | null,
-  vehiculo?: Vehiculo | null,
-  config?: Configuracion | null
-) {
-  const doc = generateFacturaPDF(factura, cliente, vehiculo, config)
-  const numero = factura.numero || 'FAC-0001'
-  doc.save(`Factura_${numero}.pdf`)
-}
-
 export async function sendPresupuestoByEmail(
   presupuesto: Partial<Presupuesto>,
   cliente?: Cliente | null,
@@ -442,24 +431,14 @@ export async function sendPresupuestoByEmail(
   config?: Configuracion | null,
   expediente?: string
 ): Promise<{ success: boolean; error?: string }> {
-  console.log('[DEBUG] sendPresupuestoByEmail clicked', { clienteEmail: cliente?.email, clienteNombre: cliente?.nombre });
   if (!cliente?.email) {
-    alert('El cliente no tiene una dirección de correo electrónico configurada.')
-    console.warn('[DEBUG] Cliente sin email, abortando envío.');
     return { success: false, error: 'No hay email configurado' }
   }
 
   const numero = expediente || presupuesto.numero || 'PRES-0001'
-  
-  // 1. Generar PDF en memoria con jsPDF
   const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config, expediente)
   const pdfBlob = doc.output('blob')
-  console.log('[INSTRUMENTATION PDF Presupuesto]', {
-    pdfBlobSize: pdfBlob.size,
-    pdfBlobType: pdfBlob.type
-  })
 
-  // 2. Enviar mediante COMMUNICATION SERVICE
   const result = await sendEstimate({
     to: cliente.email,
     documentId: presupuesto.id,
@@ -470,36 +449,572 @@ export async function sendPresupuestoByEmail(
     metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id }
   })
 
-  if (result.success) {
-    if (presupuesto.id) {
-      const nowIso = new Date().toISOString()
-      localStorage.setItem(`presupuesto_${presupuesto.id}_email_at`, nowIso)
-      try {
-        await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', presupuesto.id)
-      } catch (e) {
-        console.warn('Error actualizando enviado_email_at:', e)
-      }
+  if (result.success && presupuesto.id) {
+    const nowIso = new Date().toISOString()
+    localStorage.setItem(`presupuesto_${presupuesto.id}_email_at`, nowIso)
+    try {
+      await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', presupuesto.id)
+    } catch (e) {
+      console.warn('Error actualizando enviado_email_at:', e)
     }
   }
 
   return result
 }
 
+export function downloadFacturaPDF(
+  factura: Partial<Factura>,
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+) {
+  const doc = generateFacturaPDF(factura, cliente, vehiculo, config, expediente)
+  const numero = factura.numero || 'FAC-0001'
+  doc.save(`Factura_${numero}.pdf`)
+}
+
+// ─────────────────────────────────────────────────────────────
+// 1. GENERADOR DE RECIBO DE ABONO (PARTICULARES)
+// ─────────────────────────────────────────────────────────────
+export function generateReciboAbonoPDF(
+  factura: Partial<Factura>,
+  abonoActual: number,
+  cobrosPrevios: Cobro[],
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const numeroExp = expediente || factura.numero || 'EXP-0001'
+  const fecha = new Date().toLocaleDateString('es-ES')
+  const totalReparacion = factura.total || 0
+  const sumaPrevios = cobrosPrevios.reduce((acc, c) => acc + c.importe, 0)
+  const totalAbonadoAcumulado = sumaPrevios + abonoActual
+  const saldoPendiente = Math.max(0, totalReparacion - totalAbonadoAcumulado)
+
+  const primaryColor = [15, 23, 42]
+  const accentColor = [2, 132, 199] // Azul
+  const grayDark = [51, 65, 85]
+  const grayLight = [248, 250, 252]
+
+  // Header Empresa
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(config?.nombre_empresa || 'DM CAR', 14, 20)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let yEmpresa = 26
+  if (config?.cif) { doc.text(`CIF: ${config.cif}`, 14, yEmpresa); yEmpresa += 4 }
+  if (config?.direccion) { doc.text(config.direccion, 14, yEmpresa); yEmpresa += 4 }
+  if (config?.telefono) { doc.text(`Tel: ${config.telefono}`, 14, yEmpresa); yEmpresa += 4 }
+  if (config?.email) { doc.text(`Email: ${config.email}`, 14, yEmpresa); yEmpresa += 4 }
+
+  // Título RECIBO DE ABONO
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(20)
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+  doc.text('RECIBO DE ABONO', 196, 20, { align: 'right' })
+
+  doc.setFontSize(10)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(`EXPEDIENTE: ${numeroExp}`, 196, 27, { align: 'right' })
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text(`Fecha de emisión: ${fecha}`, 196, 33, { align: 'right' })
+
+  // Divider
+  doc.setDrawColor(15, 23, 42)
+  doc.setLineWidth(0.5)
+  doc.line(14, 44, 196, 44)
+
+  // Datos Cliente & Vehículo
+  const yCliente = 50
+  doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
+  doc.roundedRect(14, yCliente, 182, 32, 2, 2, 'F')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+  doc.text('DATOS DEL CLIENTE', 18, yCliente + 6)
+
+  doc.setFontSize(11)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(cliente?.nombre || 'Cliente Particular', 18, yCliente + 12)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let infoLine = ''
+  if (cliente?.dni) infoLine += `DNI/NIE: ${cliente.dni}   `
+  if (cliente?.telefono) infoLine += `Tel: ${cliente.telefono}   `
+  if (cliente?.email) infoLine += `Email: ${cliente.email}`
+  if (infoLine) doc.text(infoLine, 18, yCliente + 18)
+
+  if (vehiculo) {
+    doc.setFont('Helvetica', 'bold')
+    doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+    const vehText = `Vehículo: ${vehiculo.matricula} ${vehiculo.marca ? `- ${vehiculo.marca}` : ''} ${vehiculo.modelo ? `(${vehiculo.modelo})` : ''}`
+    doc.text(vehText, 18, yCliente + 25)
+  }
+
+  // Resumen del Estado de la Reparación
+  const yTable = 88
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.rect(14, yTable, 182, 8, 'F')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(255, 255, 255)
+  doc.text('DETALLE DEL COBRO Y ESTADO ECONÓMICO DEL EXPEDIENTE', 18, yTable + 5.5)
+
+  let curY = yTable + 14
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9.5)
+  doc.setTextColor(30, 41, 59)
+
+  doc.text('Importe Total de la Reparación:', 18, curY)
+  doc.setFont('Helvetica', 'bold')
+  doc.text(`${totalReparacion.toFixed(2)} €`, 190, curY, { align: 'right' })
+  curY += 8
+
+  doc.setFont('Helvetica', 'normal')
+  doc.text('Abonos Anteriores Acumulados:', 18, curY)
+  doc.text(`${sumaPrevios.toFixed(2)} €`, 190, curY, { align: 'right' })
+  curY += 8
+
+  // Cuadro destacado del nuevo abono
+  doc.setFillColor(240, 253, 244) // green-50
+  doc.roundedRect(14, curY, 182, 12, 2, 2, 'F')
+  doc.setDrawColor(34, 197, 94)
+  doc.setLineWidth(0.3)
+  doc.roundedRect(14, curY, 182, 12, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(21, 128, 61)
+  doc.text('IMPORTE ABONADO EN ESTE ACTO:', 18, curY + 7.5)
+  doc.setFontSize(11)
+  doc.text(`${abonoActual.toFixed(2)} €`, 190, curY + 7.5, { align: 'right' })
+  curY += 18
+
+  // Historial de Pagos
+  if (cobrosPrevios.length > 0) {
+    doc.setFont('Helvetica', 'bold')
+    doc.setFontSize(9)
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+    doc.text('Historial de Abonos Anteriores:', 18, curY)
+    curY += 6
+
+    cobrosPrevios.forEach((c, idx) => {
+      const fStr = c.fecha ? new Date(c.fecha).toLocaleDateString('es-ES') : 'Fecha n/d'
+      const met = c.metodo ? `(${c.metodo})` : ''
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+      doc.text(`• Abono #${idx + 1} (${fStr}) ${met}:`, 22, curY)
+      doc.text(`${c.importe.toFixed(2)} €`, 190, curY, { align: 'right' })
+      curY += 5
+    })
+    curY += 4
+  }
+
+  // Cuadro de Saldo Pendiente
+  doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
+  doc.roundedRect(120, curY, 76, 24, 2, 2, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(120, curY, 76, 24, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text('Total Abonado:', 124, curY + 7)
+  doc.text(`${totalAbonadoAcumulado.toFixed(2)} €`, 190, curY + 7, { align: 'right' })
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(saldoPendiente > 0 ? 220 : 16, saldoPendiente > 0 ? 38 : 185, saldoPendiente > 0 ? 38 : 129)
+  doc.text('IMPORTE PENDIENTE:', 124, curY + 16)
+  doc.text(`${saldoPendiente.toFixed(2)} €`, 190, curY + 16, { align: 'right' })
+
+  // Nota legal
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(100, 116, 139)
+  doc.text('NOTA IMPORTANTE:', 14, 260)
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.text(
+    'Este documento constituye un recibo y justificante de abono a cuenta de la reparación referenciada. No tiene validez de factura oficial. La factura oficial definitiva será expedida automáticamente una vez completado el abono íntegro de la reparación.',
+    14,
+    265,
+    { maxWidth: 182 }
+  )
+
+  doc.text('GESTARIAN — Trazabilidad y Gestión de Taller', 105, 285, { align: 'center' })
+
+  return doc
+}
+
+// ─────────────────────────────────────────────────────────────
+// 2. GENERADOR DE FACTURA PROFORMA (EMPRESAS / ORGANISMOS)
+// ─────────────────────────────────────────────────────────────
+export function generateFacturaProformaPDF(
+  factura: Partial<Factura>,
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string,
+  cobros: Cobro[] = []
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const numeroProforma = factura.numero_proforma || factura.numero || 'FP260001'
+  const numeroExp = expediente || 'EXP-0001'
+  const fecha = factura.fecha ? new Date(factura.fecha).toLocaleDateString('es-ES') : new Date().toLocaleDateString('es-ES')
+  const conceptos = factura.conceptos || []
+  const total = factura.total || conceptos.reduce((acc, c) => acc + (c.cantidad * c.precio * 1.21), 0)
+  const subtotal = total / 1.21
+  const iva = total - subtotal
+
+  const totalAbonado = cobros.reduce((acc, c) => acc + c.importe, 0)
+  const saldoPendiente = Math.max(0, total - totalAbonado)
+
+  const primaryColor = [15, 23, 42]
+  const accentColor = [217, 119, 6] // Ámbar / Dorado
+  const grayDark = [51, 65, 85]
+  const grayLight = [248, 250, 252]
+
+  // BANNER SUPERIOR CENTRADO MUY DESTACADO: FACTURA PROFORMA
+  doc.setFillColor(254, 243, 199) // amber-100
+  doc.rect(14, 10, 182, 10, 'F')
+  doc.setDrawColor(245, 158, 11)
+  doc.setLineWidth(0.5)
+  doc.rect(14, 10, 182, 10, 'S')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(13)
+  doc.setTextColor(180, 83, 9)
+  doc.text('*** FACTURA PROFORMA — DOCUMENTO NO VÁLIDO PARA DEDUCCIÓN FISCAL ***', 105, 16.5, { align: 'center' })
+
+  // Header Empresa
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(config?.nombre_empresa || 'DM CAR', 14, 28)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let yEmpresa = 33
+  if (config?.cif) { doc.text(`CIF/NIF: ${config.cif}`, 14, yEmpresa); yEmpresa += 3.5 }
+  if (config?.direccion) { doc.text(config.direccion, 14, yEmpresa); yEmpresa += 3.5 }
+  if (config?.telefono) { doc.text(`Tel: ${config.telefono}`, 14, yEmpresa); yEmpresa += 3.5 }
+  if (config?.email) { doc.text(`Email: ${config.email}`, 14, yEmpresa); yEmpresa += 3.5 }
+
+  // Proforma Box Derecha
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(16)
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+  doc.text('FACTURA PROFORMA', 196, 28, { align: 'right' })
+
+  doc.setFontSize(10.5)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(`Nº PROFORMA: ${numeroProforma}`, 196, 34, { align: 'right' })
+  doc.text(`EXPEDIENTE: ${numeroExp}`, 196, 39, { align: 'right' })
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text(`Fecha: ${fecha}`, 196, 44, { align: 'right' })
+
+  // Divider
+  doc.setDrawColor(15, 23, 42)
+  doc.setLineWidth(0.5)
+  doc.line(14, 49, 196, 49)
+
+  // Cliente Box
+  const yCliente = 53
+  doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
+  doc.roundedRect(14, yCliente, 182, 30, 2, 2, 'F')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+  doc.text('DATOS FISCALES DEL CLIENTE / ENTIDAD', 18, yCliente + 5.5)
+
+  doc.setFontSize(10.5)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(cliente?.nombre || 'Sociedad / Organismo', 18, yCliente + 11)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let infoLine = ''
+  if (cliente?.dni) infoLine += `CIF/NIF: ${cliente.dni}   `
+  if (cliente?.telefono) infoLine += `Tel: ${cliente.telefono}   `
+  if (cliente?.email) infoLine += `Email: ${cliente.email}`
+  if (infoLine) doc.text(infoLine, 18, yCliente + 16.5)
+
+  if (vehiculo) {
+    doc.setFont('Helvetica', 'bold')
+    doc.setTextColor(accentColor[0], accentColor[1], accentColor[2])
+    const vehText = `Vehículo: ${vehiculo.matricula} ${vehiculo.marca ? `- ${vehiculo.marca}` : ''} ${vehiculo.modelo ? `(${vehiculo.modelo})` : ''}`
+    doc.text(vehText, 18, yCliente + 23)
+  }
+
+  // Tabla Conceptos
+  const yTable = 87
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.rect(14, yTable, 182, 7.5, 'F')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(255, 255, 255)
+  doc.text('DESCRIPCIÓN DEL CONCEPTO / TRABAJO', 18, yTable + 5)
+  doc.text('CANT.', 125, yTable + 5, { align: 'center' })
+  doc.text('PRECIO', 155, yTable + 5, { align: 'right' })
+  doc.text('TOTAL', 190, yTable + 5, { align: 'right' })
+
+  let curY = yTable + 12
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(30, 41, 59)
+
+  conceptos.forEach((c) => {
+    if (curY > 230) { doc.addPage(); curY = 20 }
+    doc.text(c.descripcion, 18, curY)
+    doc.text(String(c.cantidad), 125, curY, { align: 'center' })
+    doc.text(`${c.precio.toFixed(2)} €`, 155, curY, { align: 'right' })
+    doc.text(`${(c.cantidad * c.precio).toFixed(2)} €`, 190, curY, { align: 'right' })
+
+    doc.setDrawColor(226, 232, 240)
+    doc.setLineWidth(0.2)
+    doc.line(14, curY + 2, 196, curY + 2)
+    curY += 6.5
+  })
+
+  // Totales y Abonos
+  curY = Math.max(curY + 4, 160)
+  doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
+  doc.roundedRect(110, curY, 86, 42, 2, 2, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(110, curY, 86, 42, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text('Base Imponible:', 114, curY + 6)
+  doc.text(`${subtotal.toFixed(2)} €`, 192, curY + 6, { align: 'right' })
+
+  doc.text('IVA (21%):', 114, curY + 12)
+  doc.text(`${iva.toFixed(2)} €`, 192, curY + 12, { align: 'right' })
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9.5)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text('TOTAL PROFORMA:', 114, curY + 19)
+  doc.text(`${total.toFixed(2)} €`, 192, curY + 19, { align: 'right' })
+
+  doc.setDrawColor(203, 213, 225)
+  doc.line(114, curY + 22, 192, curY + 22)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(21, 128, 61)
+  doc.text('Total Abonado:', 114, curY + 28)
+  doc.text(`${totalAbonado.toFixed(2)} €`, 192, curY + 28, { align: 'right' })
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(saldoPendiente > 0 ? 220 : 16, saldoPendiente > 0 ? 38 : 185, saldoPendiente > 0 ? 38 : 129)
+  doc.text('SALDO PENDIENTE:', 114, curY + 36)
+  doc.text(`${saldoPendiente.toFixed(2)} €`, 192, curY + 36, { align: 'right' })
+
+  // Footer Legal
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(148, 163, 184)
+  doc.text(
+    'DOCUMENTO PROFORMA INFORMATIVO. No constituye documento tributario ni devengo de IVA deducible. La factura oficial con número F26XXXX será emitida una vez recibido el abono total.',
+    105,
+    285,
+    { align: 'center', maxWidth: 180 }
+  )
+
+  return doc
+}
+
+// ─────────────────────────────────────────────────────────────
+// 3. GENERADOR DE INFORME TRIMESTRAL PARA GESTORÍA
+// ─────────────────────────────────────────────────────────────
+export function generateInformeTrimestralPDF(
+  quarter: number,
+  year: number,
+  facturasEmitidas: Factura[],
+  facturasRecibidas: any[],
+  config?: Configuracion | null
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const totalEmitidas = facturasEmitidas.reduce((s, f) => s + (f.total || 0), 0)
+  const baseEmitidas = totalEmitidas / 1.21
+  const ivaRepercutido = totalEmitidas - baseEmitidas
+
+  const totalGastos = facturasRecibidas.reduce((s, f) => s + (f.total || f.base_imponible || 0), 0)
+  const baseGastos = facturasRecibidas.reduce((s, f) => s + (f.base_imponible || 0), 0)
+  const ivaSoportado = facturasRecibidas.reduce((s, f) => s + ((f.base_imponible || 0) * ((f.iva || 0) / 100)), 0)
+
+  const resultadoIva = ivaRepercutido - ivaSoportado
+
+  // Header
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(15, 23, 42)
+  doc.text(config?.nombre_empresa || 'DM CAR', 14, 20)
+
+  doc.setFontSize(12)
+  doc.setTextColor(2, 132, 199)
+  doc.text(`INFORME RESUMEN TRIMESTRAL — Q${quarter} ${year}`, 196, 20, { align: 'right' })
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(51, 65, 85)
+  doc.text(`Fecha de Cierre: ${new Date().toLocaleDateString('es-ES')}`, 196, 26, { align: 'right' })
+
+  doc.setDrawColor(15, 23, 42)
+  doc.setLineWidth(0.5)
+  doc.line(14, 32, 196, 32)
+
+  // Resumen Fiscal
+  doc.setFillColor(248, 250, 252)
+  doc.roundedRect(14, 38, 182, 45, 2, 2, 'F')
+  doc.setDrawColor(226, 232, 240)
+  doc.roundedRect(14, 38, 182, 45, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(15, 23, 42)
+  doc.text('RESUMEN FISCAL DEL TRIMESTRE', 18, 45)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.text(`Total Facturas Emitidas Cerradas (${facturasEmitidas.length}):`, 18, 52)
+  doc.text(`${totalEmitidas.toFixed(2)} € (Base: ${baseEmitidas.toFixed(2)} € | IVA: ${ivaRepercutido.toFixed(2)} €)`, 190, 52, { align: 'right' })
+
+  doc.text(`Total Gastos / Facturas Recibidas (${facturasRecibidas.length}):`, 18, 59)
+  doc.text(`${totalGastos.toFixed(2)} € (Base: ${baseGastos.toFixed(2)} € | IVA: ${ivaSoportado.toFixed(2)} €)`, 190, 59, { align: 'right' })
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.text('Resultado IVA Trimestral (Repercutido - Soportado):', 18, 70)
+  doc.text(`${resultadoIva.toFixed(2)} €`, 190, 70, { align: 'right' })
+
+  return doc
+}
+
+// ─────────────────────────────────────────────────────────────
+// 4. DESCARGAS Y ENVÍOS POR EMAIL AUTOMÁTICOS
+// ─────────────────────────────────────────────────────────────
+export function downloadReciboAbonoPDF(
+  factura: Partial<Factura>,
+  abonoActual: number,
+  cobrosPrevios: Cobro[],
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+) {
+  const doc = generateReciboAbonoPDF(factura, abonoActual, cobrosPrevios, cliente, vehiculo, config, expediente)
+  doc.save(`Recibo_Abono_${expediente || factura.numero || 'EXP'}.pdf`)
+}
+
+export function downloadFacturaProformaPDF(
+  factura: Partial<Factura>,
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string,
+  cobros: Cobro[] = []
+) {
+  const doc = generateFacturaProformaPDF(factura, cliente, vehiculo, config, expediente, cobros)
+  const num = factura.numero_proforma || factura.numero || 'FP260001'
+  doc.save(`Factura_Proforma_${num}.pdf`)
+}
+
+export async function sendReciboAbonoByEmail(
+  factura: Partial<Factura>,
+  abonoActual: number,
+  cobrosPrevios: Cobro[],
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!cliente?.email) return { success: false, error: 'Sin email configurado' }
+
+  const numExp = expediente || factura.numero || 'EXP-0001'
+  const doc = generateReciboAbonoPDF(factura, abonoActual, cobrosPrevios, cliente, vehiculo, config, expediente)
+  const pdfBlob = doc.output('blob')
+
+  return await sendInvoice({
+    to: cliente.email,
+    documentId: factura.id || 'recibo',
+    documentNumber: `REC-${numExp}`,
+    pdfContent: pdfBlob,
+    subject: `Recibo de Abono (Expediente ${numExp}) - ${config?.nombre_empresa || 'DM CAR'}`,
+    message: `Estimado/a ${cliente.nombre},\n\nLe adjuntamos el justificante del recibo de abono de ${abonoActual.toFixed(2)} € correspondiente a la reparación de su vehículo.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`,
+    metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id }
+  })
+}
+
+export async function sendFacturaProformaByEmail(
+  factura: Partial<Factura>,
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string,
+  cobros: Cobro[] = []
+): Promise<{ success: boolean; error?: string }> {
+  if (!cliente?.email) return { success: false, error: 'Sin email configurado' }
+
+  const numProforma = factura.numero_proforma || factura.numero || 'FP260001'
+  const doc = generateFacturaProformaPDF(factura, cliente, vehiculo, config, expediente, cobros)
+  const pdfBlob = doc.output('blob')
+
+  return await sendInvoice({
+    to: cliente.email,
+    documentId: factura.id || 'proforma',
+    documentNumber: numProforma,
+    pdfContent: pdfBlob,
+    subject: `Factura Proforma ${numProforma} - ${config?.nombre_empresa || 'DM CAR'}`,
+    message: `Estimado/a ${cliente.nombre},\n\nLe adjuntamos la Factura Proforma ${numProforma} correspondiente a los trabajos presupuestados/realizados en su vehículo.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`,
+    metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id }
+  })
+}
+
 export async function sendFacturaByEmail(
   factura: Partial<Factura>,
   cliente?: Cliente | null,
   vehiculo?: Vehiculo | null,
-  config?: Configuracion | null
+  config?: Configuracion | null,
+  expediente?: string
 ): Promise<{ success: boolean; error?: string }> {
   if (!cliente?.email) {
-    alert('El cliente no tiene una dirección de correo electrónico configurada.')
     return { success: false, error: 'No hay email configurado' }
   }
 
   const numero = factura.numero || 'FAC-0001'
   
   // 1. Generar PDF en memoria con jsPDF
-  const doc = generateFacturaPDF(factura, cliente, vehiculo, config)
+  const doc = generateFacturaPDF(factura, cliente, vehiculo, config, expediente)
   const pdfBlob = doc.output('blob')
 
   // 2. Enviar mediante COMMUNICATION SERVICE
@@ -508,20 +1023,18 @@ export async function sendFacturaByEmail(
     documentId: factura.id,
     documentNumber: numero,
     pdfContent: pdfBlob,
-    subject: `Factura ${numero} - ${config?.nombre_empresa || 'DM CAR'}`,
-    message: `Estimado/a ${cliente.nombre},\n\nLe adjuntamos su factura ${numero} por importe total de ${(factura.total || 0).toFixed(2)} €.\n\nGracias por confiar en nosotros.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`,
+    subject: `Factura Oficial ${numero} - ${config?.nombre_empresa || 'DM CAR'}`,
+    message: `Estimado/a ${cliente.nombre},\n\nLe adjuntamos su factura oficial ${numero} por importe total de ${(factura.total || 0).toFixed(2)} € (totalmente abonada).\n\nGracias por confiar en nosotros.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`,
     metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id }
   })
 
-  if (result.success) {
-    if (factura.id) {
-      const nowIso = new Date().toISOString()
-      localStorage.setItem(`factura_${factura.id}_email_at`, nowIso)
-      try {
-        await supabase.from('facturas').update({ enviado_email_at: nowIso }).eq('id', factura.id)
-      } catch (e) {
-        console.warn('Error actualizando enviado_email_at en factura:', e)
-      }
+  if (result.success && factura.id && factura.id !== 'draft') {
+    const nowIso = new Date().toISOString()
+    localStorage.setItem(`factura_${factura.id}_email_at`, nowIso)
+    try {
+      await supabase.from('facturas').update({ enviado_email_at: nowIso }).eq('id', factura.id)
+    } catch (e) {
+      console.warn('Error actualizando enviado_email_at en factura:', e)
     }
   }
 

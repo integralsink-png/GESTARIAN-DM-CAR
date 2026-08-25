@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { exportToA3, exportToSAGE, exportToExcel } from '../lib/accountingExporters'
+import { generateInformeTrimestralPDF } from '../lib/pdfGenerator'
 
 export async function enviarTrimestreGestoriaAutomático() {
   try {
@@ -33,7 +34,7 @@ export async function enviarTrimestreGestoriaAutomático() {
     const startStr = startDate.toISOString().split('T')[0]
     const endStr = endDate.toISOString().split('T')[0]
 
-    // 3. Obtener facturas emitidas y recibidas
+    // 3. Obtener facturas emitidas (cerradas) y recibidas
     const { data: facturasEmitidas } = await supabase
       .from('facturas')
       .select('*')
@@ -46,13 +47,17 @@ export async function enviarTrimestreGestoriaAutomático() {
       .gte('fecha', startStr)
       .lte('fecha', endStr)
 
-    // 4. Generar archivos (strings en texto plano / CSV)
+    // 4. Generar archivos (strings en texto plano / CSV / PDF)
     const em = facturasEmitidas || []
     const rec = facturasRecibidas || []
     
     const a3Content = exportToA3(em, rec, startStr, endStr, false)
     const sageContent = exportToSAGE(em, rec, startStr, endStr, false)
     const csvContent = exportToExcel(em, rec, startStr, endStr, false)
+
+    // Generar PDF del informe trimestral
+    const pdfDoc = generateInformeTrimestralPDF(targetQuarter, targetYear, em as any, rec, config)
+    const pdfBase64 = pdfDoc.output('datauristring').split(',')[1]
 
     // Función helper para convertir string UTF-8 a Base64 sin problemas de tildes
     const toBase64 = (str: string) => {
@@ -61,8 +66,13 @@ export async function enviarTrimestreGestoriaAutomático() {
       return btoa(binString)
     }
 
-    // 5. Preparar adjuntos
+    // 5. Preparar adjuntos (A3, SAGE, CSV, PDF)
     const adjuntos = [
+      {
+        filename: `GESTARIAN_INFORME_TRIMESTRAL_Q${targetQuarter}_${targetYear}.pdf`,
+        content: pdfBase64,
+        contentType: 'application/pdf'
+      },
       {
         filename: `GESTARIAN_A3_Q${targetQuarter}_${targetYear}.txt`,
         content: toBase64(a3Content),
@@ -80,12 +90,34 @@ export async function enviarTrimestreGestoriaAutomático() {
       }
     ]
 
+    const appOrigin = window.location.origin
+    const enlaceFacturas = `${appOrigin}/facturas`
+
     // 6. Enviar vía Edge Function
     const { data: edgeData, error: edgeError } = await supabase.functions.invoke('send-communication', {
       body: {
         to: emailGestoria,
-        subject: `Cierre Trimestral Q${targetQuarter} ${targetYear} - GESTARIAN`,
-        htmlBody: `<p>Hola,</p><p>Adjuntamos los informes contables correspondientes al cierre del trimestre <strong>Q${targetQuarter} del año ${targetYear}</strong>, generados automáticamente desde GESTARIAN.</p><p>Formatos incluidos: A3, SAGE y CSV.</p><p>Un saludo.</p>`,
+        subject: `Cierre Trimestral Q${targetQuarter} ${targetYear} - ${config?.nombre_empresa || 'DM CAR'}`,
+        htmlBody: `
+          <div style="font-family: Arial, sans-serif; color: #1e293b; line-height: 1.6;">
+            <h2 style="color: #0284c7;">Informe de Cierre Trimestral Q${targetQuarter} ${targetYear}</h2>
+            <p>Estimados señores,</p>
+            <p>Adjuntamos la documentación contable y fiscal correspondiente al cierre del trimestre <strong>Q${targetQuarter} del año ${targetYear}</strong> de la empresa <strong>${config?.nombre_empresa || 'DM CAR'}</strong> (CIF: ${config?.cif || 'N/A'}).</p>
+            
+            <p><strong>Archivos adjuntos incluidos:</strong></p>
+            <ul>
+              <li>Informe Resumen Fiscal Trimestral (PDF)</li>
+              <li>Archivo de integración contable A3 (.txt)</li>
+              <li>Archivo de integración contable SAGE (.txt)</li>
+              <li>Libro registro de Facturas Emitidas y Recibidas en Excel (.csv)</li>
+            </ul>
+
+            <p>Asimismo, pueden acceder y consultar el histórico completo de facturas oficiales cerradas en el siguiente enlace del sistema:</p>
+            <p style="margin: 20px 0;"><a href="${enlaceFacturas}" style="background-color: #0f172a; color: #ffffff; padding: 10px 18px; border-radius: 8px; text-decoration: none; font-weight: bold;">Acceder a Base de Datos de Facturas Cerradas</a></p>
+
+            <p>Atentamente,<br><strong>${config?.nombre_empresa || 'GESTARIAN'}</strong></p>
+          </div>
+        `,
         attachments: adjuntos
       }
     })

@@ -82,6 +82,8 @@ export interface Reparacion {
 export interface Factura {
   id: string
   numero: string
+  numero_proforma?: string | null
+  tipo_documento?: 'factura' | 'proforma' | 'recibo'
   reparacion_id: string | null
   cliente_id: string
   vehiculo_id: string | null
@@ -106,6 +108,8 @@ export interface Cobro {
   importe: number
   fecha: string
   metodo: string | null
+  numero_recibo?: string | null
+  expediente_id?: string | null
   created_at: string
 }
 

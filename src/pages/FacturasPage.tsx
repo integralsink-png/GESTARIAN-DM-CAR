@@ -143,11 +143,12 @@ export function FacturasPage() {
   const clienteIdFromNav = navState?.clienteId
 
   const facturasFiltradas = useMemo(() => {
-    let result = facturas
+    // Facturación limpia: solo facturas cerradas (100% abonadas)
+    let result = facturas.filter(f => f.estado_cobro === 'pagada' || (f.total_abonado >= f.total && f.total > 0))
 
     // Si viene desde el roadmap para ver todas las facturas del cliente
     if (clienteIdFromNav) {
-      result = result.filter(f => f.cliente_id === clienteIdFromNav)
+      result = facturas.filter(f => f.cliente_id === clienteIdFromNav)
     }
 
     if (trimestreFilter) {

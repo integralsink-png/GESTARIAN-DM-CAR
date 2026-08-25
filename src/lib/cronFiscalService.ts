@@ -1,15 +1,15 @@
 export type TipoAvisoFiscal =
   | 'aviso_20'
   | 'aviso_25'
-  | 'permiso_30'
-  | 'permiso_5'
+  | 'cierre_fin'
+  | 'aviso_5'
   | 'aviso_9'
   | 'envio_10'
 
 export interface CronEvent {
   tipo: TipoAvisoFiscal
   mensaje: string
-  requierePermiso?: boolean
+  permiteEnvioAnticipado?: boolean
   fechaDisparo: Date
 }
 
@@ -36,7 +36,7 @@ export class CronFiscalService {
     return !!this.getStatus()[avisoId]
   }
 
-  // Comprueba la fecha actual y devuelve el evento correspondiente (si hay alguno pendiente)
+  // Comprueba la fecha actual y devuelve el evento correspondiente (si hay alguno activo)
   static checkCurrentDate(): CronEvent | null {
     const now = new Date()
     const month = now.getMonth() // 0-11
@@ -51,59 +51,68 @@ export class CronFiscalService {
     const quarter = Math.floor(month / 3) + 1 // Q1, Q2, Q3, Q4
     const idPrefix = `Q${quarter}-${year}`
     const prevQuarter = quarter === 1 ? 4 : quarter - 1
-    const prevIdPrefix = quarter === 1 ? `Q4-${year - 1}` : `Q${prevQuarter}-${year}`
+    const prevYear = quarter === 1 ? year - 1 : year
+    const prevIdPrefix = `Q${prevQuarter}-${prevYear}`
+
+    const lastDayOfMonth = new Date(year, month + 1, 0).getDate()
 
     if (isPreCierre) {
-      if (date >= 20 && !this.isDone(`${idPrefix}-aviso_20`)) {
-        return { tipo: 'aviso_20', mensaje: "Recuerda ir adjuntando las facturas de gastos pendientes, se acerca el cierre trimestral.", fechaDisparo: now }
+      if (date === 20 && !this.isDone(`${idPrefix}-aviso_20`)) {
+        return {
+          tipo: 'aviso_20',
+          mensaje: "Se acerca el cierre trimestral, tenga presente adjuntar las facturas pendientes para su registro. Puede generar el informe trimestral en PDF para su visualización.",
+          fechaDisparo: now
+        }
       }
-      if (date >= 25 && !this.isDone(`${idPrefix}-aviso_25`)) {
-        return { tipo: 'aviso_25', mensaje: "Recuerda ir adjuntando las facturas de gastos pendientes, se acerca el cierre trimestral.", fechaDisparo: now }
+      if (date === 25 && !this.isDone(`${idPrefix}-aviso_25`)) {
+        return {
+          tipo: 'aviso_25',
+          mensaje: "Se acerca el cierre trimestral, tenga presente adjuntar las facturas pendientes para su registro. Puede generar el informe trimestral en PDF para su visualización.",
+          fechaDisparo: now
+        }
       }
-      if (date >= 30 && !this.isDone(`${idPrefix}-permiso_30`)) {
-        return { tipo: 'permiso_30', mensaje: "El cierre trimestral está a la vuelta de la esquina. ¿Me das permiso para enviar el trimestre a la gestoría cuando esté listo?", requierePermiso: true, fechaDisparo: now }
+      if (date === lastDayOfMonth && !this.isDone(`${idPrefix}-cierre_fin`)) {
+        return {
+          tipo: 'cierre_fin',
+          mensaje: "El cierre trimestral ha llegado, si tiene facturas por registrar, considere adjuntarlas.",
+          permiteEnvioAnticipado: true,
+          fechaDisparo: now
+        }
       }
     }
 
     if (isCierre) {
       // Los avisos del mes de cierre corresponden al trimestre anterior
-      if (date >= 5 && !this.isDone(`${prevIdPrefix}-permiso_5`) && !this.hasPermiso(prevIdPrefix)) {
-        return { tipo: 'permiso_5', mensaje: "Aún no tengo permiso para enviar el informe trimestral a tu gestoría. ¿Me das permiso para enviarlo?", requierePermiso: true, fechaDisparo: now }
+      if (date === 5 && !this.isDone(`${prevIdPrefix}-aviso_5`)) {
+        return {
+          tipo: 'aviso_5',
+          mensaje: "El cierre trimestral ha llegado, si tiene facturas por registrar, considere adjuntarlas.",
+          permiteEnvioAnticipado: true,
+          fechaDisparo: now
+        }
       }
-      if (date >= 9 && !this.isDone(`${prevIdPrefix}-aviso_9`)) {
-        return { tipo: 'aviso_9', mensaje: "Mañana a las 18:00 se enviará el informe trimestral a tu gestoría automáticamente. Si no has incluido alguna factura, no te preocupes, en el próximo trimestre la podrás incluir.", fechaDisparo: now }
+      if (date === 9 && !this.isDone(`${prevIdPrefix}-aviso_9`)) {
+        return {
+          tipo: 'aviso_9',
+          mensaje: "Mañana a las 10:00 PM se enviará automáticamente la documentación de cierre trimestral a la gestoria, si hay facturas pendientes puede adjuntarlas en el siguiente trimestre.",
+          permiteEnvioAnticipado: true,
+          fechaDisparo: now
+        }
       }
       if (date >= 10) {
-        // Día 10: si son más de las 18:00 (o días posteriores), forzamos envío si no se ha hecho
-        const isPast18 = now.getHours() >= 18 || date > 10
-        if (isPast18 && !this.isDone(`${prevIdPrefix}-envio_10`)) {
-          return { tipo: 'envio_10', mensaje: "He procedido a enviar automáticamente el informe trimestral a tu gestoría.", fechaDisparo: now }
+        // Día 10: si son las 22:00 (10:00 PM) o posterior, disparo mandatorio
+        const isPast22 = now.getHours() >= 22 || date > 10
+        if (isPast22 && !this.isDone(`${prevIdPrefix}-envio_10`)) {
+          return {
+            tipo: 'envio_10',
+            mensaje: "Se ha procedido a enviar automáticamente la documentación de cierre trimestral a la gestoría.",
+            fechaDisparo: now
+          }
         }
       }
     }
 
     return null
-  }
-
-  static hasPermiso(idPrefix: string): boolean {
-    return !!this.getStatus()[`${idPrefix}-permiso_concedido`]
-  }
-
-  static darPermiso() {
-    const now = new Date()
-    const month = now.getMonth()
-    const quarter = Math.floor(month / 3) + 1
-    const year = now.getFullYear()
-    
-    // Si estamos en mes de cierre, el permiso es para el trimestre anterior
-    const isCierre = [3, 6, 9, 0].includes(month)
-    const targetQuarter = isCierre ? (quarter === 1 ? 4 : quarter - 1) : quarter
-    const targetYear = isCierre && quarter === 1 ? year - 1 : year
-    
-    const idPrefix = `Q${targetQuarter}-${targetYear}`
-    const status = this.getStatus()
-    status[`${idPrefix}-permiso_concedido`] = true
-    localStorage.setItem(this.KEY, JSON.stringify(status))
   }
 
   static getAvisoId(tipo: TipoAvisoFiscal): string {

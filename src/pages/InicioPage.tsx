@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import {
   Calendar, Wrench, FileText, Users,
   Clock, CheckCircle2, AlertCircle, Euro, ArrowRight,
-  CarFront, BarChart3, FolderOpen
+  CarFront, BarChart3, FolderOpen, Send, X, Loader2
 } from 'lucide-react'
 
 import { useGestures } from '../hooks/useGestures'
@@ -12,6 +12,10 @@ import { useClima } from '../hooks/useClima'
 import { PanelControlHeader } from '../components/PanelControlHeader'
 import { MetisAlertsSection } from '../components/MetisAlertsSection'
 import { MatriculaBadge } from '../components/UI'
+import { CronFiscalService, CronEvent } from '../lib/cronFiscalService'
+import { enviarTrimestreGestoriaAutomático } from '../services/gestoriaExportService'
+import { useToast } from '../lib/ToastContext'
+import { playSuccessChime } from '../lib/sound'
 
 interface KPIs {
   ingresosTrimestre: number; ingresosMes: number; citasHoy: number;
@@ -55,6 +59,53 @@ export function InicioPage() {
 
   const [panelReady, setPanelReady] = useState(false)
   const panelReadyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { showToast } = useToast()
+
+  const [avisoFiscal, setAvisoFiscal] = useState<CronEvent | null>(null)
+  const [enviandoTrimestre, setEnviandoTrimestre] = useState(false)
+
+  useEffect(() => {
+    // Comprobar si hay un aviso fiscal activo hoy
+    const evento = CronFiscalService.checkCurrentDate()
+    if (evento) {
+      const avisoId = CronFiscalService.getAvisoId(evento.tipo)
+      const descartadoSesion = sessionStorage.getItem(`aviso_descartado_${avisoId}`)
+      if (!descartadoSesion) {
+        setAvisoFiscal(evento)
+      }
+    }
+  }, [])
+
+  const handleCerrarAvisoFiscal = () => {
+    if (avisoFiscal) {
+      const avisoId = CronFiscalService.getAvisoId(avisoFiscal.tipo)
+      sessionStorage.setItem(`aviso_descartado_${avisoId}`, 'true')
+    }
+    setAvisoFiscal(null)
+  }
+
+  const handleEnviarTrimestreManual = async () => {
+    if (enviandoTrimestre) return
+    setEnviandoTrimestre(true)
+    try {
+      const exito = await enviarTrimestreGestoriaAutomático()
+      if (exito) {
+        if (avisoFiscal) {
+          const avisoId = CronFiscalService.getAvisoId(avisoFiscal.tipo)
+          CronFiscalService.markAsDone(avisoId)
+        }
+        playSuccessChime()
+        showToast("INFORME TRIMESTRAL ENVIADO CON ÉXITO A GESTORÍA", 'success')
+        setAvisoFiscal(null)
+      } else {
+        showToast("Error al enviar el informe. Verifique la configuración de email de gestoría.", 'error')
+      }
+    } catch (e) {
+      showToast("Error al procesar el envío trimestral", 'error')
+    } finally {
+      setEnviandoTrimestre(false)
+    }
+  }
 
   useEffect(() => {
     if (panelReadyTimerRef.current) clearTimeout(panelReadyTimerRef.current)
@@ -352,6 +403,71 @@ export function InicioPage() {
                 />
               </div>
 
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL / TARJETA FLOTANTE DE AVISO TRIMESTRAL (METIS CRON FISCAL) ── */}
+        {avisoFiscal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+            <div className="w-full max-w-lg bg-slate-950/95 border-2 border-cyan-500/70 rounded-3xl p-6 sm:p-7 shadow-[0_0_35px_rgba(6,182,212,0.3)] space-y-5 text-white relative">
+              {/* Botón cerrar esquina superior */}
+              <button
+                onClick={handleCerrarAvisoFiscal}
+                className="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-900 border border-slate-700 hover:border-cyan-400 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+                title="Cerrar aviso"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400 shrink-0 shadow-inner">
+                  <AlertCircle className="w-7 h-7" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-black uppercase tracking-wider text-white">
+                    AVISO DE CIERRE TRIMESTRAL
+                  </h3>
+                  <p className="text-xs text-cyan-300 font-bold uppercase tracking-wider">
+                    CALENDARIO FISCAL GESTARIAN · METIS
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-slate-200 text-sm leading-relaxed shadow-inner">
+                {avisoFiscal.mensaje}
+              </div>
+
+              {/* Botonera de acciones */}
+              <div className="space-y-2.5 pt-2 border-t border-slate-800">
+                {avisoFiscal.permiteEnvioAnticipado && (
+                  <button
+                    disabled={enviandoTrimestre}
+                    onClick={handleEnviarTrimestreManual}
+                    className="w-full py-3.5 px-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(16,185,129,0.4)] transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    {enviandoTrimestre ? (
+                      <>
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>ENVIANDO INFORME A GESTORÍA...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-5 h-5" />
+                        <span>ENVIAR INFORME TRIMESTRAL A GESTORIA</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleCerrarAvisoFiscal}
+                  className="w-full py-2.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider border border-slate-700 hover:border-slate-500 transition-all cursor-pointer text-center"
+                >
+                  CANCELAR
+                </button>
+              </div>
             </div>
           </div>
         )}
