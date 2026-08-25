@@ -407,19 +407,19 @@ export function RegistroUsuarioTallerPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-[85%] py-3.5 px-3 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_1px_rgba(6,182,212,0.9)] hover:shadow-[0_0_2px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
+            className="w-[85%] py-4 px-3 sm:px-5 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:shadow-[0_0_30px_rgba(6,182,212,0.85)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
           >
-            <div className="w-[90%] mx-auto flex flex-col items-center justify-center leading-tight">
+            <div className="w-full mx-auto flex flex-col items-center justify-center leading-tight">
               <span 
-                className="block text-center font-black tracking-wide"
-                style={{ fontSize: 'clamp(0.78rem, 3.4vw, 1.15rem)' }}
+                className="w-full block text-center font-black tracking-wide whitespace-nowrap overflow-hidden text-ellipsis"
+                style={{ fontSize: 'clamp(0.75rem, 3.3vw, 1.15rem)' }}
               >
                 {loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO'}
               </span>
               {!loading && (
                 <span 
-                  className="block text-center font-black text-cyan-300 tracking-wider mt-0.5"
-                  style={{ fontSize: 'clamp(0.72rem, 3vw, 0.98rem)' }}
+                  className="w-full block text-center font-black text-cyan-300 tracking-wider mt-1 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+                  style={{ fontSize: 'clamp(1.35rem, 5.8vw, 2.05rem)', lineHeight: '1.1' }}
                 >
                   (GRATUITO)
                 </span>
