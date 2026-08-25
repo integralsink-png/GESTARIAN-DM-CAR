@@ -346,15 +346,15 @@ export function ClientePage() {
     })
   }
 
-  // CONFIRMAR / ACEPTAR PROPUESTA DE CITA DEL TALLER DIRECTAMENTE
+  // CONFIRMAR / ACEPTAR PROPUESTA DE CITA DEL TALLER POR PARTE DEL CLIENTE
   const handleAceptarPropuestaTaller = async (cita: Cita) => {
     try {
-      await supabase.from('citas').update({ estado: 'confirmada' }).eq('id', cita.id)
+      await supabase.from('citas').update({ estado: 'aceptada' }).eq('id', cita.id)
       playSuccessChime()
-      showToast('CITA CONFIRMADA DEFINITIVAMENTE', 'success')
+      showToast('CITA ACEPTADA', 'success')
       loadData()
     } catch (e) {
-      showToast('Error al confirmar cita', 'error')
+      showToast('Error al aceptar cita', 'error')
     }
   }
 
@@ -1002,7 +1002,7 @@ export function ClientePage() {
                                 )}
 
                                 {/* Si hay cita registrada Y el presupuesto ya fue respondido/valorado por el taller */}
-                                {cita && (totalPresupuesto > 0 || presAceptado || cita.estado === 'confirmada') && (() => {
+                                {cita && (totalPresupuesto > 0 || presAceptado || cita.estado === 'confirmada' || cita.estado === 'aceptada') && (() => {
                                   // Formatear fecha a dd/mm/aa
                                   const d = new Date(cita.fecha)
                                   const dd = String(d.getDate()).padStart(2, '0')
@@ -1011,37 +1011,45 @@ export function ClientePage() {
                                   const fechaShort = `${dd}/${mm}/${aa}`
                                   const horaStr = cita.hora ? cita.hora.substring(0, 5) : '09:00'
 
-                                  const estadoLabel =
-                                    cita.estado === 'confirmada'
-                                      ? 'CONFIRMADA'
-                                      : cita.estado === 'completada'
-                                      ? 'COMPLETADA'
-                                      : cita.estado === 'cancelada'
-                                      ? 'CANCELADA'
-                                      : 'PENDIENTE DE CONFIRMACIÓN'
+                                  const isFinalizada = hasFactura && (facturaPagada || !!fac?.enviado_email_at || !!fac?.enviado_whatsapp_at)
+                                  const isConfirmada = cita.estado === 'confirmada'
+                                  const isAceptada = cita.estado === 'aceptada'
+                                  const isAsignada = !isFinalizada && !isConfirmada && !isAceptada
+
+                                  const estadoLabel = isFinalizada
+                                    ? 'FINALIZADA'
+                                    : isConfirmada
+                                    ? 'CONFIRMADA'
+                                    : isAceptada
+                                    ? 'ACEPTADA'
+                                    : 'ASIGNADA'
+
+                                  const badgeClass = isFinalizada
+                                    ? 'bg-slate-800/80 text-slate-300 border-slate-700'
+                                    : isConfirmada
+                                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50'
+                                    : isAceptada
+                                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                                    : 'bg-amber-500/20 text-amber-300 border-amber-500/50 animate-pulse'
+
+                                  const cardBgBorder = isFinalizada
+                                    ? 'bg-slate-950/60 border-slate-800'
+                                    : isConfirmada
+                                    ? 'bg-emerald-950/40 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
+                                    : isAceptada
+                                    ? 'bg-cyan-950/40 border-cyan-500 shadow-[0_0_20px_rgba(6,182,212,0.25)]'
+                                    : 'bg-slate-900/90 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
 
                                   return (
-                                    <div
-                                      className={`w-full p-5 rounded-2xl border-2 space-y-3.5 ${
-                                        cita.estado === 'confirmada'
-                                          ? 'bg-emerald-950/40 border-emerald-500 shadow-[0_0_20px_rgba(16,185,129,0.25)]'
-                                          : 'bg-slate-900/90 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
-                                      }`}
-                                    >
+                                    <div className={`w-full p-5 rounded-2xl border-2 space-y-3.5 ${cardBgBorder}`}>
                                       {/* TÍTULO ARRIBA: CITADO: A LA IZQUIERDA Y ESTADO A LA DERECHA */}
                                       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                                         <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider">
                                           CITADO:
                                         </h3>
 
-                                        <span
-                                          className={`text-xs px-[2px] py-0.5 rounded-lg font-black uppercase tracking-wider whitespace-nowrap inline-block text-center ${
-                                            cita.estado === 'confirmada'
-                                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
-                                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
-                                          }`}
-                                        >
-                                          {cita.estado || estadoLabel}
+                                        <span className={`text-xs px-[2px] py-0.5 rounded-lg font-black uppercase tracking-wider whitespace-nowrap inline-block text-center border ${badgeClass}`}>
+                                          {estadoLabel}
                                         </span>
                                       </div>
 
@@ -1056,49 +1064,51 @@ export function ClientePage() {
                                       </div>
 
                                       {/* PIE DE LA TARJETA: BOTONES ACEPTAR - MODIFICAR CENTRADOS REPARTIÉNDOSE EL ANCHO EQUITATIVAMENTE */}
-                                      <div className="pt-3 border-t border-slate-800/60 w-full">
-                                        {cita.estado !== 'confirmada' ? (
-                                          <div className="grid grid-cols-2 gap-3 w-full">
-                                            <button
-                                              onClick={() => handleAceptarPropuestaTaller(cita)}
-                                              className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
-                                              title="Aceptar esta cita"
-                                            >
-                                              <Check className="w-4 h-4" /> ACEPTAR
-                                            </button>
+                                      {!isFinalizada && (
+                                        <div className="pt-3 border-t border-slate-800/60 w-full">
+                                          {isAsignada ? (
+                                            <div className="grid grid-cols-2 gap-3 w-full">
+                                              <button
+                                                onClick={() => handleAceptarPropuestaTaller(cita)}
+                                                className="w-full py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm shadow-md uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all active:scale-95 cursor-pointer text-center"
+                                                title="Aceptar esta propuesta de cita"
+                                              >
+                                                <Check className="w-4 h-4" /> ACEPTAR
+                                              </button>
 
-                                            <button
-                                              onClick={() =>
-                                                setModalCita({
-                                                  open: true,
-                                                  presupuesto: exp.presupuesto,
-                                                  expedienteStr: expStr,
-                                                  citaExistente: cita
-                                                })
-                                              }
-                                              className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs sm:text-sm border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer text-center"
-                                            >
-                                              MODIFICAR
-                                            </button>
-                                          </div>
-                                        ) : (
-                                          <div className="flex justify-center w-full">
-                                            <button
-                                              onClick={() =>
-                                                setModalCita({
-                                                  open: true,
-                                                  presupuesto: exp.presupuesto,
-                                                  expedienteStr: expStr,
-                                                  citaExistente: cita
-                                                })
-                                              }
-                                              className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs sm:text-sm border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer text-center"
-                                            >
-                                              MODIFICAR CITA
-                                            </button>
-                                          </div>
-                                        )}
-                                      </div>
+                                              <button
+                                                onClick={() =>
+                                                  setModalCita({
+                                                    open: true,
+                                                    presupuesto: exp.presupuesto,
+                                                    expedienteStr: expStr,
+                                                    citaExistente: cita
+                                                  })
+                                                }
+                                                className="w-full py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs sm:text-sm border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer text-center"
+                                              >
+                                                MODIFICAR
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            <div className="flex justify-center w-full">
+                                              <button
+                                                onClick={() =>
+                                                  setModalCita({
+                                                    open: true,
+                                                    presupuesto: exp.presupuesto,
+                                                    expedienteStr: expStr,
+                                                    citaExistente: cita
+                                                  })
+                                                }
+                                                className="w-full sm:w-1/2 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs sm:text-sm border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer text-center"
+                                              >
+                                                MODIFICAR CITA
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
                                   )
                                 })()}
