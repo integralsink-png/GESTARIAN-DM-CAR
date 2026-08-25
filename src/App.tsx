@@ -383,7 +383,8 @@ function Layout() {
                   <Route path="/asignar-cita" element={<AsignarCitaPage />} />
                   <Route path="/proveedores" element={<ProveedoresPage />} />
                   <Route path="/incidencias" element={<IncidenciasPage />} />
-                  <Route path="/usuarios" element={<RegistroUsuarioTallerPage />} />
+                  <Route path="/usuarios" element={<UsuariosPage />} />
+                  <Route path="/registro-taller" element={<RegistroUsuarioTallerPage />} />
                   <Route path="/autorizados" element={<UsuariosPage />} />
                   <Route path="/autorizado-edit/:id" element={<UsuarioEditPage />} />
                   <Route path="/usuario-edit/:id" element={<UsuarioEditPage />} />
