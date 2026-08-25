@@ -403,14 +403,13 @@ export function RegistroUsuarioTallerPage() {
         </Card>
 
         {/* Botón de Enviar Solicitud */}
-        <div className="pt-2">
+        <div className="pt-4 flex justify-center w-full">
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:to-emerald-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(6,182,212,0.4)] transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            className="w-[90%] py-4 px-6 rounded-2xl bg-black/90 hover:bg-black text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-wider border-[3px] border-[#a3e635] shadow-[0_0_20px_rgba(163,230,53,0.3)] hover:shadow-[0_0_30px_rgba(163,230,53,0.5)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
           >
-            <CheckCircle2 className="w-5 h-5" />
-            <span>{loading ? 'Procesando Autorización...' : 'Solicitar Autorización de Uso Inmediata (Gratuito)'}</span>
+            <span>{loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO (GRATUITO)'}</span>
           </button>
         </div>
       </form>
