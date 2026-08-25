@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Cliente, Vehiculo, Presupuesto, Factura, Cobro, Configuracion, Cita } from '../lib/types'
@@ -31,7 +31,8 @@ import {
   Sun,
   Moon,
   Coins,
-  Receipt
+  Receipt,
+  LogOut
 } from 'lucide-react'
 import { MatriculaBadge } from '../components/MatriculaBadge'
 import { PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
@@ -81,6 +82,7 @@ const DIAS_SEMANA = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
 
 export function ClientePage() {
   const { token } = useParams<{ token: string }>()
+  const navigate = useNavigate()
   const { showToast, showActionToast } = useToast()
 
   const [loading, setLoading] = useState(true)
@@ -801,13 +803,25 @@ export function ClientePage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-black text-white selection:bg-cyan-500 selection:text-black">
       {/* ───────────────────────────────────────────────────────────── */}
-      {/* 1. CABECERA: LOGO x0.6 (96px x 96px) + TEXTO (Base alineada y 30px de aire) */}
+      {/* 1. CABECERA: LOGO x0.6 (96px x 96px) + TEXTO + BOTÓN SALIR */}
       {/* ───────────────────────────────────────────────────────────── */}
-      <header className="w-full px-[30px] pt-6 pb-2 max-w-5xl mx-auto flex items-end justify-between">
-        <div className="flex items-end">
+      <header className="w-full px-[30px] pt-6 pb-2 max-w-5xl mx-auto flex items-end justify-between relative">
+        <div className="flex items-end gap-3">
           <div className="w-[85px] h-[85px] sm:w-[96px] sm:h-[96px] rounded-2xl overflow-hidden shadow-[0_0_25px_rgba(6,182,212,0.4)] border-2 border-white/20 bg-white shrink-0 hover:scale-105 transition-transform">
             <img src="/images/logos/logo.jpg" alt="DM CAR" className="w-full h-full object-cover" />
           </div>
+
+          <button
+            onClick={() => {
+              sessionStorage.removeItem('gestarian_cliente_authed_id')
+              navigate('/cliente/acceso')
+            }}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500/50 text-xs font-bold transition-all cursor-pointer"
+            title="Cerrar sesión"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Salir</span>
+          </button>
         </div>
 
         <div className="flex flex-col items-end justify-end text-right select-none">

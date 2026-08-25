@@ -36,6 +36,7 @@ import {
   ExpedientePage
 } from './pages/Pages'
 import { LicenciasPage } from './pages/LicenciasPage'
+import { ClientePortalAuthPage } from './pages/ClientePortalAuthPage'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -410,8 +411,9 @@ export default function App() {
   const [necesitaRegistro, setNecesitaRegistro] = useState(false)
 
   useEffect(() => {
-    // Si estamos en la ruta del portal del cliente final con token, permitir acceso directo
-    if (window.location.pathname.startsWith('/cliente/')) {
+    // Si estamos en la ruta del portal del cliente final (acceso web o con token), permitir acceso directo
+    const path = window.location.pathname
+    if (path.startsWith('/cliente') || path.startsWith('/acceso-cliente')) {
       setProfileReady(true)
       setLicenciaValida(true)
       return
@@ -504,6 +506,9 @@ export default function App() {
             ) : (
               <BrowserRouter>
                 <Routes>
+                  <Route path="/cliente/acceso" element={<ClientePortalAuthPage />} />
+                  <Route path="/acceso-cliente" element={<ClientePortalAuthPage />} />
+                  <Route path="/cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente/:token" element={<ClientePage />} />
                   <Route path="/*" element={<Layout />} />
                 </Routes>
