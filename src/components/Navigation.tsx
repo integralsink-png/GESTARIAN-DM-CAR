@@ -231,11 +231,13 @@ export function MobileFooter() {
   if (isA4Document) return null
 
   const isInicio = location.pathname === '/'
+  const isClientePortal = location.pathname.startsWith('/cliente')
   const perfil = getPerfil()
   const isDev = perfil?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true'
 
-  // Para usuarios normales en INICIO: ocultar iconos de AI y conversación bidireccional
-  const showAiControls = !isInicio || isDev
+  // Ocultar iconos AI si es el portal del cliente. 
+  // Para usuarios de taller normales en INICIO: ocultar iconos de AI también.
+  const showAiControls = !isClientePortal && (!isInicio || isDev)
 
   return (
     <>
