@@ -37,6 +37,7 @@ import {
 } from './pages/Pages'
 import { LicenciasPage } from './pages/LicenciasPage'
 import { ClientePortalAuthPage } from './pages/ClientePortalAuthPage'
+import { GemeloDigitalPage } from './pages/GemeloDigitalPage'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -411,9 +412,9 @@ export default function App() {
   const [necesitaRegistro, setNecesitaRegistro] = useState(false)
 
   useEffect(() => {
-    // Si estamos en la ruta del portal del cliente final (acceso web o con token), permitir acceso directo
+    // Si estamos en la ruta del portal del cliente final o del Gemelo Digital, permitir acceso directo
     const path = window.location.pathname
-    if (path.startsWith('/cliente') || path.startsWith('/acceso-cliente')) {
+    if (path.startsWith('/cliente') || path.startsWith('/acceso-cliente') || path.startsWith('/gemelo-digital') || path.startsWith('/digital-twin')) {
       setProfileReady(true)
       setLicenciaValida(true)
       return
@@ -506,6 +507,8 @@ export default function App() {
             ) : (
               <BrowserRouter>
                 <Routes>
+                  <Route path="/gemelo-digital" element={<GemeloDigitalPage />} />
+                  <Route path="/digital-twin" element={<GemeloDigitalPage />} />
                   <Route path="/cliente/acceso" element={<ClientePortalAuthPage />} />
                   <Route path="/acceso-cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente" element={<ClientePortalAuthPage />} />

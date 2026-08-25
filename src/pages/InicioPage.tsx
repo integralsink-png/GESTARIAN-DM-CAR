@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 import {
   Calendar, Wrench, FileText, Users,
   Clock, CheckCircle2, AlertCircle, Euro, ArrowRight,
-  CarFront, BarChart3, FolderOpen, Send, X, Loader2
+  CarFront, BarChart3, FolderOpen, Send, X, Loader2,
+  Sparkles, ChevronRight
 } from 'lucide-react'
 
 import { useGestures } from '../hooks/useGestures'
@@ -244,8 +245,33 @@ export function InicioPage() {
 
               {/* Acceso rápido */}
               <div className="px-2 sm:px-4">
-                <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50 mb-3">Acceso rápido</h2>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-xs font-semibold uppercase tracking-widest text-white/50">Acceso rápido</h2>
+                  <span className="text-[10px] font-mono text-cyan-400 font-bold uppercase tracking-wider">GESTARIAN 3D ENGINE</span>
+                </div>
                 
+                {/* Banner Destacado: GEMELO DIGITAL 3D */}
+                <button
+                  onClick={() => navigate('/gemelo-digital')}
+                  disabled={!panelInteractable}
+                  className="w-full flex items-center justify-between px-4 py-3.5 mb-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-cyan-400/80 border-[2px] backdrop-blur-md shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.75)] cursor-pointer group"
+                  style={{ backgroundColor: 'rgba(6, 182, 212, 0.28)' }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-300 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                      <Sparkles className="w-5 h-5 text-cyan-300" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                        <span>GEMELO DIGITAL 3D</span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400 text-slate-950 font-black">SHOWROOM</span>
+                      </div>
+                      <p className="text-[11px] text-cyan-200/90 leading-tight mt-0.5">Explora el mapa holográfico y la presentación guiada de GESTARIAN</p>
+                    </div>
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-cyan-300 group-hover:translate-x-1 transition-transform shrink-0" />
+                </button>
+
                 {/* Botón Expedientes a todo lo ancho */}
                 <button
                   onClick={() => navigate('/expedientes')}

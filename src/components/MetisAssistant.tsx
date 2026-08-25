@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Power, Settings } from 'lucide-react'
+import { X, Send, Bot, Mic, MicOff, ArrowRight, CheckCircle2, FileText, Power, Settings, Sparkles } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '../lib/theme'
 import { useVoice, getMicSettingsUrl } from '../lib/useVoice'
@@ -312,6 +312,19 @@ export function MetisAssistant() {
             </div>
 
             <div className="flex items-center gap-1">
+              <button
+                onClick={() => {
+                  playSound('click')
+                  setOpen(false)
+                  navigate('/gemelo-digital')
+                }}
+                className="w-9 h-9 flex items-center justify-center rounded-lg text-cyan-400 hover:bg-cyan-500/20 transition-all"
+                title="Abrir Gemelo Digital 3D & Showroom"
+                aria-label="Gemelo Digital 3D"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+
               <button
                 onClick={toggleMic}
                 className={`w-9 h-9 flex items-center justify-center rounded-lg transition-all ${
