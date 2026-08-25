@@ -1019,19 +1019,18 @@ export function ClientePage() {
                                         )}
                                       </div>
 
-                                      {/* SIGUIENTE LÍNEA: FECHA: DD/MM/AA (x1.5) Y HORA (x2) */}
-                                      <div className="flex items-center gap-3 text-slate-200">
-                                        <span className="text-slate-400 font-semibold text-sm">Fecha:</span>
-                                        <span className="text-white font-mono font-black text-base sm:text-lg tracking-wide">
+                                      {/* SIGUIENTE LÍNEA: DD/MM/AA (TAMAÑO x2) Y HORA 00:00 (TAMAÑO x1.5) SIN 'Fecha:' NI 'h' */}
+                                      <div className="flex items-baseline gap-4 text-slate-200 py-1">
+                                        <span className="text-white font-mono font-black text-xl sm:text-2xl tracking-wide">
                                           {fechaShort}
                                         </span>
-                                        <span className="text-cyan-400 font-mono font-black text-xl sm:text-2xl">
-                                          {horaStr} h
+                                        <span className="text-cyan-400 font-mono font-black text-lg sm:text-xl">
+                                          {horaStr}
                                         </span>
                                       </div>
 
-                                      {/* SIGUIENTE LÍNEA: PÍLDORA DE ESTADO REDONDEADA EN UNA SOLA LÍNEA Y BOTÓN MODIFICAR CITA SIN DIBUJITO */}
-                                      <div className="flex items-center justify-between gap-3 pt-1">
+                                      {/* SIGUIENTE LÍNEA: SOLO ESTADO ("pendiente", "asignada", "confirmada") Y BOTÓN MODIFICAR */}
+                                      <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
                                         <span
                                           className={`text-xs px-3.5 py-1 rounded-full font-black uppercase tracking-wider whitespace-nowrap ${
                                             cita.estado === 'confirmada'
@@ -1039,7 +1038,7 @@ export function ClientePage() {
                                               : 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
                                           }`}
                                         >
-                                          ● {estadoLabel}
+                                          ● {cita.estado || estadoLabel}
                                         </span>
 
                                         <button
@@ -1053,7 +1052,7 @@ export function ClientePage() {
                                           }
                                           className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer shrink-0"
                                         >
-                                          Modificar Cita
+                                          MODIFICAR
                                         </button>
                                       </div>
                                     </div>
