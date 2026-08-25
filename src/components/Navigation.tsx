@@ -6,7 +6,7 @@ import { useTheme } from '../lib/theme'
 import { useUIState } from '../lib/uiStateContext'
 import { useMobileMode } from '../lib/mobileMode'
 import { MetisVoiceCall } from './MetisVoiceCall'
-import { can } from '../services/authService'
+import { can, getPerfil } from '../services/authService'
 import { supabase } from '../lib/supabase'
 
 // Paleta de colores vibrantes para el menú
@@ -230,12 +230,19 @@ export function MobileFooter() {
   const isA4Document = ['/presupuestos', '/presupuesto-hibrido'].includes(location.pathname)
   if (isA4Document) return null
 
+  const isInicio = location.pathname === '/'
+  const perfil = getPerfil()
+  const isDev = perfil?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true'
+
+  // Para usuarios normales en INICIO: ocultar iconos de AI y conversación bidireccional
+  const showAiControls = !isInicio || isDev
+
   return (
     <>
       {location.pathname !== '/' && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/90 via-black/[0.65] to-transparent z-40 pointer-events-none" />
       )}
-      <nav className="lg:hidden fixed bottom-6 left-0 right-0 z-50 flex items-center justify-between px-6 gap-2">
+      <nav className={`lg:hidden fixed bottom-6 left-0 right-0 z-50 flex items-center ${showAiControls ? 'justify-between' : 'justify-center gap-8'} px-6`}>
         <button
           onClick={() => triggerAnimatedAction('camera', () => navigate('/presupuesto-hibrido', { state: { startCamera: true } }))}
           className={`w-16 h-16 rounded-full bg-transparent text-[#40e0d0] shadow-[0_0_10px_rgba(64,224,208,0.9),inset_0_0_5px_rgba(64,224,208,0.9)] border-[1px] border-white flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 ${animatingBtn === 'camera' ? 'scale-125 border-cyan-400' : ''}`}
@@ -258,19 +265,23 @@ export function MobileFooter() {
           </div>
         </button>
 
-        <button
-          onClick={() => triggerAnimatedAction('ai', () => window.dispatchEvent(new Event('metis-toggle-panel')))}
-          className={`w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_5px_rgba(168,85,247,1)] border-[1px] border-white/50 flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 relative animate-pulse ${animatingBtn === 'ai' ? 'scale-125 border-purple-400' : ''}`}
-          style={{ backgroundColor: 'rgba(0,0,0,0)' }}
-          aria-label="Asistente METIS"
-        >
-          <div className={animatingBtn === 'ai' ? 'animate-icon-burst' : ''}>
-            <span className="font-thin text-[32px] text-transparent tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,1)]" style={{ WebkitTextStroke: '1px white' }}>AI</span>
-          </div>
-          <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-transparent animate-metis-ping" />
-        </button>
+        {showAiControls && (
+          <>
+            <button
+              onClick={() => triggerAnimatedAction('ai', () => window.dispatchEvent(new Event('metis-toggle-panel')))}
+              className={`w-16 h-16 rounded-full bg-transparent text-white shadow-[0_0_5px_rgba(168,85,247,1)] border-[1px] border-white/50 flex items-center justify-center transition-all hover:scale-105 flex-shrink-0 relative animate-pulse ${animatingBtn === 'ai' ? 'scale-125 border-purple-400' : ''}`}
+              style={{ backgroundColor: 'rgba(0,0,0,0)' }}
+              aria-label="Asistente METIS"
+            >
+              <div className={animatingBtn === 'ai' ? 'animate-icon-burst' : ''}>
+                <span className="font-thin text-[32px] text-transparent tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,1)]" style={{ WebkitTextStroke: '1px white' }}>AI</span>
+              </div>
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-green-400 rounded-full border-[2px] border-transparent animate-metis-ping" />
+            </button>
 
-        <MetisVoiceCall />
+            <MetisVoiceCall />
+          </>
+        )}
       </nav>
 
       {menuOpen && (
