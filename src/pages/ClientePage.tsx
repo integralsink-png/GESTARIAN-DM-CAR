@@ -940,16 +940,31 @@ export function ClientePage() {
                               </div>
 
                               {/* ───────────────────────────────────────────────────────────── */}
-                              {/* BOTÓN: ACEPTAR PRESUPUESTO (x0.7) & ESTADO DE CITA / NEGOCIACIÓN */}
+                              {/* BOTÓN: ACEPTAR PRESUPUESTO O PENDIENTE DE VALORACIÓN & ESTADO DE CITA */}
                               {/* ───────────────────────────────────────────────────────────── */}
                               <div className="pt-2 border-t border-slate-800/80 flex flex-col items-center justify-center gap-3">
-                                {/* Si el presupuesto NO ha sido aceptado aún */}
-                                {!presAceptado && (
+                                {/* CASO 1: Presupuesto Pendiente de Valoración por el Taller (total 0 o sin conceptos valorados) */}
+                                {!presAceptado && totalPresupuesto <= 0 && (
+                                  <div className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-amber-950/30 border-2 border-amber-500/50">
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-3 h-3 rounded-full bg-amber-400 animate-ping" />
+                                      <div>
+                                        <span className="font-mono font-black text-amber-400 text-sm block">PENDIENTE</span>
+                                        <span className="text-[11px] text-slate-300">Pendiente de asignación de precio y cita por el taller</span>
+                                      </div>
+                                    </div>
+                                    <span className="px-3 py-1 rounded-lg bg-amber-500/20 text-amber-300 font-mono font-black text-xs border border-amber-500/40">
+                                      EN REVISIÓN
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* CASO 2: Presupuesto Valorado y Listo para Aceptar por el Cliente */}
+                                {!presAceptado && totalPresupuesto > 0 && (
                                   <button
                                     onClick={() => handleAceptarPresupuestoClick(exp.presupuesto, expStr, exp.cita)}
-                                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs sm:text-sm shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-emerald-400 flex items-center justify-center gap-1.5 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-wider cursor-pointer"
-                                    style={{ transform: 'scale(0.95)' }}
-                                    title="Aceptar este presupuesto"
+                                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(16,185,129,0.5)] border-2 border-emerald-400 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] active:scale-95 uppercase tracking-wider cursor-pointer"
+                                    title="Aceptar este presupuesto valorado"
                                   >
                                     <CheckCircle2 className="w-4 h-4 text-emerald-200 shrink-0" />
                                     <span>ACEPTAR PRESUPUESTO</span>
@@ -1009,24 +1024,40 @@ export function ClientePage() {
                                           : 'bg-slate-900/90 border-amber-500/70 shadow-[0_0_20px_rgba(245,158,11,0.2)]'
                                       }`}
                                     >
-                                      {/* TÍTULO ARRIBA A LA IZQUIERDA GRANDE: CITA (x2 TAMAÑO) */}
+                                      {/* TÍTULO ARRIBA A LA IZQUIERDA: CITADO: CON BOTONES ACEPTAR - MODIFICAR */}
                                       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
                                         <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider">
-                                          CITA
+                                          CITADO:
                                         </h3>
 
-                                        {cita.estado !== 'confirmada' && (
+                                        <div className="flex items-center gap-2">
+                                          {cita.estado !== 'confirmada' && (
+                                            <button
+                                              onClick={() => handleAceptarPropuestaTaller(cita)}
+                                              className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow uppercase tracking-wider flex items-center gap-1 transition-all active:scale-95 cursor-pointer"
+                                              title="Aceptar esta cita"
+                                            >
+                                              <Check className="w-3.5 h-3.5" /> ACEPTAR
+                                            </button>
+                                          )}
+
                                           <button
-                                            onClick={() => handleAceptarPropuestaTaller(cita)}
-                                            className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-md uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer"
-                                            title="Aceptar esta fecha asignada por el taller"
+                                            onClick={() =>
+                                              setModalCita({
+                                                open: true,
+                                                presupuesto: exp.presupuesto,
+                                                expedienteStr: expStr,
+                                                citaExistente: cita
+                                              })
+                                            }
+                                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer"
                                           >
-                                            <Check className="w-3.5 h-3.5" /> Aceptar Fecha
+                                            MODIFICAR
                                           </button>
-                                        )}
+                                        </div>
                                       </div>
 
-                                      {/* SIGUIENTE LÍNEA: DD/MM/AA (TAMAÑO x2) Y HORA 00:00 (TAMAÑO x1.5) SIN 'Fecha:' NI 'h' */}
+                                      {/* SIGUIENTE LÍNEA: DD/MM/AA (TAMAÑO x2) Y HORA 00:00 A LA DERECHA */}
                                       <div className="flex items-baseline justify-between text-slate-200 py-1.5 w-full">
                                         <span className="text-white font-mono font-black text-3xl sm:text-4xl tracking-tight">
                                           {fechaShort}
@@ -1036,8 +1067,8 @@ export function ClientePage() {
                                         </span>
                                       </div>
 
-                                      {/* SIGUIENTE LÍNEA: ESTADO Y BOTÓN MODIFICAR CENTRADOS CON 2px DE AIRE AL BORDE */}
-                                      <div className="flex items-center justify-center gap-4 pt-2 border-t border-slate-800/60 w-full">
+                                      {/* SIGUIENTE LÍNEA: ESTADO CENTRADO CON 2px DE AIRE AL BORDE */}
+                                      <div className="flex items-center justify-center pt-2 border-t border-slate-800/60 w-full">
                                         <span
                                           className={`text-xs px-[2px] py-0.5 rounded-lg font-black uppercase tracking-wider whitespace-nowrap inline-block text-center ${
                                             cita.estado === 'confirmada'
@@ -1047,20 +1078,6 @@ export function ClientePage() {
                                         >
                                           {cita.estado || estadoLabel}
                                         </span>
-
-                                        <button
-                                          onClick={() =>
-                                            setModalCita({
-                                              open: true,
-                                              presupuesto: exp.presupuesto,
-                                              expedienteStr: expStr,
-                                              citaExistente: cita
-                                            })
-                                          }
-                                          className="px-[2px] py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer shrink-0"
-                                        >
-                                          MODIFICAR
-                                        </button>
                                       </div>
                                     </div>
                                   )
@@ -1409,6 +1426,14 @@ export function ClientePage() {
                   {Array.from({ length: daysInMonth }).map((_, i) => {
                     const dayNum = i + 1
                     const isSelected = selectedDay === dayNum
+                    const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), dayNum)
+                    
+                    // Fecha base mínima permitida (no anterior a la fecha original si se modifica, o a hoy si es nueva)
+                    const minDate = modalCita.citaExistente?.fecha ? new Date(modalCita.citaExistente.fecha) : new Date()
+                    minDate.setHours(0, 0, 0, 0)
+                    cellDate.setHours(0, 0, 0, 0)
+                    const isPast = cellDate < minDate
+
                     const isToday =
                       dayNum === new Date().getDate() &&
                       currentDate.getMonth() === new Date().getMonth() &&
@@ -1417,13 +1442,16 @@ export function ClientePage() {
                     return (
                       <button
                         key={dayNum}
-                        onClick={() => setSelectedDay(dayNum)}
-                        className={`h-8 rounded-xl text-sm font-bold flex items-center justify-center transition-all active:scale-90 ${
-                          isSelected
-                            ? 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white'
+                        disabled={isPast}
+                        onClick={() => !isPast && setSelectedDay(dayNum)}
+                        className={`h-8 rounded-xl text-sm font-bold flex items-center justify-center transition-all ${
+                          isPast
+                            ? 'opacity-20 cursor-not-allowed text-slate-600'
+                            : isSelected
+                            ? 'bg-cyan-500 text-slate-950 shadow-[0_0_12px_rgba(6,182,212,0.8)] scale-105 ring-2 ring-white active:scale-90 cursor-pointer'
                             : isToday
-                            ? 'text-cyan-300 font-black border border-cyan-500/40'
-                            : 'hover:bg-slate-800 text-slate-300'
+                            ? 'text-cyan-300 font-black border border-cyan-500/40 active:scale-90 cursor-pointer'
+                            : 'hover:bg-slate-800 text-slate-300 active:scale-90 cursor-pointer'
                         }`}
                       >
                         {dayNum}
