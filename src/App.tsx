@@ -38,6 +38,7 @@ import {
 import { LicenciasPage } from './pages/LicenciasPage'
 import { ClientePortalAuthPage } from './pages/ClientePortalAuthPage'
 import { GemeloDigitalPage } from './pages/GemeloDigitalPage'
+import { DeveloperAuthPage } from './pages/DeveloperAuthPage'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -412,9 +413,16 @@ export default function App() {
   const [necesitaRegistro, setNecesitaRegistro] = useState(false)
 
   useEffect(() => {
-    // Si estamos en la ruta del portal del cliente final o del Gemelo Digital, permitir acceso directo
+    // Si estamos en la ruta del portal del cliente final o del Gemelo Digital o Consola Dev, permitir acceso directo
     const path = window.location.pathname
-    if (path.startsWith('/cliente') || path.startsWith('/acceso-cliente') || path.startsWith('/gemelo-digital') || path.startsWith('/digital-twin')) {
+    if (
+      path.startsWith('/cliente') ||
+      path.startsWith('/acceso-cliente') ||
+      path.startsWith('/gemelo-digital') ||
+      path.startsWith('/digital-twin') ||
+      path.startsWith('/dev') ||
+      path.startsWith('/desarrollador')
+    ) {
       setProfileReady(true)
       setLicenciaValida(true)
       return
@@ -507,6 +515,8 @@ export default function App() {
             ) : (
               <BrowserRouter>
                 <Routes>
+                  <Route path="/dev" element={<DeveloperAuthPage />} />
+                  <Route path="/desarrollador" element={<DeveloperAuthPage />} />
                   <Route path="/gemelo-digital" element={<GemeloDigitalPage />} />
                   <Route path="/digital-twin" element={<GemeloDigitalPage />} />
                   <Route path="/cliente/acceso" element={<ClientePortalAuthPage />} />

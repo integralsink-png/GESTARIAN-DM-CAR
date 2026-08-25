@@ -8,6 +8,7 @@ import { processMetisMessage, MetisContext, MetisActionResult } from '../lib/met
 
 import { CronFiscalService } from '../lib/cronFiscalService'
 import { enviarTrimestreGestoriaAutomático } from '../services/gestoriaExportService'
+import { getPerfil } from '../services/authService'
 
 interface Message {
   id: string
@@ -312,18 +313,20 @@ export function MetisAssistant() {
             </div>
 
             <div className="flex items-center gap-1">
-              <button
-                onClick={() => {
-                  playSound('click')
-                  setOpen(false)
-                  navigate('/gemelo-digital')
-                }}
-                className="w-9 h-9 flex items-center justify-center rounded-lg text-cyan-400 hover:bg-cyan-500/20 transition-all"
-                title="Abrir Gemelo Digital 3D & Showroom"
-                aria-label="Gemelo Digital 3D"
-              >
-                <Sparkles className="w-4 h-4" />
-              </button>
+              {(getPerfil()?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true') && (
+                <button
+                  onClick={() => {
+                    playSound('click')
+                    setOpen(false)
+                    navigate('/gemelo-digital')
+                  }}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-cyan-400 hover:bg-cyan-500/20 transition-all"
+                  title="Abrir Gemelo Digital 3D & Showroom"
+                  aria-label="Gemelo Digital 3D"
+                >
+                  <Sparkles className="w-4 h-4" />
+                </button>
+              )}
 
               <button
                 onClick={toggleMic}
