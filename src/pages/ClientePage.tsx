@@ -1196,7 +1196,7 @@ export function ClientePage() {
                         value={formMarca}
                         onChange={(e) => setFormMarca(e.target.value)}
                         placeholder="Ej. Audi"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-white font-black focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xl sm:text-2xl text-white font-black focus:border-cyan-400 outline-none leading-normal"
                       />
                     </div>
                     <div>
@@ -1206,7 +1206,7 @@ export function ClientePage() {
                         value={formModelo}
                         onChange={(e) => setFormModelo(e.target.value)}
                         placeholder="Ej. A4 2.0 TDI"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-white font-black focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xl sm:text-2xl text-white font-black focus:border-cyan-400 outline-none leading-normal"
                       />
                     </div>
                     <div>
@@ -1216,7 +1216,7 @@ export function ClientePage() {
                         value={formMatricula}
                         onChange={(e) => setFormMatricula(e.target.value.toUpperCase())}
                         placeholder="1234 ABC"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-cyan-300 font-mono font-black uppercase focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-1.5 text-xl sm:text-2xl text-cyan-300 font-mono font-black uppercase focus:border-cyan-400 outline-none leading-normal"
                       />
                     </div>
                   </div>
