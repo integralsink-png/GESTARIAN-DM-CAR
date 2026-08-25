@@ -1329,9 +1329,9 @@ export function ClientePage() {
                 <button
                   type="submit"
                   disabled={enviandoSolicitud}
-                  className="py-2.5 px-4 rounded-xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
+                  className="py-2.5 px-6 rounded-xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
                 >
-                  <span>{enviandoSolicitud ? 'ENVIANDO...' : 'SOLICITAR PRESUPUESTO'}</span>
+                  <span>{enviandoSolicitud ? 'ENVIANDO...' : 'ENVIAR'}</span>
                 </button>
               </div>
             </form>
