@@ -1253,51 +1253,54 @@ export function ClientePage() {
                     className="hidden"
                   />
 
-                  {/* Galería de fotos añadidas y botones x0.5 */}
-                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
-                    {formFotos.map((foto, idx) => (
-                      <div
-                        key={idx}
-                        className="relative aspect-square rounded-xl overflow-hidden border border-cyan-500/40 bg-slate-900 group shadow-sm"
+                  {/* Galería de fotos añadidas */}
+                  {formFotos.length > 0 && (
+                    <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 mb-3">
+                      {formFotos.map((foto, idx) => (
+                        <div
+                          key={idx}
+                          className="relative aspect-square rounded-xl overflow-hidden border border-cyan-500/40 bg-slate-900 group shadow-sm"
+                        >
+                          <img src={foto.preview} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveFoto(idx)}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-90"
+                            title="Eliminar foto"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Botones CAPTURAR y ADJUNTAR CENTRADOS Y ANCHURA x1.5 */}
+                  {formFotos.length < 10 && (
+                    <div className="flex flex-wrap items-center justify-center gap-4 w-full pt-1">
+                      {/* 1. Botón CAPTURAR con Cámara */}
+                      <button
+                        type="button"
+                        onClick={() => cameraInputRef.current?.click()}
+                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-dashed border-cyan-400/90 hover:border-cyan-300 bg-cyan-950/50 hover:bg-cyan-900/70 text-cyan-300 flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)] text-center"
+                        title="Tomar foto con la cámara"
                       >
-                        <img src={foto.preview} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveFoto(idx)}
-                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-90"
-                          title="Eliminar foto"
-                        >
-                          <Trash2 className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+                        <Camera className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" />
+                        <span className="text-xs sm:text-sm font-black uppercase tracking-wider">CAPTURAR</span>
+                      </button>
 
-                    {formFotos.length < 10 && (
-                      <>
-                        {/* 1. Botón CAPTURAR con Cámara (x0.5 compacto, texto x2) */}
-                        <button
-                          type="button"
-                          onClick={() => cameraInputRef.current?.click()}
-                          className="aspect-square rounded-xl border-2 border-dashed border-cyan-400/80 hover:border-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 flex flex-col items-center justify-center gap-1 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
-                          title="Tomar foto con la cámara"
-                        >
-                          <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                          <span className="text-xs sm:text-sm font-black uppercase tracking-tight leading-none">CAPTURAR</span>
-                        </button>
-
-                        {/* 2. Botón ADJUNTAR desde Galería (x0.5 compacto, texto x2) */}
-                        <button
-                          type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="aspect-square rounded-xl border-2 border-dashed border-teal-400/80 hover:border-teal-300 bg-teal-950/40 hover:bg-teal-900/60 text-teal-300 flex flex-col items-center justify-center gap-1 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
-                          title="Adjuntar fotos desde la galería"
-                        >
-                          <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                          <span className="text-xs sm:text-sm font-black uppercase tracking-tight leading-none">ADJUNTAR</span>
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      {/* 2. Botón ADJUNTAR desde Galería */}
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-dashed border-teal-400/90 hover:border-teal-300 bg-teal-950/50 hover:bg-teal-900/70 text-teal-300 flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(20,184,166,0.2)] text-center"
+                        title="Adjuntar fotos desde la galería"
+                      >
+                        <Upload className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" />
+                        <span className="text-xs sm:text-sm font-black uppercase tracking-wider">ADJUNTAR</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Campo Extenso de Reparación Solicitada */}
