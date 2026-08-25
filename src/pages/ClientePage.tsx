@@ -1038,7 +1038,7 @@ export function ClientePage() {
                                               : 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
                                           }`}
                                         >
-                                          ● {cita.estado || estadoLabel}
+                                          {cita.estado || estadoLabel}
                                         </span>
 
                                         <button
