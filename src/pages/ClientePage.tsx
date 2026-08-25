@@ -27,7 +27,9 @@ import {
   Upload,
   Camera,
   Trash2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Sun,
+  Moon
 } from 'lucide-react'
 import { MatriculaBadge } from '../components/MatriculaBadge'
 import { PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
@@ -125,6 +127,7 @@ export function ClientePage() {
   const [formModelo, setFormModelo] = useState('')
   const [formMatricula, setFormMatricula] = useState('')
   const [formDescripcion, setFormDescripcion] = useState('')
+  const [formPreferenciaEntrega, setFormPreferenciaEntrega] = useState<'mañana' | 'tarde'>('mañana')
   const [formFotos, setFormFotos] = useState<{ file?: File; preview: string; uploadedUrl?: string }[]>([])
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -488,7 +491,7 @@ export function ClientePage() {
             }
           ],
           total: 0,
-          observaciones: `[SOLICITUD CLIENTE]\nVehículo: ${formMarca} ${formModelo} (${formMatricula})\nReparación requerida:\n${formDescripcion.trim()}`,
+          observaciones: `[SOLICITUD CLIENTE]\nVehículo: ${formMarca} ${formModelo} (${formMatricula})\nPreferencia de Entrega: ${formPreferenciaEntrega.toUpperCase()}\nReparación requerida:\n${formDescripcion.trim()}`,
           fotos: uploadedUrls
         })
         .select()
@@ -518,7 +521,7 @@ export function ClientePage() {
         marca: formMarca || vehiculo?.marca,
         modelo: formModelo || vehiculo?.modelo,
         matricula: formMatricula || vehiculo?.matricula,
-        descripcion: formDescripcion,
+        descripcion: `[Preferencia Entrega: ${formPreferenciaEntrega.toUpperCase()}] ${formDescripcion.trim()}`,
         totalFotos: uploadedUrls.length
       })
 
@@ -526,6 +529,7 @@ export function ClientePage() {
       showToast('SOLICITUD DE PRESUPUESTO ENVIADA CORRECTAMENTE', 'success')
       setModalSolicitudPresupuesto(false)
       setFormDescripcion('')
+      setFormPreferenciaEntrega('mañana')
       setFormFotos([])
       loadData()
     } catch (err: any) {
@@ -1333,6 +1337,45 @@ export function ClientePage() {
                     className="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-sm text-white focus:border-cyan-400 outline-none resize-none leading-relaxed shadow-inner"
                     required
                   />
+                </div>
+
+                {/* 4. PREFERENCIA DE ENTREGA (MAÑANA / TARDE) */}
+                <div>
+                  <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 mb-2.5 flex items-center justify-between">
+                    <span>4. PREFERENCIA DE ENTREGA</span>
+                    <span className="text-xs font-mono font-bold text-slate-400 uppercase">
+                      Seleccionado: <span className="text-cyan-300 font-black">{formPreferenciaEntrega.toUpperCase()}</span>
+                    </span>
+                  </h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Opción MAÑANA */}
+                    <button
+                      type="button"
+                      onClick={() => setFormPreferenciaEntrega('mañana')}
+                      className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none ${
+                        formPreferenciaEntrega === 'mañana'
+                          ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-[1.02]'
+                          : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      <Sun className={`w-5 h-5 ${formPreferenciaEntrega === 'mañana' ? 'text-amber-400 animate-spin-slow' : 'text-slate-400'}`} />
+                      <span className="font-black text-sm uppercase tracking-wider">MAÑANA</span>
+                    </button>
+
+                    {/* Opción TARDE */}
+                    <button
+                      type="button"
+                      onClick={() => setFormPreferenciaEntrega('tarde')}
+                      className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none ${
+                        formPreferenciaEntrega === 'tarde'
+                          ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)] scale-[1.02]'
+                          : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
+                      }`}
+                    >
+                      <Moon className={`w-5 h-5 ${formPreferenciaEntrega === 'tarde' ? 'text-indigo-400' : 'text-slate-400'}`} />
+                      <span className="font-black text-sm uppercase tracking-wider">TARDE</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 
