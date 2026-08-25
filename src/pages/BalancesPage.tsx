@@ -6,6 +6,7 @@ import { Scale, Send, FileText, TrendingUp, Receipt, ArrowRight, ArrowLeft, X, C
 import { useNavigate } from 'react-router-dom'
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, Cell } from 'recharts'
 import { exportToA3, exportToSAGE, exportToExcel, downloadFile } from '../lib/accountingExporters'
+import { enviarTrimestreGestoriaAutomático } from '../services/gestoriaExportService'
 import { MetisFiscalAdvisor } from '../components/MetisFiscalAdvisor'
 import { useTheme } from '../lib/theme'
 
@@ -176,11 +177,20 @@ export function BalancesPage() {
       return
     }
     setSending(true)
-    await new Promise((r) => setTimeout(r, 1500))
-    setSending(false)
-    setSent(true)
-    playSound('success')
-    setTimeout(() => setSent(false), 3000)
+    try {
+      const exito = await enviarTrimestreGestoriaAutomático()
+      if (exito) {
+        setSent(true)
+        playSound('success')
+        setTimeout(() => setSent(false), 3000)
+      } else {
+        alert('Error al enviar informe a la gestoría. Verifique la configuración.')
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setSending(false)
+    }
   }
 
   function handleAdvancedExport() {
