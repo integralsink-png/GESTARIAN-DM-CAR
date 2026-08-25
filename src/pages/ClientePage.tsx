@@ -25,6 +25,7 @@ import {
   CalendarClock,
   PlusCircle,
   Upload,
+  Camera,
   Trash2,
   FileSpreadsheet
 } from 'lucide-react'
@@ -127,6 +128,7 @@ export function ClientePage() {
   const [formFotos, setFormFotos] = useState<{ file?: File; preview: string; uploadedUrl?: string }[]>([])
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   // Estado del selector de fecha/hora dentro del modal de cita
   const [currentDate, setCurrentDate] = useState(() => new Date())
@@ -1181,40 +1183,40 @@ export function ClientePage() {
             {/* Formulario */}
             <form onSubmit={handleSubmitSolicitudPresupuesto} className="flex-1 flex flex-col overflow-hidden">
               <div className="p-5 sm:p-6 overflow-y-auto flex-1 bg-slate-950/70 space-y-5">
-                {/* Datos del Vehículo */}
+                {/* Datos del Vehículo (TAMAÑO x2 ACTUAL) */}
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 mb-3 flex items-center gap-2">
                     <span>1. Datos del Vehículo</span>
                   </h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">Marca</label>
+                      <label className="text-xs sm:text-sm font-bold uppercase text-slate-300 block mb-1">Marca</label>
                       <input
                         type="text"
                         value={formMarca}
                         onChange={(e) => setFormMarca(e.target.value)}
                         placeholder="Ej. Audi"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-semibold focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-white font-black focus:border-cyan-400 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">Modelo</label>
+                      <label className="text-xs sm:text-sm font-bold uppercase text-slate-300 block mb-1">Modelo</label>
                       <input
                         type="text"
                         value={formModelo}
                         onChange={(e) => setFormModelo(e.target.value)}
                         placeholder="Ej. A4 2.0 TDI"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-semibold focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-white font-black focus:border-cyan-400 outline-none"
                       />
                     </div>
                     <div>
-                      <label className="text-[11px] font-bold uppercase text-slate-400 block mb-1">Matrícula</label>
+                      <label className="text-xs sm:text-sm font-bold uppercase text-slate-300 block mb-1">Matrícula</label>
                       <input
                         type="text"
                         value={formMatricula}
                         onChange={(e) => setFormMatricula(e.target.value.toUpperCase())}
                         placeholder="1234 ABC"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-cyan-300 font-mono font-bold uppercase focus:border-cyan-400 outline-none"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-lg sm:text-xl text-cyan-300 font-mono font-black uppercase focus:border-cyan-400 outline-none"
                       />
                     </div>
                   </div>
@@ -1223,7 +1225,7 @@ export function ClientePage() {
                 {/* Subida de Imágenes (Máximo 10) */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
+                    <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
                       <span>2. Fotografías de la avería o daño</span>
                     </h4>
                     <span className="text-xs font-bold text-slate-400">
@@ -1231,6 +1233,7 @@ export function ClientePage() {
                     </span>
                   </div>
 
+                  {/* Input para Galería */}
                   <input
                     type="file"
                     ref={fileInputRef}
@@ -1240,40 +1243,66 @@ export function ClientePage() {
                     className="hidden"
                   />
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3">
+                  {/* Input para Cámara del Dispositivo */}
+                  <input
+                    type="file"
+                    ref={cameraInputRef}
+                    onChange={handleFileSelect}
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                  />
+
+                  {/* Galería de fotos añadidas y botones x0.5 */}
+                  <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
                     {formFotos.map((foto, idx) => (
                       <div
                         key={idx}
-                        className="relative aspect-square rounded-2xl overflow-hidden border-2 border-cyan-500/40 bg-slate-900 group shadow-md"
+                        className="relative aspect-square rounded-xl overflow-hidden border border-cyan-500/40 bg-slate-900 group shadow-sm"
                       >
                         <img src={foto.preview} alt={`Foto ${idx + 1}`} className="w-full h-full object-cover" />
                         <button
                           type="button"
                           onClick={() => handleRemoveFoto(idx)}
-                          className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-90"
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center shadow-lg transition-transform active:scale-90"
                           title="Eliminar foto"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-3 h-3" />
                         </button>
                       </div>
                     ))}
 
                     {formFotos.length < 10 && (
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="aspect-square rounded-2xl border-2 border-dashed border-cyan-500/50 hover:border-cyan-400 bg-slate-900/60 hover:bg-slate-900 text-cyan-400 flex flex-col items-center justify-center gap-1.5 transition-all group active:scale-95 cursor-pointer shadow-inner"
-                      >
-                        <Upload className="w-6 h-6 group-hover:scale-110 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-wider">Añadir Fotos</span>
-                      </button>
+                      <>
+                        {/* 1. Botón Tomar Foto con Cámara (x0.5) */}
+                        <button
+                          type="button"
+                          onClick={() => cameraInputRef.current?.click()}
+                          className="aspect-square rounded-xl border border-dashed border-cyan-400/70 hover:border-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 flex flex-col items-center justify-center gap-0.5 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
+                          title="Tomar foto con la cámara"
+                        >
+                          <Camera className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="text-[8px] font-black uppercase tracking-tight leading-none">Tomar Foto</span>
+                        </button>
+
+                        {/* 2. Botón Adjuntar Fotos desde Galería (x0.5) */}
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="aspect-square rounded-xl border border-dashed border-teal-400/70 hover:border-teal-300 bg-teal-950/40 hover:bg-teal-900/60 text-teal-300 flex flex-col items-center justify-center gap-0.5 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
+                          title="Adjuntar fotos desde la galería"
+                        >
+                          <Upload className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                          <span className="text-[8px] font-black uppercase tracking-tight leading-none">Adjuntar</span>
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
 
                 {/* Campo Extenso de Reparación Solicitada */}
                 <div>
-                  <h4 className="text-xs font-black uppercase tracking-wider text-cyan-400 mb-2">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 mb-2">
                     3. Descripción de la Reparación o Daño
                   </h4>
                   <textarea
@@ -1287,12 +1316,12 @@ export function ClientePage() {
                 </div>
               </div>
 
-              {/* Botones del Footer */}
-              <div className="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-4">
+              {/* Botones del Footer (SOLICITAR PRESUPUESTO x0.8 SIN DIBUJITO Y MISMO TEXTO) */}
+              <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setModalSolicitudPresupuesto(false)}
-                  className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1300,9 +1329,8 @@ export function ClientePage() {
                 <button
                   type="submit"
                   disabled={enviandoSolicitud}
-                  className="py-3.5 px-6 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
+                  className="py-2.5 px-4 rounded-xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
                 >
-                  {enviandoSolicitud ? <Loader2 className="w-4 h-4 animate-spin text-cyan-400" /> : <Send className="w-4 h-4 text-cyan-400 stroke-[2.5]" />}
                   <span>{enviandoSolicitud ? 'ENVIANDO...' : 'SOLICITAR PRESUPUESTO'}</span>
                 </button>
               </div>
