@@ -120,45 +120,55 @@ export async function testAiConnection(config: AiAssistantConfig | FallbackAiCon
       return { success: false, message: lastError || 'Error al conectar con Gemini.' };
     }
 
-    if (config.provider === 'openrouter') {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.api_key}`,
-          'HTTP-Referer': 'https://gestarian.app',
-          'X-Title': 'GESTARIAN Taller'
-        },
-        body: JSON.stringify({
-          model: config.model || 'deepseek/deepseek-chat:free',
-          messages: [{ role: 'user', content: 'Ping de conexión' }],
-          max_tokens: 10
-        })
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { success: false, message: errorData.error?.message || `Error HTTP ${response.status} en OpenRouter` };
-      }
-      return { success: true, message: 'Conexión con OpenRouter (Modelos Gratuitos) verificada correctamente.' };
-    }
+    if (config.provider === 'openai' || config.provider === 'deepseek' || config.provider === 'mistral' || config.provider === 'ollama') {
+      let endpoint = 'https://api.openai.com/v1/chat/completions';
+      if (config.provider === 'deepseek') endpoint = 'https://api.deepseek.com/v1/chat/completions';
+      if (config.provider === 'mistral') endpoint = 'https://api.mistral.ai/v1/chat/completions';
+      if (config.provider === 'ollama') endpoint = 'http://localhost:11434/v1/chat/completions';
 
-    if (config.provider === 'groq') {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json'
+      };
+      if (config.api_key && config.provider !== 'ollama') {
+        headers['Authorization'] = `Bearer ${config.api_key}`;
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.api_key}`
-        },
+        headers,
         body: JSON.stringify({
-          model: config.model || 'llama-3.3-70b-versatile',
+          model: config.model || (config.provider === 'deepseek' ? 'deepseek-chat' : config.provider === 'mistral' ? 'mistral-small-latest' : 'gpt-4o-mini'),
           messages: [{ role: 'user', content: 'Ping' }],
           max_tokens: 10
         })
       });
       if (!response.ok) {
-        return { success: false, message: `Error HTTP ${response.status} en Groq` };
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, message: errorData.error?.message || `Error HTTP ${response.status} en ${config.provider}` };
       }
-      return { success: true, message: 'Conexión con Groq verificada correctamente.' };
+      return { success: true, message: `Conexión con ${config.provider.toUpperCase()} (${config.model || 'estándar'}) verificada con éxito.` };
+    }
+
+    if (config.provider === 'anthropic') {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': config.api_key,
+          'anthropic-version': '2023-06-01',
+          'dangerously-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: config.model || 'claude-3-5-haiku-20241022',
+          messages: [{ role: 'user', content: 'Ping' }],
+          max_tokens: 10
+        })
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, message: errorData.error?.message || `Error HTTP ${response.status} en Anthropic` };
+      }
+      return { success: true, message: `Conexión con Anthropic Claude (${config.model || 'claude-3-5-haiku'}) verificada con éxito.` };
     }
 
     return { success: true, message: 'Conexión verificada.' };

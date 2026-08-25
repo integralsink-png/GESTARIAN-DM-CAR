@@ -13,6 +13,7 @@ import { getAiConfig, getFallbackConfig, testAiConnection } from '../services/ai
 import { getDocumentOcrConfig, testDocumentOcrConnection } from '../services/documentOcrService'
 import { getPlateRecognizerConfig, testPlateRecognizerConnection } from '../services/plateRecognizerService'
 import { can, hasRole, guardarPreferenciasUsuario, getPerfil } from '../services/authService'
+import { AI_CATALOG, runAiHealthCheck } from '../services/aiCatalogService'
 
 
 export function ConfiguracionPage() {
@@ -549,10 +550,30 @@ export function ConfiguracionPage() {
       {/* ================================================== */}
       {vistaModo === 'desarrollador' && (
       <div className="space-y-4">
-        <div className="flex items-center gap-2 pt-2">
-          <Sparkles className="w-6 h-6 text-cyan-400" />
-          <h2 className="text-xl font-black text-white uppercase tracking-tight">GESTIÓN DE IA Y SERVICIOS (EXCLUSIVO DESARROLLADOR)</h2>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-cyan-400" />
+            <h2 className="text-xl font-black text-white uppercase tracking-tight">GESTIÓN DE IA Y SERVICIOS (CATÁLOGO UNIVERSAL)</h2>
+          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await runAiHealthCheck()
+              setTestResult({
+                service: 'ESCANEO DE SALUD IA',
+                message: res.report.join(' | '),
+                success: res.status === 'ok'
+              })
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-md"
+          >
+            <RefreshCw className="w-4 h-4 text-cyan-400" />
+            <span>Escanear disponibilidad de modelos</span>
+          </button>
         </div>
+
+        {renderTestResult('ESCANEO DE SALUD IA')}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
@@ -623,34 +644,39 @@ export function ConfiguracionPage() {
             </div>
 
             <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor IA</label>
                   <select 
                     value={aiProvider} 
-                    onChange={(e) => setAiProvider(e.target.value as any)}
-                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                    onChange={(e) => {
+                      const p = e.target.value as any
+                      setAiProvider(p)
+                      const firstModel = AI_CATALOG[p]?.models[0]?.id || 'gemini-1.5-flash'
+                      setAiModel(firstModel)
+                    }}
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="gemini">Google Gemini (Recomendado)</option>
-                    <option value="groq">Groq Llama 3</option>
-                    <option value="openai">OpenAI GPT-4</option>
+                    {Object.values(AI_CATALOG).map(prov => (
+                      <option key={prov.id} value={prov.id}>
+                        {prov.logo} {prov.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo Activo</label>
                   <select 
                     value={aiModel} 
                     onChange={(e) => setAiModel(e.target.value)}
-                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="gemini-3.7-flash">Gemini 3.7 Flash ⭐ (Recomendado)</option>
-                    <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    {(AI_CATALOG[aiProvider]?.models || AI_CATALOG.gemini.models).map(m => (
+                      <option key={m.id} value={m.id}>
+                        {m.name} {m.badge ? `(${m.badge})` : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -717,31 +743,54 @@ export function ConfiguracionPage() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Proveedor OCR</label>
                   <select 
                     value={docOcrProvider} 
-                    onChange={(e) => setDocOcrProvider(e.target.value as any)}
-                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                    onChange={(e) => {
+                      const p = e.target.value as any
+                      setDocOcrProvider(p)
+                      if (p === 'gemini') setDocOcrModel('gemini-1.5-flash')
+                      else if (p === 'openai') setDocOcrModel('gpt-4o-mini')
+                      else if (p === 'anthropic') setDocOcrModel('claude-3-5-haiku-20241022')
+                      else if (p === 'tesseract') setDocOcrModel('tesseract-local')
+                    }}
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="gemini">Google Gemini Vision</option>
-                    <option value="tesseract">Tesseract Local</option>
+                    <option value="gemini">✨ Google Gemini Vision (Recomendado)</option>
+                    <option value="openai">🟢 OpenAI GPT-4o Vision</option>
+                    <option value="anthropic">🟣 Claude 3.5 Sonnet Vision</option>
+                    <option value="tesseract">📄 Tesseract Local (Sin API Key)</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo</label>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Modelo OCR</label>
                   <select 
                     value={docOcrModel} 
                     onChange={(e) => setDocOcrModel(e.target.value)}
-                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none"
+                    className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
                   >
-                    <option value="gemini-3.7-flash">Gemini 3.7 Flash ⭐ (Recomendado)</option>
-                    <option value="gemini-3.6-flash">Gemini 3.6 Flash</option>
-                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (Ultra Rápido)</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    <option value="gemini-1.5-flash-latest">Gemini 1.5 Flash (Latest)</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    {docOcrProvider === 'gemini' ? (
+                      AI_CATALOG.gemini.models.filter(m => m.isMultimodal).map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.badge ? `(${m.badge})` : ''}
+                        </option>
+                      ))
+                    ) : docOcrProvider === 'openai' ? (
+                      AI_CATALOG.openai.models.filter(m => m.isMultimodal).map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.badge ? `(${m.badge})` : ''}
+                        </option>
+                      ))
+                    ) : docOcrProvider === 'anthropic' ? (
+                      AI_CATALOG.anthropic.models.filter(m => m.isMultimodal).map(m => (
+                        <option key={m.id} value={m.id}>
+                          {m.name} {m.badge ? `(${m.badge})` : ''}
+                        </option>
+                      ))
+                    ) : (
+                      <option value="tesseract-local">Tesseract OCR Motor Nativo</option>
+                    )}
                   </select>
                 </div>
               </div>

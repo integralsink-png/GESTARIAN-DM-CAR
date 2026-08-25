@@ -97,6 +97,14 @@ function BackgroundImage() {
             status: 'connected'
           }))
         }
+        // Escaneo periódico de salud y disponibilidad de modelos IA en segundo plano
+        import('./services/aiCatalogService').then(({ runAiHealthCheck }) => {
+          runAiHealthCheck().then(res => {
+            if (res.status === 'degraded') {
+              console.warn('[GESTARIAN AI SCANNER] Modelos auto-recalibrados:', res.report)
+            }
+          })
+        }).catch(() => {})
       }
     })
   }, [])
