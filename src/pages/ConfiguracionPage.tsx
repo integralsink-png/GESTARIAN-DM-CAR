@@ -1356,11 +1356,27 @@ export function ConfiguracionPage() {
                 <button
                   type="button"
                   onClick={() => setShowHistoryModal(true)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/40 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-xs font-semibold border border-indigo-500/40 transition-colors cursor-pointer"
                 >
                   <History className="w-4 h-4" /> Historial de Envíos
                 </button>
               </div>
+
+              {/* AVISO IMPORTANTE PARA PLANES PRO / ENTERPRISE */}
+              {(config.pro_activo || config.plan_activo === 'PRO' || config.plan_activo === 'ENTERPRISE') && (
+                <div className="mb-4 p-3.5 rounded-2xl bg-amber-950/40 border-2 border-amber-500/60 flex items-start gap-3 text-amber-200 text-xs leading-relaxed shadow-lg">
+                  <span className="text-base shrink-0">⚠️</span>
+                  <div>
+                    <span className="font-black uppercase tracking-wider text-amber-300 block mb-0.5">
+                      Requerimiento Plan {config.plan_activo || 'PRO'} / Asesoría Fiscal:
+                    </span>
+                    <span>
+                      Para un correcto funcionamiento operativo, envío automatizado de cierres y comunicación de facturas, es <strong>imprescindible cumplimentar el Email de la gestoría</strong>.
+                    </span>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-slate-900/60 rounded-xl border border-slate-800">
                   <div>
@@ -1375,13 +1391,22 @@ export function ConfiguracionPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Email gestoría</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-bold text-slate-400">Email gestoría</label>
+                    {(config.pro_activo || config.plan_activo === 'PRO' || config.plan_activo === 'ENTERPRISE') && !config.email_gestoria && (
+                      <span className="text-[10px] text-amber-400 font-bold uppercase animate-pulse">Pendiente de rellenar</span>
+                    )}
+                  </div>
                   <input
                     type="email"
                     value={config.email_gestoria ?? ''}
                     onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
                     placeholder="gestoria@asesoria.es"
-                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                    className={`w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border text-sm font-semibold focus:outline-none transition-all ${
+                      (config.pro_activo || config.plan_activo === 'PRO' || config.plan_activo === 'ENTERPRISE') && !config.email_gestoria
+                        ? 'border-amber-500/80 shadow-[0_0_12px_rgba(245,158,11,0.2)] focus:border-amber-400'
+                        : 'border-slate-800 focus:border-cyan-500'
+                    }`}
                   />
                 </div>
 

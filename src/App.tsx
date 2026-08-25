@@ -405,9 +405,26 @@ export default function App() {
   const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
   const [profileReady, setProfileReady] = useState(false)
   const [licenciaValida, setLicenciaValida] = useState(false)
+  const [necesitaRegistro, setNecesitaRegistro] = useState(false)
 
   useEffect(() => {
-    const testEmail = localStorage.getItem('gestarian_test_user') || 'iclomsinks@gmail.com'
+    // Si estamos en la ruta del portal del cliente final con token, permitir acceso directo
+    if (window.location.pathname.startsWith('/cliente/')) {
+      setProfileReady(true)
+      setLicenciaValida(true)
+      return
+    }
+
+    const testEmail = localStorage.getItem('gestarian_test_user')
+    
+    // Si la app se acaba de descargar / instalar por primera vez y no hay usuario registrado
+    if (!testEmail) {
+      setNecesitaRegistro(true)
+      setProfileReady(true)
+      setLicenciaValida(true)
+      return
+    }
+
     cargarPerfil(testEmail)
       .then(() => {
         const perfil = getPerfil()
@@ -466,8 +483,16 @@ export default function App() {
               <IntroAnimation showIntro={showIntro} introState={introState} />
             ) : !profileReady ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <p>Cargando perfil...</p>
+                <p className="text-cyan-400 font-bold">Iniciando GESTARIAN...</p>
               </div>
+            ) : necesitaRegistro ? (
+              <BrowserRouter>
+                <div className="min-h-screen bg-[#05070e] text-white">
+                  <Routes>
+                    <Route path="*" element={<RegistroUsuarioTallerPage />} />
+                  </Routes>
+                </div>
+              </BrowserRouter>
             ) : !licenciaValida ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '20px', textAlign: 'center', color: '#fff' }}>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Licencia no válida</h1>
