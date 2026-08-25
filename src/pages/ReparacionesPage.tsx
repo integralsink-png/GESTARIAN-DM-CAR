@@ -1,36 +1,58 @@
 import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import type { Reparacion, Cliente, Vehiculo } from '../lib/types'
-import { Wrench, ImageIcon, Trash2, ArrowLeft } from 'lucide-react'
+import type { Reparacion, Cliente, Vehiculo, Usuario } from '../lib/types'
+import { Wrench, ImageIcon, Trash2, ArrowLeft, UserCheck, Send, Sparkles, X, Check, Users, FileText, CheckCircle2 } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
 import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
 import { fetchExpedienteFotos } from '../lib/expedienteService'
 import { ExpedienteFolderIcon, PresupuestoIcon } from '../components/CustomIcons'
+import { usuarioService } from '../services/usuarioService'
+import { useToast } from '../lib/ToastContext'
+import { playSuccessChime } from '../lib/sound'
 
 export function ReparacionesPage() {
   const location = useLocation()
   const navigate = useNavigate()
   const navState = location.state as { citaId?: string; clienteId?: string; vehiculoId?: string; reparacionId?: string } | null
 
+  const { showToast } = useToast()
+
   const [reparaciones, setReparaciones] = useState<Reparacion[]>([])
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [vehiculos, setVehiculos] = useState<Record<string, Vehiculo>>({})
   const [citas, setCitas] = useState<any[]>([])
   const [presupuestos, setPresupuestos] = useState<any[]>([])
+  const [operarios, setOperarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [viewerMatricula, setViewerMatricula] = useState<string | null>(null)
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
   const [showExpedienteViewer, setShowExpedienteViewer] = useState(false)
   const [expedienteViewerTitle, setExpedienteViewerTitle] = useState("Fotos del Expediente")
 
+  // Modal de Orden de Trabajo para Operario
+  const [modalOrdenRep, setModalOrdenRep] = useState<Reparacion | null>(null)
+  const [conceptoOrden, setConceptoOrden] = useState('')
+  const [operariosOrden, setOperariosOrden] = useState<string[]>([])
+  const [enviandoOrden, setEnviandoOrden] = useState(false)
+
   useEffect(() => {
     loadReparaciones()
     loadClientes()
     loadVehiculos()
     loadCitasYPresupuestos()
+    loadOperarios()
   }, [])
+
+  async function loadOperarios() {
+    try {
+      const users = await usuarioService.obtenerUsuarios()
+      setOperarios(users.filter(u => u.activo))
+    } catch (e) {
+      console.warn('Aviso cargando operarios:', e)
+    }
+  }
 
   async function loadCitasYPresupuestos() {
     const { data: cData } = await supabase.from('citas').select('*')
@@ -90,6 +112,128 @@ export function ReparacionesPage() {
       return 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
     }
     return 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'
+  }
+
+  // Abrir modal de orden de trabajo
+  const abrirModalOrden = (rep: Reparacion, p: any, v: any) => {
+    setModalOrdenRep(rep)
+    
+    // Concepto por defecto extraído del presupuesto o descripción actual
+    const conceptosTxt = p?.conceptos && Array.isArray(p.conceptos)
+      ? p.conceptos.map((c: any) => `• ${c.descripcion || ''}`).join('\n')
+      : ''
+    
+    setConceptoOrden(rep.descripcion || conceptosTxt || '')
+    
+    // Operarios previamente asignados
+    const prevAsig = rep.operarios_asignados || []
+    if (prevAsig.length === 0 && rep.vehiculo_id) {
+      try {
+        const localAsig = localStorage.getItem(`gestarian_asig_exp_${rep.vehiculo_id}`)
+        if (localAsig) {
+          setOperariosOrden(JSON.parse(localAsig))
+          return
+        }
+      } catch (e) {}
+    }
+    setOperariosOrden(prevAsig)
+  }
+
+  // Enviar orden de trabajo al operario autorizado
+  const enviarOrdenDeTrabajo = async () => {
+    if (!modalOrdenRep) return
+    if (operariosOrden.length === 0) {
+      showToast('Selecciona al menos un operario para adjudicar la orden', 'warning')
+      return
+    }
+
+    setEnviandoOrden(true)
+    try {
+      const rep = modalOrdenRep
+      const v = rep.vehiculo_id ? vehiculos[rep.vehiculo_id] : null
+      const cli = clientes.find(c => c.id === rep.cliente_id)
+      const cita = citas.find(c => c.id === rep.cita_id)
+      const p = cita ? presupuestos.find(pr => pr.id === cita.presupuesto_id) : null
+      const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
+
+      const nombres = operarios
+        .filter(op => operariosOrden.includes(op.id))
+        .map(op => op.nombre)
+
+      // 1. Guardar en la reparación de Supabase
+      try {
+        await supabase.from('reparaciones').update({
+          descripcion: conceptoOrden,
+          operarios_asignados: operariosOrden,
+          operarios_nombres: nombres
+        }).eq('id', rep.id)
+      } catch (e) {}
+
+      // 2. Guardar en el presupuesto si existe
+      if (p?.id) {
+        try {
+          await supabase.from('presupuestos').update({
+            operarios_asignados: operariosOrden,
+            operarios_nombres: nombres
+          }).eq('id', p.id)
+        } catch (e) {}
+      }
+
+      // 3. Crear o actualizar la Orden de Trabajo persistente para cada operario
+      const ordenTrabajoPayload = {
+        id: `ot-${rep.id}-${Date.now()}`,
+        reparacion_id: rep.id,
+        expediente_id: expNum,
+        presupuesto_id: p?.id || null,
+        vehiculo_id: rep.vehiculo_id,
+        matricula: v?.matricula || 'S/M',
+        marca: v?.marca || '',
+        modelo: v?.modelo || '',
+        cliente_nombre: cli?.nombre || 'Cliente',
+        cliente_telefono: cli?.telefono || '',
+        concepto: conceptoOrden,
+        operarios_ids: operariosOrden,
+        operarios_nombres: nombres,
+        estado: 'en_proceso',
+        fecha_emision: new Date().toISOString()
+      }
+
+      // Persistir ordenes en localStorage para entrega inmediata a los portales de operarios
+      try {
+        const prevOTs = localStorage.getItem('gestarian_ordenes_trabajo_empleados')
+        const otList: any[] = prevOTs ? JSON.parse(prevOTs) : []
+        const existIdx = otList.findIndex(o => o.reparacion_id === rep.id)
+        if (existIdx >= 0) {
+          otList[existIdx] = { ...otList[existIdx], ...ordenTrabajoPayload }
+        } else {
+          otList.unshift(ordenTrabajoPayload)
+        }
+        localStorage.setItem('gestarian_ordenes_trabajo_empleados', JSON.stringify(otList))
+
+        // Almacenar también por vehículo para el expediente
+        if (rep.vehiculo_id) {
+          localStorage.setItem(`gestarian_asig_exp_${rep.vehiculo_id}`, JSON.stringify(operariosOrden))
+          localStorage.setItem(`gestarian_asig_nombres_${rep.vehiculo_id}`, JSON.stringify(nombres))
+        }
+      } catch (e) {}
+
+      // Actualizar estado local de reparaciones
+      setReparaciones(prev => prev.map(r => r.id === rep.id ? {
+        ...r,
+        descripcion: conceptoOrden,
+        operarios_asignados: operariosOrden,
+        operarios_nombres: nombres
+      } : r))
+
+      setModalOrdenRep(null)
+      playSuccessChime()
+      showToast(`¡Orden de trabajo enviada con éxito a ${nombres.join(', ')}!`, 'success')
+    } catch (err: any) {
+      console.error('Error enviando orden:', err)
+      showToast('Error al enviar orden de trabajo', 'error')
+    } finally {
+      setEnviandoOrden(false)
+    }
   }
 
   return (
@@ -235,7 +379,17 @@ export function ReparacionesPage() {
                       <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
                     </button>
 
-                    {/* 3. Icono flotante Imágenes (abre el visor único con fotos de la reparación) */}
+                    {/* 3. Icono flotante Orden de Trabajo / Operario (abre modal para rellenar concepto y asignar operarios) */}
+                    <button
+                      onClick={() => abrirModalOrden(rep, p, v)}
+                      className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
+                      title="Asignar Operario y Orden de Trabajo"
+                      aria-label="Asignar Operario"
+                    >
+                      <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
+                    </button>
+
+                    {/* 4. Icono flotante Imágenes (abre el visor único con fotos de la reparación) */}
                     <button
                       onClick={async () => {
                         const fotos = await fetchExpedienteFotos(rep.cliente_id, rep.vehiculo_id, rep.fotos || [], {
@@ -259,6 +413,154 @@ export function ReparacionesPage() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* ── MODAL DE ORDEN DE TRABAJO Y ASIGNACIÓN DE OPERARIO ── */}
+      {modalOrdenRep && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-slate-900 border-2 border-indigo-500 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(99,102,241,0.35)] space-y-5 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-indigo-500/20 pb-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                    Generar y Enviar Orden de Trabajo
+                  </h3>
+                  <p className="text-xs text-indigo-300">
+                    Pasa el parte de reparación al personal autorizado del taller
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalOrdenRep(null)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+              {/* Resumen del Expediente y Vehículo */}
+              {(() => {
+                const v = modalOrdenRep.vehiculo_id ? vehiculos[modalOrdenRep.vehiculo_id] : null
+                const cli = clientes.find(c => c.id === modalOrdenRep.cliente_id)
+                const cita = citas.find(c => c.id === modalOrdenRep.cita_id)
+                const p = cita ? presupuestos.find(pr => pr.id === cita.presupuesto_id) : null
+                const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
+
+                return (
+                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400">Expediente Nº:</span>
+                      <span className="font-mono text-cyan-400 font-black text-sm">{expNum}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400">Cliente:</span>
+                      <span className="text-white font-bold text-xs">{cli?.nombre || '—'}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-400">Vehículo:</span>
+                      <span className="text-white font-bold text-xs">
+                        {v ? `${v.marca || ''} ${v.modelo || ''} (${v.matricula})` : '—'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })()}
+
+              {/* Campo: Concepto de la Reparación / Instrucciones de Trabajo */}
+              <div>
+                <label className="block text-xs font-black text-indigo-300 uppercase tracking-wider mb-1.5">
+                  Concepto e Instrucciones de Trabajo *
+                </label>
+                <textarea
+                  value={conceptoOrden}
+                  onChange={(e) => setConceptoOrden(e.target.value)}
+                  rows={4}
+                  placeholder="Escribe el concepto, tareas a ejecutar, piezas a sustituir o instrucciones técnicas para el operario..."
+                  className="w-full bg-slate-950 border border-indigo-500/40 rounded-2xl p-3.5 text-xs sm:text-sm text-white placeholder-slate-500 focus:border-indigo-400 focus:outline-none leading-relaxed"
+                />
+              </div>
+
+              {/* Selector: Asignar Operario(s) */}
+              <div>
+                <label className="block text-xs font-black text-indigo-300 uppercase tracking-wider mb-2">
+                  Adjudicar a Personal Autorizado (Mecánicos / Operarios) *
+                </label>
+                {operarios.length === 0 ? (
+                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-center text-xs text-slate-400">
+                    No hay operarios registrados en el sistema. Puedes crearlos en <strong>Personal Autorizado</strong>.
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                    {operarios.map((op) => {
+                      const isChecked = operariosOrden.includes(op.id)
+                      return (
+                        <div
+                          key={op.id}
+                          onClick={() => {
+                            if (isChecked) {
+                              setOperariosOrden(prev => prev.filter(id => id !== op.id))
+                            } else {
+                              setOperariosOrden(prev => [...prev, op.id])
+                            }
+                          }}
+                          className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between ${
+                            isChecked
+                              ? 'bg-indigo-600/30 border-indigo-400 text-white shadow-sm'
+                              : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all ${
+                              isChecked ? 'bg-indigo-500 border-indigo-400 text-white' : 'border-slate-700 bg-slate-900'
+                            }`}>
+                              {isChecked && <Check className="w-3.5 h-3.5" />}
+                            </div>
+                            <div>
+                              <p className="text-xs font-bold text-white">{op.nombre}</p>
+                              <p className="text-[10px] text-slate-400">
+                                {op.roles?.nombre || op.rol || 'Operario'} {op.especialidades?.nombre ? `• ${op.especialidades.nombre}` : ''}
+                              </p>
+                            </div>
+                          </div>
+
+                          {isChecked && (
+                            <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">
+                              Asignado
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Botones de acción del modal */}
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setModalOrdenRep(null)}
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={enviandoOrden || operariosOrden.length === 0}
+                onClick={enviarOrdenDeTrabajo}
+                className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-[0_0_20px_rgba(99,102,241,0.4)] transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
+              >
+                <Send className="w-4 h-4" />
+                <span>{enviandoOrden ? 'Enviando Orden...' : 'Enviar Orden de Trabajo'}</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
