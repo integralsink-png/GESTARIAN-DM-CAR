@@ -1020,19 +1020,19 @@ export function ClientePage() {
                                       </div>
 
                                       {/* SIGUIENTE LÍNEA: DD/MM/AA (TAMAÑO x2) Y HORA 00:00 (TAMAÑO x1.5) SIN 'Fecha:' NI 'h' */}
-                                      <div className="flex items-baseline gap-4 text-slate-200 py-1">
-                                        <span className="text-white font-mono font-black text-xl sm:text-2xl tracking-wide">
+                                      <div className="flex items-baseline gap-4 text-slate-200 py-1.5">
+                                        <span className="text-white font-mono font-black text-3xl sm:text-4xl tracking-tight">
                                           {fechaShort}
                                         </span>
-                                        <span className="text-cyan-400 font-mono font-black text-lg sm:text-xl">
+                                        <span className="text-cyan-400 font-mono font-black text-2xl sm:text-3xl">
                                           {horaStr}
                                         </span>
                                       </div>
 
-                                      {/* SIGUIENTE LÍNEA: SOLO ESTADO ("pendiente", "asignada", "confirmada") Y BOTÓN MODIFICAR */}
-                                      <div className="flex items-center justify-between gap-3 pt-1 border-t border-slate-800/60">
+                                      {/* SIGUIENTE LÍNEA: ESTADO Y BOTÓN MODIFICAR CENTRADOS CON 2px DE AIRE AL BORDE */}
+                                      <div className="flex items-center justify-center gap-4 pt-2 border-t border-slate-800/60 w-full">
                                         <span
-                                          className={`text-xs px-3.5 py-1 rounded-full font-black uppercase tracking-wider whitespace-nowrap ${
+                                          className={`text-xs px-[2px] py-0.5 rounded-lg font-black uppercase tracking-wider whitespace-nowrap inline-block text-center ${
                                             cita.estado === 'confirmada'
                                               ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/50'
                                               : 'bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse'
@@ -1050,7 +1050,7 @@ export function ClientePage() {
                                               citaExistente: cita
                                             })
                                           }
-                                          className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer shrink-0"
+                                          className="px-[2px] py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 hover:text-cyan-200 font-black text-xs border border-cyan-500/40 uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer shrink-0"
                                         >
                                           MODIFICAR
                                         </button>
