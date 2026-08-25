@@ -196,12 +196,12 @@ export function RegistroUsuarioTallerPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* 1. SELECCIÓN DE PLAN (TODOS GRATUITOS EN PROMOCIÓN) */}
         <Card className="p-5 sm:p-6 bg-slate-900/90 border border-slate-800 rounded-2xl space-y-4">
-          <h3 className="text-xs font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2 border-b border-slate-800 pb-3">
-            <Sparkles className="w-4 h-4" />
+          <h3 className="text-sm sm:text-base font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2 border-b border-slate-800 pb-3">
+            <Sparkles className="w-5 h-5" />
             <span>1. Elige tu Plan de Uso (Promoción Gratuita Activa)</span>
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { id: 'FREE', title: 'GESTARIAN FREE', desc: 'Hasta 3 empleados autorizados', badge: '0.00 € / mes' },
               { id: 'PRO', title: 'GESTARIAN PRO', desc: 'Empleados ilimitados + OCR + IA', badge: '0.00 € (En Promoción)' },
@@ -212,17 +212,17 @@ export function RegistroUsuarioTallerPage() {
                 <div
                   key={p.id}
                   onClick={() => setForm({ ...form, plan_solicitado: p.id as any })}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
+                  className={`p-5 rounded-2xl border-2 transition-all cursor-pointer select-none flex flex-col justify-between ${
                     isSelected
-                      ? 'bg-cyan-950/40 border-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)] ring-1 ring-cyan-400'
+                      ? 'bg-cyan-950/40 border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.35)] ring-1 ring-cyan-400'
                       : 'bg-slate-950/70 border-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div>
-                    <span className="text-xs font-black uppercase text-white block">{p.title}</span>
-                    <span className="text-[11px] text-slate-400 mt-1 block">{p.desc}</span>
+                    <span className="text-lg sm:text-xl font-black uppercase text-white block tracking-tight">{p.title}</span>
+                    <span className="text-sm sm:text-base text-slate-300 mt-2 block leading-snug">{p.desc}</span>
                   </div>
-                  <span className="mt-3 text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 w-fit">
+                  <span className="mt-4 text-xs sm:text-sm font-black uppercase px-3 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 w-fit tracking-wide shadow-sm">
                     {p.badge}
                   </span>
                 </div>
