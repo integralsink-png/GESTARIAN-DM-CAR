@@ -74,9 +74,10 @@ export function RegistroUsuarioTallerPage() {
     try {
       // 1. Registrar / Actualizar en gestarian_licencias
       const fechaPrueba = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      const cleanEmail = form.email.trim().toLowerCase()
       
-      const { error: licErr } = await supabase.from('gestarian_licencias').upsert({
-        email: form.email.trim().toLowerCase(),
+      const licPayload = {
+        email: cleanEmail,
         nombre_profesional: form.nombre_profesional.trim(),
         nombre_titular: form.nombre_titular.trim(),
         cif: form.cif.trim().toUpperCase(),
@@ -84,25 +85,28 @@ export function RegistroUsuarioTallerPage() {
         telefono: form.telefono.trim(),
         tipo_empresa: form.tipo_empresa,
         plan_solicitado: form.plan_solicitado,
-        estado_licencia: 'activo', // Autorización automática en fase promocional gratuita
+        estado_licencia: 'activo',
         suscripcion_activa: true,
         estado_pago: 'gratuito',
         fecha_fin_prueba: fechaPrueba
-      }, { onConflict: 'email' })
+      }
 
+      // Intentar upsert o insert
+      const { error: licErr } = await supabase.from('gestarian_licencias').upsert(licPayload, { onConflict: 'email' })
       if (licErr) {
-        console.warn('Aviso guardando en gestarian_licencias:', licErr.message)
+        console.warn('Reintentando insert en gestarian_licencias:', licErr.message)
+        await supabase.from('gestarian_licencias').insert(licPayload).catch(() => {})
       }
 
       // 2. Guardar también en usuarios como JEFE_TALLER
       await supabase.from('usuarios').upsert({
-        email: form.email.trim().toLowerCase(),
+        email: cleanEmail,
         nombre: form.nombre_titular.trim() || form.nombre_profesional.trim(),
         telefono: form.telefono.trim(),
         rol: 'JEFE_TALLER',
         es_pro: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE',
         activo: true
-      }, { onConflict: 'email' })
+      }, { onConflict: 'email' }).catch(() => {})
 
       // 3. Sincronizar datos fiscales de la empresa en configuracion (id=1)
       await supabase.from('configuracion').upsert({
@@ -111,11 +115,11 @@ export function RegistroUsuarioTallerPage() {
         cif: form.cif.trim().toUpperCase(),
         direccion: `${form.direccion_fiscal}, CP ${form.codigo_postal}, ${form.poblacion}`,
         telefono: form.telefono.trim(),
-        email: form.email.trim().toLowerCase(),
+        email: cleanEmail,
         tipo_empresa: form.tipo_empresa,
         plan_activo: form.plan_solicitado,
         pro_activo: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE'
-      })
+      }).catch(() => {})
 
       // Guardar sesión de prueba activa para este usuario
       localStorage.setItem('gestarian_test_user', form.email.trim().toLowerCase())
