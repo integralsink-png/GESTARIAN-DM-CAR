@@ -709,14 +709,27 @@ export function ClientePage() {
         </div>
       </header>
 
-      {/* BOTÓN: SOLICITAR NUEVO PRESUPUESTO (DEBAJO DEL LOGO Y MARCA DEL TALLER, DESPLAZADO 10PX MÁS ABAJO) */}
-      <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 mt-2.5 mb-5 flex justify-center">
+      {/* BOTÓN: SOLICITAR PRESUPUESTO (APARIENCIA IDÉNTICA AL BOTÓN DE REGISTRO) */}
+      <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 mt-4 mb-7 flex justify-center">
         <button
           onClick={() => setModalSolicitudPresupuesto(true)}
-          className="px-6 py-2 rounded-xl bg-gradient-to-r from-cyan-600 via-teal-600 to-emerald-600 hover:from-cyan-500 hover:via-teal-500 hover:to-emerald-500 text-white font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(6,182,212,0.4)] border border-cyan-400 flex items-center justify-center transition-all hover:scale-105 active:scale-95 uppercase tracking-wider whitespace-nowrap cursor-pointer select-none"
-          title="Solicitar nuevo presupuesto"
+          className="w-[85%] max-w-lg py-4 px-3 sm:px-5 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer select-none"
+          title="Solicitar Presupuesto"
         >
-          <span className="text-white font-black whitespace-nowrap">SOLICITAR NUEVO PRESUPUESTO</span>
+          <div className="w-full mx-auto flex flex-col items-center justify-center leading-tight">
+            <span 
+              className="w-full block text-center font-black tracking-wide whitespace-nowrap overflow-hidden text-ellipsis text-white"
+              style={{ fontSize: 'clamp(0.98rem, 4.3vw, 1.45rem)' }}
+            >
+              SOLICITAR PRESUPUESTO
+            </span>
+            <span 
+              className="w-full block text-center font-black text-cyan-300 tracking-wider mt-1 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"
+              style={{ fontSize: 'clamp(1.35rem, 5.8vw, 2.05rem)', lineHeight: '1.1' }}
+            >
+              (GRATUITO)
+            </span>
+          </div>
         </button>
       </div>
 
