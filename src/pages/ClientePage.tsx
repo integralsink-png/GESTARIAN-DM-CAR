@@ -709,27 +709,19 @@ export function ClientePage() {
         </div>
       </header>
 
-      {/* BOTÓN: SOLICITAR PRESUPUESTO (APARIENCIA IDÉNTICA AL BOTÓN DE REGISTRO) */}
+      {/* BOTÓN: SOLICITAR PRESUPUESTO */}
       <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 mt-4 mb-7 flex justify-center">
         <button
           onClick={() => setModalSolicitudPresupuesto(true)}
           className="w-[85%] max-w-lg py-4 px-3 sm:px-5 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer select-none"
           title="Solicitar Presupuesto"
         >
-          <div className="w-full mx-auto flex flex-col items-center justify-center leading-tight">
-            <span 
-              className="w-full block text-center font-black tracking-wide whitespace-nowrap overflow-hidden text-ellipsis text-white"
-              style={{ fontSize: 'clamp(0.98rem, 4.3vw, 1.45rem)' }}
-            >
-              SOLICITAR PRESUPUESTO
-            </span>
-            <span 
-              className="w-full block text-center font-black text-cyan-300 tracking-wider mt-1 drop-shadow-[0_0_8px_rgba(6,182,212,0.5)]"
-              style={{ fontSize: 'clamp(1.35rem, 5.8vw, 2.05rem)', lineHeight: '1.1' }}
-            >
-              (GRATUITO)
-            </span>
-          </div>
+          <span 
+            className="w-full block text-center font-black tracking-wide whitespace-nowrap overflow-hidden text-ellipsis text-white"
+            style={{ fontSize: 'clamp(0.98rem, 4.3vw, 1.45rem)' }}
+          >
+            SOLICITAR PRESUPUESTO
+          </span>
         </button>
       </div>
 
@@ -1296,11 +1288,11 @@ export function ClientePage() {
               </div>
 
               {/* Botones del Footer */}
-              <div className="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-3">
+              <div className="p-4 sm:p-5 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-4">
                 <button
                   type="button"
                   onClick={() => setModalSolicitudPresupuesto(false)}
-                  className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider transition-colors"
+                  className="px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -1308,10 +1300,10 @@ export function ClientePage() {
                 <button
                   type="submit"
                   disabled={enviandoSolicitud}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 hover:from-cyan-400 hover:via-teal-400 hover:to-emerald-400 text-slate-950 font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(6,182,212,0.5)] border-2 border-white/60 uppercase tracking-wider flex items-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                  className="py-3.5 px-6 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
                 >
-                  {enviandoSolicitud ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <Send className="w-4 h-4 text-slate-950 stroke-[2.5]" />}
-                  <span>{enviandoSolicitud ? 'Enviando...' : 'Solicitar Presupuesto'}</span>
+                  {enviandoSolicitud ? <Loader2 className="w-4 h-4 animate-spin text-cyan-400" /> : <Send className="w-4 h-4 text-cyan-400 stroke-[2.5]" />}
+                  <span>{enviandoSolicitud ? 'ENVIANDO...' : 'SOLICITAR PRESUPUESTO'}</span>
                 </button>
               </div>
             </form>
