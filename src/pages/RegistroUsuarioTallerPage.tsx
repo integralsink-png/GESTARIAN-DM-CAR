@@ -407,14 +407,24 @@ export function RegistroUsuarioTallerPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-[85%] py-4 px-2 sm:px-4 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_1px_rgba(6,182,212,0.9)] hover:shadow-[0_0_2px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
+            className="w-[85%] py-3.5 px-3 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_1px_rgba(6,182,212,0.9)] hover:shadow-[0_0_2px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
           >
-            <span 
-              className="w-[90%] block text-center whitespace-nowrap overflow-hidden text-ellipsis font-black tracking-wide"
-              style={{ fontSize: 'clamp(0.7rem, 3.2vw, 1.12rem)' }}
-            >
-              {loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO (GRATUITO)'}
-            </span>
+            <div className="w-[90%] mx-auto flex flex-col items-center justify-center leading-tight">
+              <span 
+                className="block text-center font-black tracking-wide"
+                style={{ fontSize: 'clamp(0.78rem, 3.4vw, 1.15rem)' }}
+              >
+                {loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO'}
+              </span>
+              {!loading && (
+                <span 
+                  className="block text-center font-black text-cyan-300 tracking-wider mt-0.5"
+                  style={{ fontSize: 'clamp(0.72rem, 3vw, 0.98rem)' }}
+                >
+                  (GRATUITO)
+                </span>
+              )}
+            </div>
           </button>
         </div>
       </form>
