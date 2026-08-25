@@ -1226,7 +1226,7 @@ export function ClientePage() {
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-                      <span>2. Fotografías de la avería o daño</span>
+                      <span>2. AÑADE TUS IMÁGENES</span>
                     </h4>
                     <span className="text-xs font-bold text-slate-400">
                       {formFotos.length} / 10 imágenes
@@ -1275,17 +1275,17 @@ export function ClientePage() {
                     </div>
                   )}
 
-                  {/* Botones CAPTURAR y ADJUNTAR CENTRADOS Y ANCHURA x1.5 */}
+                  {/* Botones CAPTURAR y ADJUNTAR CENTRADOS, ANCHURA x1.5 Y LÍNEA CONTINUA GRIS CLARO 2PX */}
                   {formFotos.length < 10 && (
                     <div className="flex flex-wrap items-center justify-center gap-4 w-full pt-1">
                       {/* 1. Botón CAPTURAR con Cámara */}
                       <button
                         type="button"
                         onClick={() => cameraInputRef.current?.click()}
-                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-dashed border-cyan-400/90 hover:border-cyan-300 bg-cyan-950/50 hover:bg-cyan-900/70 text-cyan-300 flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.2)] text-center"
+                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-slate-400 hover:border-slate-200 bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-md text-center"
                         title="Tomar foto con la cámara"
                       >
-                        <Camera className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" />
+                        <Camera className="w-5 h-5 group-hover:scale-110 text-cyan-400 transition-transform shrink-0" />
                         <span className="text-xs sm:text-sm font-black uppercase tracking-wider">CAPTURAR</span>
                       </button>
 
@@ -1293,10 +1293,10 @@ export function ClientePage() {
                       <button
                         type="button"
                         onClick={() => fileInputRef.current?.click()}
-                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-dashed border-teal-400/90 hover:border-teal-300 bg-teal-950/50 hover:bg-teal-900/70 text-teal-300 flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(20,184,166,0.2)] text-center"
+                        className="w-36 sm:w-44 py-3 px-3 rounded-2xl border-2 border-slate-400 hover:border-slate-200 bg-slate-900/90 hover:bg-slate-800 text-white flex items-center justify-center gap-2 transition-all group active:scale-95 cursor-pointer shadow-md text-center"
                         title="Adjuntar fotos desde la galería"
                       >
-                        <Upload className="w-5 h-5 group-hover:scale-110 transition-transform shrink-0" />
+                        <Upload className="w-5 h-5 group-hover:scale-110 text-teal-400 transition-transform shrink-0" />
                         <span className="text-xs sm:text-sm font-black uppercase tracking-wider">ADJUNTAR</span>
                       </button>
                     </div>
@@ -1306,7 +1306,7 @@ export function ClientePage() {
                 {/* Campo Extenso de Reparación Solicitada */}
                 <div>
                   <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 mb-2">
-                    3. Descripción de la Reparación o Daño
+                    3. DESCRIBE LA REPARACIÓN
                   </h4>
                   <textarea
                     rows={4}
