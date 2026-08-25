@@ -29,11 +29,13 @@ import {
   Trash2,
   FileSpreadsheet,
   Sun,
-  Moon
+  Moon,
+  Coins,
+  Receipt
 } from 'lucide-react'
 import { MatriculaBadge } from '../components/MatriculaBadge'
 import { PresupuestoIcon, FacturaIcon } from '../components/CustomIcons'
-import { getExpediente } from '../lib/utils'
+import { getExpediente, validarDocumentoAEAT } from '../lib/utils'
 import { fetchExpedienteFotos } from '../lib/expedienteService'
 import { uploadFileToStorage } from '../services/storageService'
 import {
@@ -42,7 +44,13 @@ import {
   downloadPresupuestoPDF,
   downloadFacturaPDF,
   sendPresupuestoByEmail,
-  sendFacturaByEmail
+  sendFacturaByEmail,
+  generateReciboAbonoPDF,
+  downloadReciboAbonoPDF,
+  sendReciboAbonoByEmail,
+  generateFacturaProformaPDF,
+  downloadFacturaProformaPDF,
+  sendFacturaProformaByEmail
 } from '../lib/pdfGenerator'
 import { notificarCitaSolicitadaAlTaller, notificarSolicitudPresupuestoAlTaller } from '../services/notificationService'
 import { useToast } from '../lib/ToastContext'
@@ -101,6 +109,18 @@ export function ClientePage() {
     open: false,
     factura: null,
     cobros: []
+  })
+  const [modalReciboAbono, setModalReciboAbono] = useState<{ open: boolean; factura: Factura | null; cobros: Cobro[]; expedienteStr: string }>({
+    open: false,
+    factura: null,
+    cobros: [],
+    expedienteStr: ''
+  })
+  const [modalProforma, setModalProforma] = useState<{ open: boolean; factura: Factura | null; cobros: Cobro[]; expedienteStr: string }>({
+    open: false,
+    factura: null,
+    cobros: [],
+    expedienteStr: ''
   })
   const [modalGaleria, setModalGaleria] = useState<{ open: boolean; imagenes: string[]; activeIndex: number }>({
     open: false,
@@ -635,7 +655,95 @@ export function ClientePage() {
     window.open(blobUrl, '_blank')
   }
 
-  // Acciones Factura (Descargar / Enviar / Imprimir)
+  // Helper para saber si el cliente es sociedad o particular
+  const isEmpresaCliente = (cli?: Cliente | null): boolean => {
+    if (!cli) return false
+    const doc = cli.dni ? cli.dni.trim().toUpperCase() : ''
+    const val = validarDocumentoAEAT(doc)
+    if (val.tipo === 'CIF') return true
+    const nom = (cli.nombre || '').toUpperCase()
+    const keywords = ['S.L.', 'SL', 'S.A.', 'SA', 'S.L.U.', 'SLU', 'SOCIEDAD', 'AYUNTAMIENTO', 'ORGANISMO', 'DIPUTACION', 'COMUNIDAD', 'COOPERATIVA', 'CORP']
+    return keywords.some(k => nom.includes(k))
+  }
+
+  // Abrir Recibo de Abono o Factura Proforma según tipo de cliente
+  const handleOpenReciboOProforma = async (exp: ExpedienteGroup, expStr: string) => {
+    if (!exp.factura) return
+    const { data: cobrosData } = await supabase
+      .from('cobros')
+      .select('*')
+      .eq('factura_id', exp.factura.id)
+      .order('fecha', { ascending: false })
+
+    const cobros = cobrosData || []
+    if (isEmpresaCliente(cliente)) {
+      setModalProforma({
+        open: true,
+        factura: exp.factura,
+        cobros,
+        expedienteStr: expStr
+      })
+    } else {
+      setModalReciboAbono({
+        open: true,
+        factura: exp.factura,
+        cobros,
+        expedienteStr: expStr
+      })
+    }
+  }
+
+  const handleDownloadRecibo = (f: Factura, cobros: Cobro[], expStr: string) => {
+    const ultimoAbono = cobros.length > 0 ? cobros[0].importe : (f.total_abonado || 0)
+    const previos = cobros.slice(1)
+    downloadReciboAbonoPDF(f, ultimoAbono, previos, cliente, vehiculo, config, expStr)
+    showToast('Recibo de abono descargado en PDF', 'success')
+  }
+
+  const handleSendRecibo = async (f: Factura, cobros: Cobro[], expStr: string) => {
+    if (!cliente?.email) {
+      alert('No hay un correo electrónico asociado a tu cuenta.')
+      return
+    }
+    setActionLoading(true)
+    try {
+      const ultimoAbono = cobros.length > 0 ? cobros[0].importe : (f.total_abonado || 0)
+      const previos = cobros.slice(1)
+      const res = await sendReciboAbonoByEmail(f, ultimoAbono, previos, cliente, vehiculo, config, expStr)
+      if (res.success) {
+        showToast('Recibo de abono enviado a tu correo electrónico', 'success')
+      } else {
+        showToast('No se pudo enviar el correo: ' + (res.error || ''), 'error')
+      }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleDownloadProforma = (f: Factura, cobros: Cobro[], expStr: string) => {
+    downloadFacturaProformaPDF(f, cliente, vehiculo, config, expStr, cobros)
+    showToast('Factura proforma descargada en PDF', 'success')
+  }
+
+  const handleSendProforma = async (f: Factura, cobros: Cobro[], expStr: string) => {
+    if (!cliente?.email) {
+      alert('No hay un correo electrónico asociado a tu cuenta.')
+      return
+    }
+    setActionLoading(true)
+    try {
+      const res = await sendFacturaProformaByEmail(f, cliente, vehiculo, config, expStr, cobros)
+      if (res.success) {
+        showToast('Factura proforma enviada a tu correo electrónico', 'success')
+      } else {
+        showToast('No se pudo enviar el correo: ' + (res.error || ''), 'error')
+      }
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Acciones Factura Oficial (Descargar / Enviar / Imprimir)
   const handleDownloadFactura = (f: Factura) => {
     downloadFacturaPDF(f, cliente, vehiculo, config)
     showToast('Factura descargada en PDF', 'success')
@@ -1154,17 +1262,35 @@ export function ClientePage() {
                                   </span>
                                 </div>
 
-                                {/* 3. Icono de Factura (Hoja A4 con 'F', verde si existe / gris si no) */}
+                                {/* 3. Icono de Recibo de Abono (Particulares) o Proforma (Empresas) */}
+                                {hasFactura && exp.factura && (
+                                  <div className="flex flex-col items-center gap-1.5">
+                                    <button
+                                      onClick={() => handleOpenReciboOProforma(exp, expStr)}
+                                      className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group ${
+                                        isEmpresaCliente(cliente)
+                                          ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-400 text-amber-300 shadow-[0_0_20px_rgba(245,158,11,0.4)]'
+                                          : 'bg-blue-500/20 hover:bg-blue-500/30 border-blue-400 text-blue-300 shadow-[0_0_20px_rgba(59,130,246,0.4)]'
+                                      }`}
+                                      title={isEmpresaCliente(cliente) ? 'Ver Factura Proforma' : 'Ver Recibo de Abono'}
+                                    >
+                                      <span className="text-xl font-black font-mono leading-none group-hover:scale-110 transition-transform">
+                                        {isEmpresaCliente(cliente) ? 'FP' : 'R'}
+                                      </span>
+                                    </button>
+                                    <span className={`text-[11px] font-bold uppercase tracking-wider ${isEmpresaCliente(cliente) ? 'text-amber-400' : 'text-blue-400'}`}>
+                                      {isEmpresaCliente(cliente) ? 'Proforma' : 'Recibo'}
+                                    </span>
+                                  </div>
+                                )}
+
+                                {/* 4. Icono de Factura Oficial (Hoja A4 con 'F', verde si está pagada / gris si no) */}
                                 <div className="flex flex-col items-center gap-1.5">
-                                  {hasFactura && exp.factura ? (
+                                  {hasFactura && exp.factura && facturaPagada ? (
                                     <button
                                       onClick={() => setModalFactura({ open: true, factura: exp.factura! })}
-                                      className={`w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group ${
-                                        facturaPagada
-                                          ? 'bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)]'
-                                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/60 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)]'
-                                      }`}
-                                      title="Ver Factura A4"
+                                      className="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-400 text-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                                      title="Ver Factura Oficial A4"
                                     >
                                       <span className="text-2xl font-black font-mono leading-none group-hover:scale-110 transition-transform">
                                         F
@@ -1173,17 +1299,17 @@ export function ClientePage() {
                                   ) : (
                                     <div
                                       className="w-14 h-14 rounded-full bg-slate-800/40 border-2 border-slate-700 text-slate-500 flex items-center justify-center cursor-not-allowed opacity-60"
-                                      title="Factura aún no emitida"
+                                      title={hasFactura ? "Factura pendiente de abono total" : "Factura aún no emitida"}
                                     >
                                       <span className="text-2xl font-black font-mono leading-none">F</span>
                                     </div>
                                   )}
                                   <span
                                     className={`text-[11px] font-bold uppercase tracking-wider ${
-                                      hasFactura ? 'text-emerald-400' : 'text-slate-500'
+                                      hasFactura && facturaPagada ? 'text-emerald-400' : 'text-slate-500'
                                     }`}
                                   >
-                                    {hasFactura ? 'Factura' : 'Sin Factura'}
+                                    {hasFactura && facturaPagada ? 'Factura Oficial' : 'Factura (Pendiente)'}
                                   </span>
                                 </div>
                               </div>
@@ -2047,9 +2173,227 @@ export function ClientePage() {
             <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-end">
               <button
                 onClick={() => setModalGaleria((prev) => ({ ...prev, open: false }))}
-                className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors"
+                className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
                 Cerrar Galería
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* MODAL: RECIBO DE ABONO (PARTICULARES - VISTA A4) */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {modalReciboAbono.open && modalReciboAbono.factura && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-blue-500 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Cabecera */}
+            <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-blue-500/20 border border-blue-400 flex items-center justify-center text-blue-400 font-bold text-xl">
+                  R
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wide">RECIBO DE ABONO A CUENTA</h3>
+                  <p className="text-xs text-blue-300 font-mono">EXP: {modalReciboAbono.expedienteStr}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalReciboAbono({ open: false, factura: null, cobros: [], expedienteStr: '' })}
+                className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Visual A4 */}
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-950/60 space-y-4 text-slate-900">
+              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">{config?.nombre_empresa || 'DM CAR'}</h2>
+                    <p className="text-xs text-slate-500">JUSTIFICANTE DE PAGO PARCIAL</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-400 uppercase block">Expediente</span>
+                    <span className="text-lg font-black text-blue-600">{modalReciboAbono.expedienteStr}</span>
+                    <span className="text-xs text-slate-500 block">
+                      {new Date().toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="font-bold text-slate-400 uppercase block">Cliente</span>
+                    <p className="font-bold text-slate-900 text-sm">{cliente.nombre}</p>
+                    {cliente.dni && <p className="text-slate-600">DNI/NIE: {cliente.dni}</p>}
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-400 uppercase block">Vehículo</span>
+                    <p className="font-bold text-slate-900 text-sm">{vehiculo.marca} {vehiculo.modelo}</p>
+                    <p className="text-blue-700 font-mono font-bold">{vehiculo.matricula}</p>
+                  </div>
+                </div>
+
+                {/* Resumen Económico */}
+                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Importe Total Reparación:</span>
+                    <span className="font-bold text-slate-900">{modalReciboAbono.factura.total.toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Total Abonado Acumulado:</span>
+                    <span className="font-bold text-emerald-600">{(modalReciboAbono.factura.total_abonado || 0).toFixed(2)} €</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-200 pt-2 font-bold text-sm">
+                    <span className="text-rose-600">Saldo Pendiente:</span>
+                    <span className="text-rose-600">{Math.max(0, modalReciboAbono.factura.total - (modalReciboAbono.factura.total_abonado || 0)).toFixed(2)} €</span>
+                  </div>
+                </div>
+
+                <div className="text-[11px] text-slate-500 italic border-t border-slate-200 pt-3">
+                  * Este documento es un justificante de entrega a cuenta y no constituye factura oficial. La factura oficial se emitirá tras la liquidación completa del importe.
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-center gap-3">
+              <button
+                onClick={() => handleDownloadRecibo(modalReciboAbono.factura!, modalReciboAbono.cobros, modalReciboAbono.expedienteStr)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-blue-400" /> Descargar PDF
+              </button>
+              <button
+                onClick={() => handleSendRecibo(modalReciboAbono.factura!, modalReciboAbono.cobros, modalReciboAbono.expedienteStr)}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" /> Enviar por Email
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ───────────────────────────────────────────────────────────── */}
+      {/* MODAL: FACTURA PROFORMA (EMPRESAS - VISTA A4 FPAA0000) */}
+      {/* ───────────────────────────────────────────────────────────── */}
+      {modalProforma.open && modalProforma.factura && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-amber-500 rounded-3xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            {/* Cabecera */}
+            <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400 flex items-center justify-center text-amber-400 font-bold text-xl">
+                  FP
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white uppercase tracking-wide">FACTURA PROFORMA</h3>
+                  <p className="text-xs text-amber-300 font-mono">
+                    Nº: {modalProforma.factura.numero_proforma || 'FPAA0000'} · EXP: {modalProforma.expedienteStr}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setModalProforma({ open: false, factura: null, cobros: [], expedienteStr: '' })}
+                className="w-9 h-9 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Visual A4 */}
+            <div className="p-6 overflow-y-auto flex-1 bg-slate-950/60 space-y-4 text-slate-900">
+              <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl space-y-6">
+                <div className="p-2.5 bg-amber-50 border border-amber-300 rounded-xl text-center text-xs font-black text-amber-900 uppercase tracking-wider">
+                  *** FACTURA PROFORMA — DOCUMENTO NO VÁLIDO PARA DEDUCCIÓN FISCAL ***
+                </div>
+
+                <div className="flex justify-between items-start border-b border-slate-200 pb-4">
+                  <div>
+                    <h2 className="text-xl font-black text-slate-900">{config?.nombre_empresa || 'DM CAR'}</h2>
+                    <p className="text-xs text-slate-500">CIF: {config?.cif || 'N/A'}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-slate-400 uppercase block">Nº Proforma</span>
+                    <span className="text-lg font-black text-amber-600">{modalProforma.factura.numero_proforma || 'FPAA0000'}</span>
+                    <span className="text-xs text-slate-500 block">
+                      {new Date().toLocaleDateString('es-ES')}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>
+                    <span className="font-bold text-slate-400 uppercase block">Razón Social / Entidad</span>
+                    <p className="font-bold text-slate-900 text-sm">{cliente.nombre}</p>
+                    {cliente.dni && <p className="text-slate-600">CIF/NIF: {cliente.dni}</p>}
+                  </div>
+                  <div className="text-right">
+                    <span className="font-bold text-slate-400 uppercase block">Vehículo</span>
+                    <p className="font-bold text-slate-900 text-sm">{vehiculo.marca} {vehiculo.modelo}</p>
+                    <p className="text-amber-700 font-mono font-bold">{vehiculo.matricula}</p>
+                  </div>
+                </div>
+
+                {/* Conceptos */}
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b-2 border-slate-300 text-slate-700 font-bold uppercase">
+                      <th className="pb-2 text-left">Concepto</th>
+                      <th className="pb-2 text-center w-12">Cant.</th>
+                      <th className="pb-2 text-right w-20">Precio</th>
+                      <th className="pb-2 text-right w-20">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-200 text-slate-800">
+                    {(modalProforma.factura.conceptos || []).map((c, i) => (
+                      <tr key={i}>
+                        <td className="py-2 pr-2">{c.descripcion}</td>
+                        <td className="py-2 text-center text-slate-600">{c.cantidad}</td>
+                        <td className="py-2 text-right text-slate-600">{c.precio.toFixed(2)} €</td>
+                        <td className="py-2 text-right font-semibold">{(c.cantidad * c.precio).toFixed(2)} €</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Totales */}
+                <div className="border-t-2 border-slate-300 pt-3 flex justify-end">
+                  <div className="text-right space-y-1 w-48 text-xs">
+                    <div className="flex justify-between text-slate-600">
+                      <span>Total Reparación:</span>
+                      <span className="font-black text-slate-900">{modalProforma.factura.total.toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-emerald-600 font-bold">
+                      <span>Abonado:</span>
+                      <span>{(modalProforma.factura.total_abonado || 0).toFixed(2)} €</span>
+                    </div>
+                    <div className="flex justify-between text-rose-600 font-black text-sm border-t border-slate-300 pt-1">
+                      <span>Pendiente:</span>
+                      <span>{Math.max(0, modalProforma.factura.total - (modalProforma.factura.total_abonado || 0)).toFixed(2)} €</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Acciones */}
+            <div className="p-4 bg-slate-950 border-t border-slate-800 flex justify-center gap-3">
+              <button
+                onClick={() => handleDownloadProforma(modalProforma.factura!, modalProforma.cobros, modalProforma.expedienteStr)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4 text-amber-400" /> Descargar PDF
+              </button>
+              <button
+                onClick={() => handleSendProforma(modalProforma.factura!, modalProforma.cobros, modalProforma.expedienteStr)}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Send className="w-4 h-4" /> Enviar por Email
               </button>
             </div>
           </div>
