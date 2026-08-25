@@ -1274,26 +1274,26 @@ export function ClientePage() {
 
                     {formFotos.length < 10 && (
                       <>
-                        {/* 1. Botón Tomar Foto con Cámara (x0.5) */}
+                        {/* 1. Botón CAPTURAR con Cámara (x0.5 compacto, texto x2) */}
                         <button
                           type="button"
                           onClick={() => cameraInputRef.current?.click()}
-                          className="aspect-square rounded-xl border border-dashed border-cyan-400/70 hover:border-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 flex flex-col items-center justify-center gap-0.5 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
+                          className="aspect-square rounded-xl border-2 border-dashed border-cyan-400/80 hover:border-cyan-300 bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 flex flex-col items-center justify-center gap-1 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
                           title="Tomar foto con la cámara"
                         >
-                          <Camera className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-[8px] font-black uppercase tracking-tight leading-none">Tomar Foto</span>
+                          <Camera className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs sm:text-sm font-black uppercase tracking-tight leading-none">CAPTURAR</span>
                         </button>
 
-                        {/* 2. Botón Adjuntar Fotos desde Galería (x0.5) */}
+                        {/* 2. Botón ADJUNTAR desde Galería (x0.5 compacto, texto x2) */}
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
-                          className="aspect-square rounded-xl border border-dashed border-teal-400/70 hover:border-teal-300 bg-teal-950/40 hover:bg-teal-900/60 text-teal-300 flex flex-col items-center justify-center gap-0.5 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
+                          className="aspect-square rounded-xl border-2 border-dashed border-teal-400/80 hover:border-teal-300 bg-teal-950/40 hover:bg-teal-900/60 text-teal-300 flex flex-col items-center justify-center gap-1 transition-all group active:scale-95 cursor-pointer shadow-sm p-1 text-center"
                           title="Adjuntar fotos desde la galería"
                         >
-                          <Upload className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                          <span className="text-[8px] font-black uppercase tracking-tight leading-none">Adjuntar</span>
+                          <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs sm:text-sm font-black uppercase tracking-tight leading-none">ADJUNTAR</span>
                         </button>
                       </>
                     )}
