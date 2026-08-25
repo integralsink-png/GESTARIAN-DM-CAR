@@ -1829,8 +1829,8 @@ export function ConfiguracionPage() {
                       <ShieldCheck className="w-5 h-5 text-indigo-400" />
                     </div>
                     <div className="text-left">
-                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONTROL DE USUARIOS</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Autorizar altas y fijar tarifas</p>
+                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONTROL DE USUARIOS (CLIENTES GESTARIAN)</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Autorizar altas de talleres, planes y fijar tarifas</p>
                     </div>
                   </div>
                   <Sparkles className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 transition-opacity" />

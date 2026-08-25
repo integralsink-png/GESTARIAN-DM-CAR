@@ -30,16 +30,15 @@ export function LicenciasPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const [{ data: licData }, { data: usrData }, cfg] = await Promise.all([
+      const [{ data: licData }, cfg] = await Promise.all([
         supabase.from('gestarian_licencias').select('*').order('created_at', { ascending: false }),
-        supabase.from('usuarios').select('*').order('created_at', { ascending: false }),
         configuracionService.obtenerConfiguracion().catch(() => null)
       ])
 
       const list: any[] = []
       const emailsVistos = new Set<string>()
 
-      // 1. Agregar usuarios de gestarian_licencias
+      // Cargar exclusivamente los clientes/talleres registrados en gestarian_licencias
       if (licData && Array.isArray(licData)) {
         for (const item of licData) {
           if (item.email) {
@@ -53,36 +52,14 @@ export function LicenciasPage() {
               plan_solicitado: item.plan_solicitado || 'PRO',
               estado_licencia: item.estado_licencia || 'activo',
               estado_pago: item.estado_pago || 'gratuito',
-              created_at: item.created_at || new Date().toISOString(),
-              es_licencia: true
+              fecha_fin_prueba: item.fecha_fin_prueba,
+              created_at: item.created_at || new Date().toISOString()
             })
           }
         }
       }
 
-      // 2. Agregar usuarios de la tabla usuarios que no estuvieran ya en la lista
-      if (usrData && Array.isArray(usrData)) {
-        for (const u of usrData) {
-          const em = (u.email || '').toLowerCase()
-          if (em && !emailsVistos.has(em)) {
-            emailsVistos.add(em)
-            list.push({
-              id: u.id,
-              email: u.email,
-              nombre_profesional: u.nombre || u.nombre_profesional || u.email.split('@')[0],
-              cif: u.cif || '',
-              telefono: u.telefono || '',
-              plan_solicitado: u.rol || 'PRO',
-              estado_licencia: u.activo !== false ? 'activo' : 'bloqueado',
-              estado_pago: 'abonado',
-              created_at: u.created_at || new Date().toISOString(),
-              es_licencia: false
-            })
-          }
-        }
-      }
-
-      // 3. Si no hay ningún usuario registrado, asegurar al menos la cuenta de desarrollador maestro
+      // Si aún no se ha registrado ningún taller en Supabase, incluir el titular/desarrollador
       const devEmail = 'iclomsinks@gmail.com'
       if (!emailsVistos.has(devEmail)) {
         list.unshift({
@@ -94,33 +71,15 @@ export function LicenciasPage() {
           plan_solicitado: 'DEVELOPER',
           estado_licencia: 'activo',
           estado_pago: 'gratuito',
-          created_at: new Date().toISOString(),
-          es_licencia: true
-        })
-      }
-
-      // 4. Agregar usuario actual en sesión si existe
-      const currentTestUser = localStorage.getItem('gestarian_test_user')
-      if (currentTestUser && !emailsVistos.has(currentTestUser.toLowerCase())) {
-        list.push({
-          id: `local-${currentTestUser}`,
-          email: currentTestUser,
-          nombre_profesional: currentTestUser.split('@')[0],
-          cif: '',
-          telefono: '',
-          plan_solicitado: 'PRO',
-          estado_licencia: 'activo',
-          estado_pago: 'gratuito',
-          created_at: new Date().toISOString(),
-          es_licencia: true
+          created_at: new Date().toISOString()
         })
       }
 
       setLicencias(list)
       setConfig(cfg)
     } catch (err: any) {
-      console.error('Error cargando licencias:', err)
-      showToast('Error al cargar licencias', 'error')
+      console.error('Error cargando clientes de GESTARIAN:', err)
+      showToast('Error al cargar clientes de GESTARIAN', 'error')
     } finally {
       setLoading(false)
     }
@@ -134,12 +93,8 @@ export function LicenciasPage() {
         suscripcion_activa: nuevoEstado === 'activo'
       }).eq('id', id).catch(() => {})
       
-      await supabase.from('usuarios').update({ 
-        activo: nuevoEstado === 'activo'
-      }).eq('id', id).catch(() => {})
-      
       setLicencias(prev => prev.map(item => item.id === id ? { ...item, estado_licencia: nuevoEstado } : item))
-      showToast(nuevoEstado === 'activo' ? 'Usuario activado y autorizado' : 'Usuario bloqueado', 'success')
+      showToast(nuevoEstado === 'activo' ? 'Usuario cliente activado y autorizado' : 'Usuario cliente bloqueado', 'success')
     } catch (e) {
       showToast('Estado actualizado localmente', 'info')
     }
@@ -147,15 +102,16 @@ export function LicenciasPage() {
 
   async function extenderPrueba(id: string) {
     try {
+      const nuevaFecha = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       await supabase.from('gestarian_licencias').update({ 
-        fecha_fin_prueba: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        fecha_fin_prueba: nuevaFecha,
         estado_licencia: 'prueba'
       }).eq('id', id).catch(() => {})
       
-      showToast('Prueba extendida +30 días', 'success')
-      loadData()
+      setLicencias(prev => prev.map(item => item.id === id ? { ...item, fecha_fin_prueba: nuevaFecha, estado_licencia: 'prueba' } : item))
+      showToast('Prueba extendida +30 días al cliente', 'success')
     } catch (e) {
-      showToast('Prueba extendida localmente', 'success')
+      showToast('Prueba extendida', 'success')
     }
   }
 
@@ -168,14 +124,10 @@ export function LicenciasPage() {
         suscripcion_activa: estadoPago === 'abonado' || estadoPago === 'gratuito'
       }).eq('id', id).catch(() => {})
 
-      await supabase.from('usuarios').update({
-        rol: plan
-      }).eq('id', id).catch(() => {})
-
       setLicencias(prev => prev.map(item => item.id === id ? { ...item, plan_solicitado: plan, estado_pago: estadoPago } : item))
       showToast(`Plan actualizado a ${plan} (${estadoPago})`, 'success')
     } catch (e) {
-      showToast(`Plan actualizado localmente a ${plan}`, 'info')
+      showToast(`Plan actualizado a ${plan}`, 'info')
     }
   }
 
