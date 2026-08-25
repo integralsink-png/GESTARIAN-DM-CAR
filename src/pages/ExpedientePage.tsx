@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
-import { ArrowLeft, User, Car } from 'lucide-react'
+import { ArrowLeft, User, Car, Users, UserPlus, Check, Wrench, Sparkles, X, Briefcase } from 'lucide-react'
 
 import { supabase } from '../lib/supabase'
 import { PageHeader, Card, ActionMenu, TimelineVisual, MatriculaBadge } from '../components/UI'
@@ -13,12 +13,14 @@ import type {
   Cita,
   Reparacion,
   Factura,
+  Usuario
 } from '../lib/types'
 import { useToast } from '../lib/ToastContext'
 import { useGoBack } from '../lib/useGoBack'
 import { playSuccessChime } from '../lib/sound'
 import { buildRoadmap, type ExpedienteData, type RoadmapActions } from '../lib/roadmapEngine'
 import { notificarCambioEstado } from '../services/notificationService'
+import { usuarioService } from '../services/usuarioService'
 
 export function ExpedientePage() {
   const { vehiculoId } = useParams<{ vehiculoId: string }>()
@@ -37,6 +39,12 @@ export function ExpedientePage() {
   const [loading, setLoading] = useState(true)
   const [viewerOpen, setViewerOpen] = useState(false)
   const [expedienteFotos, setExpedienteFotos] = useState<string[]>([])
+
+  // Gestión de Personal Autorizado (Operarios / Mecánicos adjudicados)
+  const [listaOperarios, setListaOperarios] = useState<Usuario[]>([])
+  const [operariosSeleccionados, setOperariosSeleccionados] = useState<string[]>([])
+  const [modalAsignarOpen, setModalAsignarOpen] = useState(false)
+  const [guardandoAsignacion, setGuardandoAsignacion] = useState(false)
 
   useEffect(() => {
     if (viewerOpen && vehiculo) {
@@ -175,11 +183,72 @@ export function ExpedientePage() {
       } else {
         setUltimoCobro(null)
       }
+
+      // 8. Cargar empleados/operarios autorizados y sincronizar asignados
+      try {
+        const users = await usuarioService.obtenerUsuarios()
+        setListaOperarios(users.filter(u => u.activo))
+        
+        // Recuperar asignados del presupuesto o reparación (o backup local)
+        const asignadosActuales = pData?.operarios_asignados || rData?.operarios_asignados || []
+        const localAsig = localStorage.getItem(`gestarian_asig_exp_${vehiculoId}`)
+        if (localAsig) {
+          try {
+            const parsed = JSON.parse(localAsig)
+            setOperariosSeleccionados(Array.from(new Set([...asignadosActuales, ...parsed])))
+          } catch (e) {
+            setOperariosSeleccionados(asignadosActuales)
+          }
+        } else {
+          setOperariosSeleccionados(asignadosActuales)
+        }
+      } catch (e) {
+        console.warn('Aviso cargando operarios:', e)
+      }
     } catch (err: any) {
       console.error('Error cargando expediente:', err)
       showToast('Error al cargar expediente', 'error')
     } finally {
       if (showLoading) setLoading(false)
+    }
+  }
+
+  // Guardar adjudicación de operarios a la orden de trabajo / expediente
+  const guardarAsignacionOperarios = async (nuevosOperarios: string[]) => {
+    setGuardandoAsignacion(true)
+    try {
+      const nombres = listaOperarios
+        .filter(op => nuevosOperarios.includes(op.id))
+        .map(op => op.nombre)
+
+      // Guardar en localStorage para disponibilidad instantánea
+      localStorage.setItem(`gestarian_asig_exp_${vehiculoId}`, JSON.stringify(nuevosOperarios))
+      localStorage.setItem(`gestarian_asig_nombres_${vehiculoId}`, JSON.stringify(nombres))
+
+      // Guardar en Supabase si hay presupuesto activo
+      if (presupuesto?.id) {
+        await supabase.from('presupuestos').update({
+          operarios_asignados: nuevosOperarios,
+          operarios_nombres: nombres
+        }).eq('id', presupuesto.id).catch(() => {})
+      }
+
+      // Guardar en Supabase si hay reparación activa
+      if (reparacion?.id) {
+        await supabase.from('reparaciones').update({
+          operarios_asignados: nuevosOperarios,
+          operarios_nombres: nombres
+        }).eq('id', reparacion.id).catch(() => {})
+      }
+
+      setOperariosSeleccionados(nuevosOperarios)
+      setModalAsignarOpen(false)
+      playSuccessChime()
+      showToast('Orden de trabajo adjudicada a los operarios seleccionados ✓', 'success')
+    } catch (e: any) {
+      showToast('Error al adjudicar orden de trabajo', 'error')
+    } finally {
+      setGuardandoAsignacion(false)
     }
   }
 
@@ -598,6 +667,172 @@ export function ExpedientePage() {
         </Card>
 
       </div>
+
+      {/* ── SECCIÓN DE ADJUDICACIÓN DE ÓRDENES DE TRABAJO A OPERARIOS AUTORIZADOS ── */}
+      <Card className="p-6 border-2 border-indigo-500/30 bg-gradient-to-br from-indigo-950/20 via-slate-900 to-bg-800 shadow-xl rounded-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-indigo-500/20 pb-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+              <Briefcase className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                PERSONAL AUTORIZADO ADJUDICADO (ORDEN DE TRABAJO)
+              </h3>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Mecánicos y operarios encargados de ejecutar y materializar la reparación de este vehículo
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setModalAsignarOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-95 shadow-[0_0_15px_rgba(99,102,241,0.3)] cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Adjudicar Operarios</span>
+          </button>
+        </div>
+
+        {/* Lista de operarios asignados */}
+        {operariosSeleccionados.length === 0 ? (
+          <div className="p-6 text-center rounded-xl bg-slate-950/40 border border-slate-800">
+            <Users className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-300">No hay operarios adjudicados a este expediente todavía</p>
+            <p className="text-xs text-slate-500 mt-1">
+              Pulsa en <strong>"Adjudicar Operarios"</strong> para pasar la orden de trabajo a uno o varios mecánicos.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {operariosSeleccionados.map((opId) => {
+              const op = listaOperarios.find(u => u.id === opId)
+              const nombre = op?.nombre || opId
+              const rol = op?.roles?.nombre || op?.rol || 'Mecánico'
+              const especialidad = op?.especialidades?.nombre || null
+
+              return (
+                <div
+                  key={opId}
+                  className="p-3.5 rounded-xl bg-slate-900/80 border border-indigo-500/40 flex items-center justify-between gap-3 shadow-md"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 flex items-center justify-center font-bold text-sm shrink-0">
+                      {nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold text-white truncate">{nombre}</p>
+                      <p className="text-[11px] text-indigo-300/80 truncate">
+                        {rol} {especialidad ? `• ${especialidad}` : ''}
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    En Orden
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
+
+      {/* ── MODAL FLOTANTE DE ADJUDICACIÓN DE OPERARIOS ── */}
+      {modalAsignarOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg bg-slate-900 border-2 border-indigo-500 rounded-2xl p-6 shadow-[0_0_40px_rgba(99,102,241,0.3)] space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5 text-indigo-400" />
+                <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                  Adjudicar Orden de Trabajo
+                </h3>
+              </div>
+              <button
+                onClick={() => setModalAsignarOpen(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Selecciona los operarios o mecánicos autorizados que ejecutarán la reparación para el vehículo{' '}
+              <strong className="text-cyan-400">{vehiculo.matricula} ({vehiculo.marca} {vehiculo.modelo})</strong>.
+            </p>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {listaOperarios.length === 0 ? (
+                <div className="p-4 text-center text-slate-500 text-xs">
+                  No hay operarios registrados. Puedes crearlos en <strong>Personal Autorizado</strong>.
+                </div>
+              ) : (
+                listaOperarios.map((op) => {
+                  const isChecked = operariosSeleccionados.includes(op.id)
+
+                  return (
+                    <div
+                      key={op.id}
+                      onClick={() => {
+                        if (isChecked) {
+                          setOperariosSeleccionados(prev => prev.filter(id => id !== op.id))
+                        } else {
+                          setOperariosSeleccionados(prev => [...prev, op.id])
+                        }
+                      }}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                        isChecked
+                          ? 'bg-indigo-600/20 border-indigo-500 text-white shadow-sm'
+                          : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded flex items-center justify-center border transition-all ${
+                          isChecked ? 'bg-indigo-500 border-indigo-400 text-white' : 'border-slate-700 bg-slate-900'
+                        }`}>
+                          {isChecked && <Check className="w-3.5 h-3.5" />}
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-white">{op.nombre}</p>
+                          <p className="text-[10px] text-slate-400">
+                            {op.roles?.nombre || op.rol || 'Operario'} {op.especialidades?.nombre ? `• ${op.especialidades.nombre}` : ''}
+                          </p>
+                        </div>
+                      </div>
+
+                      {isChecked && (
+                        <span className="text-[10px] text-indigo-300 font-bold uppercase tracking-wider">
+                          Adjudicado
+                        </span>
+                      )}
+                    </div>
+                  )
+                })
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setModalAsignarOpen(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={guardandoAsignacion}
+                onClick={() => guardarAsignacionOperarios(operariosSeleccionados)}
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black uppercase tracking-wider transition-all active:scale-95 shadow cursor-pointer"
+              >
+                {guardandoAsignacion ? 'Guardando...' : 'Guardar y Asignar Orden'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {vehiculo && (
         <GlobalImageViewer

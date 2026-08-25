@@ -155,6 +155,42 @@ export function ReparacionesPage() {
                   )}
                 </div>
 
+                {/* Personal Autorizado Adjudicado a la Orden de Trabajo */}
+                {(() => {
+                  const asigIds: string[] = rep.operarios_asignados || []
+                  let nombres = rep.operarios_nombres || []
+                  if (nombres.length === 0 && rep.vehiculo_id) {
+                    try {
+                      const localNombres = localStorage.getItem(`gestarian_asig_nombres_${rep.vehiculo_id}`)
+                      if (localNombres) nombres = JSON.parse(localNombres)
+                    } catch (e) {}
+                  }
+
+                  if (nombres.length === 0 && asigIds.length === 0) return null
+
+                  return (
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2 border-t border-white/5">
+                      <span className="text-[11px] font-bold text-indigo-300 uppercase tracking-wider">
+                        🛠️ Adjudicado a:
+                      </span>
+                      {nombres.length > 0 ? (
+                        nombres.map((nom: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-200 border border-indigo-500/30"
+                          >
+                            {nom}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-[11px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/20 text-indigo-200 border border-indigo-500/30">
+                          {asigIds.length} operario(s)
+                        </span>
+                      )}
+                    </div>
+                  )
+                })()}
+
                 {/* LÍNEA 3: Número de expediente flotante a la izquierda, Iconos de acción repartiéndose el espacio restante (x1.2) */}
                 <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-white/10">
                   {/* Número de Expediente flotante (x1.5) sin recuadro */}

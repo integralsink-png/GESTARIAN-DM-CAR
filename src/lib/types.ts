@@ -51,6 +51,8 @@ export interface Presupuesto {
   aplicarIva?: boolean
   enviado_email_at?: string | null
   enviado_whatsapp_at?: string | null
+  operarios_asignados?: string[] // IDs de empleados/operarios autorizados adjudicados
+  operarios_nombres?: string[] // Nombres de los autorizados para visualización rápida
   created_at: string
   updated_at?: string
 }
@@ -76,6 +78,9 @@ export interface Reparacion {
   estado: EstadoReparacion
   descripcion: string | null
   fotos: string[]
+  operarios_asignados?: string[] // IDs de empleados autorizados adjudicados a la orden de trabajo
+  operarios_nombres?: string[] // Nombres de los empleados adjudicados
+  notas_operario?: string | null // Notas añadidas por los mecánicos durante la ejecución
   created_at: string
 }
 

@@ -37,6 +37,7 @@ import {
 } from './pages/Pages'
 import { LicenciasPage } from './pages/LicenciasPage'
 import { ClientePortalAuthPage } from './pages/ClientePortalAuthPage'
+import { EmpleadoAuthPage } from './pages/EmpleadoAuthPage'
 import { GemeloDigitalPage } from './pages/GemeloDigitalPage'
 import { DeveloperAuthPage } from './pages/DeveloperAuthPage'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -422,11 +423,14 @@ export default function App() {
   const [necesitaRegistro, setNecesitaRegistro] = useState(false)
 
   useEffect(() => {
-    // Si estamos en la ruta del portal del cliente final o del Gemelo Digital o Consola Dev, permitir acceso directo
+    // Si estamos en la ruta del portal del cliente final o del Gemelo Digital o Consola Dev o Acceso de Empleado, permitir acceso directo
     const path = window.location.pathname
     if (
       path.startsWith('/cliente') ||
       path.startsWith('/acceso-cliente') ||
+      path.startsWith('/acceso-empleado') ||
+      path.startsWith('/empleado') ||
+      path.startsWith('/autorizado/acceso') ||
       path.startsWith('/gemelo-digital') ||
       path.startsWith('/digital-twin') ||
       path.startsWith('/dev') ||
@@ -532,6 +536,10 @@ export default function App() {
                   <Route path="/acceso-cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente/:token" element={<ClientePage />} />
+                  <Route path="/acceso-empleado" element={<EmpleadoAuthPage />} />
+                  <Route path="/acceso-autorizado" element={<EmpleadoAuthPage />} />
+                  <Route path="/empleado" element={<EmpleadoAuthPage />} />
+                  <Route path="/autorizado/acceso" element={<EmpleadoAuthPage />} />
                   <Route path="/*" element={<Layout />} />
                 </Routes>
               </BrowserRouter>
