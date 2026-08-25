@@ -68,20 +68,47 @@ export async function testDocumentOcrConnection(config: DocumentOcrConfig): Prom
 
   try {
     if (config.provider === 'gemini') {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-flash'}:generateContent?key=${config.api_key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Prueba de servicio OCR de facturas. Responde OK.' }] }]
-          })
+      const modelsToTry = [
+        config.model || 'gemini-1.5-flash',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-2.5-flash'
+      ];
+      // Eliminar duplicados manteniendo orden
+      const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
+
+      let lastError = '';
+      for (const m of uniqueModels) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${config.api_key}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: 'Prueba de servicio OCR de facturas. Responde OK.' }] }]
+              })
+            }
+          );
+          if (response.ok) {
+            return {
+              success: true,
+              message: m !== config.model
+                ? `Verificado correctamente (conmutado automáticamente a ${m} por alta demanda en ${config.model}).`
+                : `Servicio OCR con Gemini (${m}) verificado con éxito.`
+            };
+          }
+          const errBody = await response.json().catch(() => ({}));
+          lastError = errBody.error?.message || `Error HTTP ${response.status}`;
+          // Si no es error de cuota o sobrecarga (429/503), no seguir probando
+          if (response.status !== 429 && response.status !== 503) {
+            break;
+          }
+        } catch (e: any) {
+          lastError = e.message;
         }
-      );
-      if (!response.ok) {
-        return { success: false, message: `Error HTTP ${response.status} en servicio OCR.` };
       }
-      return { success: true, message: 'Servicio OCR de Facturas y Documentos verificado.' };
+      return { success: false, message: lastError || 'Error conectando con Gemini OCR.' };
     }
 
     return { success: true, message: 'OCR Tesseract local operativo.' };
@@ -159,50 +186,67 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
   ]
 }`
 
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-1.5-flash'}:generateContent?key=${config.api_key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  { text: prompt },
-                  {
-                    inlineData: {
-                      mimeType: mimeType,
-                      data: base64Data
-                    }
-                  }
-                ]
-              }
-            ],
-            generationConfig: {
-              temperature: 0.1,
-              responseMimeType: "application/json"
-            }
-          })
-        }
-      )
+      const modelsToTry = [
+        config.model || 'gemini-1.5-flash',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-2.5-flash'
+      ];
+      const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
 
-      if (response.ok) {
-        const result = await response.json()
-        const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text
-        if (textContent) {
-          const parsed = JSON.parse(textContent)
-          return {
-            proveedor: parsed.proveedor || undefined,
-            cif_nif: parsed.cif_nif || undefined,
-            numero_factura: parsed.numero_factura || undefined,
-            fecha: parsed.fecha || undefined,
-            base_imponible: typeof parsed.base_imponible === 'number' ? parsed.base_imponible : parseFloat(parsed.base_imponible) || undefined,
-            iva: typeof parsed.iva === 'number' ? parsed.iva : parseFloat(parsed.iva) || undefined,
-            total: typeof parsed.total === 'number' ? parsed.total : parseFloat(parsed.total) || undefined,
-            vencimiento: parsed.vencimiento || undefined,
-            conceptos: Array.isArray(parsed.conceptos) ? parsed.conceptos : [],
-            texto_bruto: textContent
+      for (const m of uniqueModels) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${config.api_key}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      { text: prompt },
+                      {
+                        inlineData: {
+                          mimeType: mimeType,
+                          data: base64Data
+                        }
+                      }
+                    ]
+                  }
+                ],
+                generationConfig: {
+                  temperature: 0.1,
+                  responseMimeType: "application/json"
+                }
+              })
+            }
+          );
+
+          if (response.ok) {
+            const result = await response.json();
+            const textContent = result.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (textContent) {
+              const parsed = JSON.parse(textContent);
+              return {
+                proveedor: parsed.proveedor || undefined,
+                cif_nif: parsed.cif_nif || undefined,
+                numero_factura: parsed.numero_factura || undefined,
+                fecha: parsed.fecha || undefined,
+                base_imponible: typeof parsed.base_imponible === 'number' ? parsed.base_imponible : parseFloat(parsed.base_imponible) || undefined,
+                iva: typeof parsed.iva === 'number' ? parsed.iva : parseFloat(parsed.iva) || undefined,
+                total: typeof parsed.total === 'number' ? parsed.total : parseFloat(parsed.total) || undefined,
+                vencimiento: parsed.vencimiento || undefined,
+                conceptos: Array.isArray(parsed.conceptos) ? parsed.conceptos : [],
+                texto_bruto: textContent
+              };
+            }
           }
+          if (response.status !== 429 && response.status !== 503) {
+            break;
+          }
+        } catch (errLoop) {
+          console.warn(`Error en modelo OCR ${m}, probando siguiente:`, errLoop);
         }
       }
     } catch (e) {

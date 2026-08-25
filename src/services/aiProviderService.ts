@@ -79,21 +79,45 @@ export async function testAiConnection(config: AiAssistantConfig | FallbackAiCon
 
   try {
     if (config.provider === 'gemini') {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${config.model || 'gemini-3.7-flash'}:generateContent?key=${config.api_key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Responde OK si la conexión es exitosa.' }] }]
-          })
+      const modelsToTry = [
+        config.model || 'gemini-1.5-flash',
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-2.5-flash'
+      ];
+      const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
+
+      let lastError = '';
+      for (const m of uniqueModels) {
+        try {
+          const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${config.api_key}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [{ parts: [{ text: 'Responde OK si la conexión es exitosa.' }] }]
+              })
+            }
+          );
+          if (response.ok) {
+            return {
+              success: true,
+              message: m !== config.model
+                ? `Conexión verificada con éxito (Google saturó ${config.model}, conmutado automáticamente a ${m}).`
+                : `Conexión con Gemini (${m}) verificada correctamente.`
+            };
+          }
+          const errorData = await response.json().catch(() => ({}));
+          lastError = errorData.error?.message || `Error HTTP ${response.status}`;
+          if (response.status !== 429 && response.status !== 503) {
+            break;
+          }
+        } catch (e: any) {
+          lastError = e.message;
         }
-      );
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { success: false, message: errorData.error?.message || `Error HTTP ${response.status}` };
       }
-      return { success: true, message: 'Conexión con Gemini verificada correctamente.' };
+      return { success: false, message: lastError || 'Error al conectar con Gemini.' };
     }
 
     if (config.provider === 'openrouter') {
