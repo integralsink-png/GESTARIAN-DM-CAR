@@ -15,6 +15,7 @@ import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
 import { playSuccessChime } from '../lib/sound'
 import { useToast } from '../lib/ToastContext'
 import { FacturasRecibidasPage } from './Pages'
+import { generateVerifactuQRDataUrlSync, VERIFACTU_NORMATIVA_TEXT } from '../lib/verifactuService'
 
 
 const IVA_RATE = 0.21
@@ -1321,8 +1322,35 @@ export function FacturasPage() {
               </div>
             )}
 
-            <div className="flex justify-end mb-6">
-              <div className="w-64 space-y-1.5 text-sm">
+            {/* Sección Inferior: QR VERIFACTU (Izquierda) + Totales (Derecha) */}
+            <div className="flex flex-col sm:flex-row items-start justify-between gap-4 mb-6 border-t border-gray-200 pt-4">
+              {/* Bloque QR VERIFACTU */}
+              <div className="flex items-start gap-3 max-w-sm">
+                <div className="w-20 h-20 bg-white border border-gray-300 rounded-lg p-1 shrink-0 flex items-center justify-center shadow-sm">
+                  {(() => {
+                    const qrUrl = generateVerifactuQRDataUrlSync(selectedFactura, config)
+                    return qrUrl ? (
+                      <img src={qrUrl} alt="QR VERIFACTU AEAT" className="w-full h-full object-contain" />
+                    ) : (
+                      <div className="text-[9px] text-gray-400 text-center font-mono">QR VERIFACTU</div>
+                    )
+                  })()}
+                </div>
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-black tracking-wider text-slate-800 uppercase bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                      VERI*FACTU
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-medium">Cotejo AEAT</span>
+                  </div>
+                  <p className="text-[8pt] italic text-slate-500 leading-snug">
+                    {VERIFACTU_NORMATIVA_TEXT}
+                  </p>
+                </div>
+              </div>
+
+              {/* Totales */}
+              <div className="w-full sm:w-64 space-y-1.5 text-sm self-end sm:self-auto">
                 <div className="flex justify-between"><span className="text-gray-500">Base imponible</span><span className="font-medium">{baseImponible.toFixed(2)} €</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">IVA (21%)</span><span className="font-medium">{ivaAmount.toFixed(2)} €</span></div>
                 <div className="flex justify-between font-bold text-base border-t-2 border-gray-800 pt-1.5"><span>TOTAL</span><span>{selectedFactura.total.toFixed(2)} €</span></div>

@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import type { Presupuesto, Factura, Cliente, Vehiculo, Configuracion } from './types'
 import { sendEstimate, sendInvoice } from '../services/communicationService'
 import { supabase } from './supabase'
+import { generateVerifactuQRDataUrlSync, VERIFACTU_NORMATIVA_TEXT } from './verifactuService'
 
 const PROVINCIAS_ESPANOLAS: Record<string, string> = {
   '01': 'Araba / Álava', '02': 'Albacete', '03': 'Alicante', '04': 'Almería', '05': 'Ávila',
@@ -355,13 +356,45 @@ export function generateFacturaPDF(
     })
   }
 
-  // Totales Box
-  curY = Math.max(curY + 6, 170)
-  if (curY > 240) {
+  // Totales Box & VERIFACTU QR Box
+  curY = Math.max(curY + 6, 160)
+  if (curY > 220) {
     doc.addPage()
     curY = 20
   }
 
+  // --- SECCIÓN VERIFACTU (Izquierda) ---
+  try {
+    const qrDataUrl = generateVerifactuQRDataUrlSync(factura, config)
+    if (qrDataUrl) {
+      doc.addImage(qrDataUrl, 'PNG', 14, curY, 26, 26)
+    } else {
+      doc.setDrawColor(203, 213, 225)
+      doc.rect(14, curY, 26, 26)
+    }
+  } catch (e) {
+    console.warn('QR verifactu sync warning:', e)
+  }
+
+  // Título / Identificador VERI*FACTU
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text('SISTEMA VERI*FACTU', 43, curY + 6)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text('Cotejo y Verificación Tributaria AEAT', 43, curY + 11)
+
+  // Alusión a la norma que lo regula en cursiva y fuente tamaño 8 justo debajo del QR
+  doc.setFont('Helvetica', 'italic')
+  doc.setFontSize(8)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  const splitNormativa = doc.splitTextToSize(VERIFACTU_NORMATIVA_TEXT, 100)
+  doc.text(splitNormativa, 14, curY + 31)
+
+  // --- CAJA DE TOTALES (Derecha) ---
   doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
   doc.roundedRect(120, curY, 76, 28, 2, 2, 'F')
   doc.setDrawColor(226, 232, 240)
@@ -388,8 +421,8 @@ export function generateFacturaPDF(
 
   // Observaciones
   if (factura.observaciones) {
-    const yObs = curY + 34
-    if (yObs < 260) {
+    const yObs = curY + 44
+    if (yObs < 265) {
       doc.setFont('Helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
