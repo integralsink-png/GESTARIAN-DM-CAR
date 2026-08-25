@@ -407,7 +407,7 @@ export function RegistroUsuarioTallerPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-[85%] py-4 px-3 sm:px-5 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.6)] hover:shadow-[0_0_30px_rgba(6,182,212,0.85)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
+            className="w-[85%] py-4 px-3 sm:px-5 rounded-2xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.70)] hover:shadow-[0_0_25px_rgba(6,182,212,0.90)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
           >
             <div className="w-full mx-auto flex flex-col items-center justify-center leading-tight">
               <span 
