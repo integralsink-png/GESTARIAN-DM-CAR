@@ -1316,20 +1316,20 @@ export function ClientePage() {
                 </div>
               </div>
 
-              {/* Botones del Footer (SOLICITAR PRESUPUESTO x0.8 SIN DIBUJITO Y MISMO TEXTO) */}
-              <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-end gap-3">
+              {/* Botones del Footer: CANCELAR - ENVIAR repartiéndose el ancho equitativamente */}
+              <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 grid grid-cols-2 gap-3 w-full">
                 <button
                   type="button"
                   onClick={() => setModalSolicitudPresupuesto(false)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs sm:text-sm uppercase tracking-wider transition-colors cursor-pointer"
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-black text-xs sm:text-sm uppercase tracking-wider text-center transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  CANCELAR
                 </button>
 
                 <button
                   type="submit"
                   disabled={enviandoSolicitud}
-                  className="py-2.5 px-6 rounded-xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
+                  className="w-full py-2.5 rounded-xl bg-black/90 hover:bg-black text-white font-black uppercase tracking-wider border-2 border-cyan-200 shadow-[0_0_20px_rgba(6,182,212,0.90)] hover:shadow-[0_0_25px_rgba(6,182,212,1)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50 text-xs sm:text-sm"
                 >
                   <span>{enviandoSolicitud ? 'ENVIANDO...' : 'ENVIAR'}</span>
                 </button>
