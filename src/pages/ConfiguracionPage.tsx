@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } from '../lib/types'
 import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
-import { Chip, Stack, Switch, TextField } from '@mui/material'
+import { Chip, Stack, Switch } from '@mui/material'
 import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog, ShieldCheck, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
@@ -110,13 +110,6 @@ export function ConfiguracionPage() {
   const [resetInput, setResetInput] = useState('')
   const [isResetting, setIsResetting] = useState(false)
   const [resetError, setResetError] = useState<string | null>(null)
-
-  const sharedTextFieldProps = {
-    fullWidth: true,
-    variant: 'filled' as const,
-    InputProps: { sx: { bgcolor: '#111827', color: '#fff', borderRadius: '1rem' } },
-    InputLabelProps: { sx: { color: '#94a3b8' } },
-  }
 
   useEffect(() => {
     loadConfig()
@@ -1306,37 +1299,51 @@ export function ConfiguracionPage() {
                 <h2 className="text-lg font-semibold text-white">Datos Fiscales</h2>
               </div>
               <div className="space-y-3">
-                <TextField
-                  label="Nombre empresa"
-                  value={config.nombre_empresa}
-                  onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="CIF / NIF"
-                  value={config.cif}
-                  onChange={(e) => setConfig({ ...config, cif: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Dirección"
-                  value={config.direccion}
-                  onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Teléfono"
-                  value={config.telefono ?? ''}
-                  onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
-                  {...sharedTextFieldProps}
-                />
-                <TextField
-                  label="Email"
-                  value={config.email ?? ''}
-                  onChange={(e) => setConfig({ ...config, email: e.target.value })}
-                  type="email"
-                  {...sharedTextFieldProps}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Nombre empresa</label>
+                  <input
+                    type="text"
+                    value={config.nombre_empresa || ''}
+                    onChange={(e) => setConfig({ ...config, nombre_empresa: e.target.value })}
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">CIF / NIF</label>
+                  <input
+                    type="text"
+                    value={config.cif || ''}
+                    onChange={(e) => setConfig({ ...config, cif: e.target.value })}
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold uppercase font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Dirección</label>
+                  <input
+                    type="text"
+                    value={config.direccion || ''}
+                    onChange={(e) => setConfig({ ...config, direccion: e.target.value })}
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={config.telefono ?? ''}
+                    onChange={(e) => setConfig({ ...config, telefono: e.target.value })}
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email</label>
+                  <input
+                    type="email"
+                    value={config.email ?? ''}
+                    onChange={(e) => setConfig({ ...config, email: e.target.value })}
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
               </div>
             </Card>
 
@@ -1367,32 +1374,38 @@ export function ConfiguracionPage() {
                   />
                 </div>
 
-                <TextField
-                  label="Email gestoría"
-                  type="email"
-                  value={config.email_gestoria ?? ''}
-                  onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
-                  placeholder="gestoria@asesoria.es"
-                  {...sharedTextFieldProps}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email gestoría</label>
+                  <input
+                    type="email"
+                    value={config.email_gestoria ?? ''}
+                    onChange={(e) => setConfig({ ...config, email_gestoria: e.target.value })}
+                    placeholder="gestoria@asesoria.es"
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
 
-                <TextField
-                  label="Email Remitente (From)"
-                  type="email"
-                  value={config.email_from ?? ''}
-                  onChange={(e) => setConfig({ ...config, email_from: e.target.value })}
-                  placeholder="notificaciones@taller.es"
-                  {...sharedTextFieldProps}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email Remitente (From)</label>
+                  <input
+                    type="email"
+                    value={config.email_from ?? ''}
+                    onChange={(e) => setConfig({ ...config, email_from: e.target.value })}
+                    placeholder="notificaciones@taller.es"
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                  />
+                </div>
 
-                <TextField
-                  label="Email API Key (Resend / SendGrid)"
-                  type="password"
-                  value={config.email_api_key ?? ''}
-                  onChange={(e) => setConfig({ ...config, email_api_key: e.target.value })}
-                  placeholder="re_123456789..."
-                  {...sharedTextFieldProps}
-                />
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Email API Key (Resend / SendGrid)</label>
+                  <input
+                    type="password"
+                    value={config.email_api_key ?? ''}
+                    onChange={(e) => setConfig({ ...config, email_api_key: e.target.value })}
+                    placeholder="re_123456789..."
+                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
+                  />
+                </div>
 
                 <div className="pt-2 border-t border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
@@ -1400,22 +1413,27 @@ export function ConfiguracionPage() {
                     <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Preparado (Desactivado)</span>
                   </div>
 
-                  <TextField
-                    label="WhatsApp Phone Number ID"
-                    value={config.whatsapp_phone_number_id ?? ''}
-                    onChange={(e) => setConfig({ ...config, whatsapp_phone_number_id: e.target.value })}
-                    placeholder="1092837465..."
-                    {...sharedTextFieldProps}
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Phone Number ID</label>
+                    <input
+                      type="text"
+                      value={config.whatsapp_phone_number_id ?? ''}
+                      onChange={(e) => setConfig({ ...config, whatsapp_phone_number_id: e.target.value })}
+                      placeholder="1092837465..."
+                      className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                    />
+                  </div>
 
-                  <TextField
-                    label="WhatsApp Access Token"
-                    type="password"
-                    value={config.whatsapp_api_key ?? ''}
-                    onChange={(e) => setConfig({ ...config, whatsapp_api_key: e.target.value })}
-                    placeholder="EAA..."
-                    {...sharedTextFieldProps}
-                  />
+                  <div>
+                    <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Access Token</label>
+                    <input
+                      type="password"
+                      value={config.whatsapp_api_key ?? ''}
+                      onChange={(e) => setConfig({ ...config, whatsapp_api_key: e.target.value })}
+                      placeholder="EAA..."
+                      className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
+                    />
+                  </div>
                 </div>
               </div>
             </Card>
