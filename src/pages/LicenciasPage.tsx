@@ -91,7 +91,7 @@ export function LicenciasPage() {
       await supabase.from('gestarian_licencias').update({ 
         estado_licencia: nuevoEstado,
         suscripcion_activa: nuevoEstado === 'activo'
-      }).eq('id', id).catch(() => {})
+      }).eq('id', id)
       
       setLicencias(prev => prev.map(item => item.id === id ? { ...item, estado_licencia: nuevoEstado } : item))
       showToast(nuevoEstado === 'activo' ? 'Usuario cliente activado y autorizado' : 'Usuario cliente bloqueado', 'success')
@@ -106,7 +106,7 @@ export function LicenciasPage() {
       await supabase.from('gestarian_licencias').update({ 
         fecha_fin_prueba: nuevaFecha,
         estado_licencia: 'prueba'
-      }).eq('id', id).catch(() => {})
+      }).eq('id', id)
       
       setLicencias(prev => prev.map(item => item.id === id ? { ...item, fecha_fin_prueba: nuevaFecha, estado_licencia: 'prueba' } : item))
       showToast('Prueba extendida +30 días al cliente', 'success')
@@ -122,7 +122,7 @@ export function LicenciasPage() {
         estado_pago: estadoPago,
         estado_licencia: estadoPago === 'impagado' ? 'gracia' : 'activo',
         suscripcion_activa: estadoPago === 'abonado' || estadoPago === 'gratuito'
-      }).eq('id', id).catch(() => {})
+      }).eq('id', id)
 
       setLicencias(prev => prev.map(item => item.id === id ? { ...item, plan_solicitado: plan, estado_pago: estadoPago } : item))
       showToast(`Plan actualizado a ${plan} (${estadoPago})`, 'success')

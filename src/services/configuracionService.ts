@@ -68,8 +68,9 @@ export const configuracionService = {
 
       if (error) {
         console.warn('[configuracionService] Supabase upsert error:', error);
-        // Si falló por columnas no creadas en Supabase, intentar con update directo
-        await supabase.from('configuracion').update(datos).eq('id', 1).catch(() => {});
+        try {
+          await supabase.from('configuracion').update(datos).eq('id', 1);
+        } catch (e) {}
       }
     } catch (err) {
       console.warn('[configuracionService] Error de red en Supabase:', err);

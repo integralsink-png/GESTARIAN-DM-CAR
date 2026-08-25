@@ -92,34 +92,46 @@ export function RegistroUsuarioTallerPage() {
       }
 
       // Intentar upsert o insert
-      const { error: licErr } = await supabase.from('gestarian_licencias').upsert(licPayload, { onConflict: 'email' })
-      if (licErr) {
-        console.warn('Reintentando insert en gestarian_licencias:', licErr.message)
-        await supabase.from('gestarian_licencias').insert(licPayload).catch(() => {})
+      try {
+        const { error: licErr } = await supabase.from('gestarian_licencias').upsert(licPayload, { onConflict: 'email' })
+        if (licErr) {
+          console.warn('Reintentando insert en gestarian_licencias:', licErr.message)
+          await supabase.from('gestarian_licencias').insert(licPayload)
+        }
+      } catch (e) {
+        console.warn('Aviso en gestarian_licencias:', e)
       }
 
       // 2. Guardar también en usuarios como JEFE_TALLER
-      await supabase.from('usuarios').upsert({
-        email: cleanEmail,
-        nombre: form.nombre_titular.trim() || form.nombre_profesional.trim(),
-        telefono: form.telefono.trim(),
-        rol: 'JEFE_TALLER',
-        es_pro: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE',
-        activo: true
-      }, { onConflict: 'email' }).catch(() => {})
+      try {
+        await supabase.from('usuarios').upsert({
+          email: cleanEmail,
+          nombre: form.nombre_titular.trim() || form.nombre_profesional.trim(),
+          telefono: form.telefono.trim(),
+          rol: 'JEFE_TALLER',
+          es_pro: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE',
+          activo: true
+        }, { onConflict: 'email' })
+      } catch (e) {
+        console.warn('Aviso en usuarios:', e)
+      }
 
       // 3. Sincronizar datos fiscales de la empresa en configuracion (id=1)
-      await supabase.from('configuracion').upsert({
-        id: 1,
-        nombre_empresa: form.nombre_profesional.trim(),
-        cif: form.cif.trim().toUpperCase(),
-        direccion: `${form.direccion_fiscal}, CP ${form.codigo_postal}, ${form.poblacion}`,
-        telefono: form.telefono.trim(),
-        email: cleanEmail,
-        tipo_empresa: form.tipo_empresa,
-        plan_activo: form.plan_solicitado,
-        pro_activo: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE'
-      }).catch(() => {})
+      try {
+        await supabase.from('configuracion').upsert({
+          id: 1,
+          nombre_empresa: form.nombre_profesional.trim(),
+          cif: form.cif.trim().toUpperCase(),
+          direccion: `${form.direccion_fiscal}, CP ${form.codigo_postal}, ${form.poblacion}`,
+          telefono: form.telefono.trim(),
+          email: cleanEmail,
+          tipo_empresa: form.tipo_empresa,
+          plan_activo: form.plan_solicitado,
+          pro_activo: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE'
+        })
+      } catch (e) {
+        console.warn('Aviso en configuracion:', e)
+      }
 
       // Guardar sesión de prueba activa para este usuario
       localStorage.setItem('gestarian_test_user', form.email.trim().toLowerCase())
