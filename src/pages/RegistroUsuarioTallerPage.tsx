@@ -133,8 +133,26 @@ export function RegistroUsuarioTallerPage() {
         console.warn('Aviso en configuracion:', e)
       }
 
+      // Guardar respaldo permanente de clientes registrados
+      try {
+        const prevBackup = localStorage.getItem('gestarian_clientes_registrados_backup')
+        const clientsList: any[] = prevBackup ? JSON.parse(prevBackup) : []
+        const existingIdx = clientsList.findIndex(c => c.email.toLowerCase() === cleanEmail)
+        const clientEntry = {
+          id: `client-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+          ...licPayload,
+          created_at: new Date().toISOString()
+        }
+        if (existingIdx >= 0) {
+          clientsList[existingIdx] = { ...clientsList[existingIdx], ...clientEntry }
+        } else {
+          clientsList.unshift(clientEntry)
+        }
+        localStorage.setItem('gestarian_clientes_registrados_backup', JSON.stringify(clientsList))
+      } catch (e) {}
+
       // Guardar sesión de prueba activa para este usuario
-      localStorage.setItem('gestarian_test_user', form.email.trim().toLowerCase())
+      localStorage.setItem('gestarian_test_user', cleanEmail)
 
       setCompletado(true)
       showToast('¡Autorización concedida con éxito! Acceso concedido a GESTARIAN', 'success')

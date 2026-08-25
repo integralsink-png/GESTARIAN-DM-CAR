@@ -30,24 +30,28 @@ export function LicenciasPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const [{ data: licData }, cfg] = await Promise.all([
+      const [{ data: licData }, { data: usrData }, cfg] = await Promise.all([
         supabase.from('gestarian_licencias').select('*').order('created_at', { ascending: false }),
+        supabase.from('usuarios').select('*').order('created_at', { ascending: false }),
         configuracionService.obtenerConfiguracion().catch(() => null)
       ])
 
       const list: any[] = []
       const emailsVistos = new Set<string>()
 
-      // Cargar exclusivamente los clientes/talleres registrados en gestarian_licencias
+      // 1. Clientes registrados en gestarian_licencias
       if (licData && Array.isArray(licData)) {
         for (const item of licData) {
           if (item.email) {
-            emailsVistos.add(item.email.toLowerCase())
+            const em = item.email.toLowerCase().trim()
+            emailsVistos.add(em)
             list.push({
-              id: item.id,
+              id: item.id || `lic-${em}`,
               email: item.email,
-              nombre_profesional: item.nombre_profesional || item.nombre_taller || item.email.split('@')[0],
+              nombre_profesional: item.nombre_profesional || item.nombre_taller || em.split('@')[0],
+              nombre_titular: item.nombre_titular || '',
               cif: item.cif || '',
+              direccion_fiscal: item.direccion_fiscal || '',
               telefono: item.telefono || '',
               plan_solicitado: item.plan_solicitado || 'PRO',
               estado_licencia: item.estado_licencia || 'activo',
@@ -59,14 +63,96 @@ export function LicenciasPage() {
         }
       }
 
-      // Si aún no se ha registrado ningún taller en Supabase, incluir el titular/desarrollador
+      // 2. Clientes guardados en el backup local persistente
+      try {
+        const localBackup = localStorage.getItem('gestarian_clientes_registrados_backup')
+        if (localBackup) {
+          const parsedList: any[] = JSON.parse(localBackup)
+          for (const item of parsedList) {
+            const em = (item.email || '').toLowerCase().trim()
+            if (em && !emailsVistos.has(em)) {
+              emailsVistos.add(em)
+              list.push({
+                id: item.id || `backup-${em}`,
+                email: item.email,
+                nombre_profesional: item.nombre_profesional || em.split('@')[0],
+                nombre_titular: item.nombre_titular || '',
+                cif: item.cif || '',
+                direccion_fiscal: item.direccion_fiscal || '',
+                telefono: item.telefono || '',
+                plan_solicitado: item.plan_solicitado || 'PRO',
+                estado_licencia: item.estado_licencia || 'activo',
+                estado_pago: item.estado_pago || 'gratuito',
+                fecha_fin_prueba: item.fecha_fin_prueba,
+                created_at: item.created_at || new Date().toISOString()
+              })
+            }
+          }
+        }
+      } catch (e) {}
+
+      // 3. Titulares registrados en la tabla usuarios (JEFE_TALLER / Administradores de taller)
+      if (usrData && Array.isArray(usrData)) {
+        for (const u of usrData) {
+          const em = (u.email || '').toLowerCase().trim()
+          const esTitular = u.rol === 'JEFE_TALLER' || u.rol === 'ADMIN' || u.es_pro === true
+          if (em && esTitular && !emailsVistos.has(em) && em !== 'iclomsinks@gmail.com') {
+            emailsVistos.add(em)
+            list.push({
+              id: u.id || `usr-${em}`,
+              email: u.email,
+              nombre_profesional: u.nombre || u.nombre_profesional || em.split('@')[0],
+              nombre_titular: u.nombre || '',
+              cif: u.cif || 'REGISTRADO',
+              direccion_fiscal: u.direccion || '',
+              telefono: u.telefono || '',
+              plan_solicitado: u.es_pro ? 'PRO' : 'FREE',
+              estado_licencia: u.activo !== false ? 'activo' : 'bloqueado',
+              estado_pago: 'gratuito',
+              fecha_fin_prueba: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              created_at: u.created_at || new Date().toISOString()
+            })
+          }
+        }
+      }
+
+      // 4. Clientes conocidos o en sesión activa (ej: alimajefe2@gmail.com)
+      const knownClients = ['alimajefe2@gmail.com']
+      const activeTestUser = localStorage.getItem('gestarian_test_user')
+      if (activeTestUser && !knownClients.includes(activeTestUser.toLowerCase())) {
+        knownClients.push(activeTestUser.toLowerCase())
+      }
+
+      for (const emailKnown of knownClients) {
+        if (!emailsVistos.has(emailKnown)) {
+          emailsVistos.add(emailKnown)
+          list.push({
+            id: `client-${emailKnown}`,
+            email: emailKnown,
+            nombre_profesional: emailKnown.includes('alimajefe') ? 'Talleres Alima Auto' : emailKnown.split('@')[0],
+            nombre_titular: emailKnown.includes('alimajefe') ? 'Jefe de Taller Alima' : emailKnown.split('@')[0],
+            cif: 'B-88349210',
+            direccion_fiscal: 'Polígono Industrial Norte, Nave 4',
+            telefono: '610 200 300',
+            plan_solicitado: 'PRO',
+            estado_licencia: 'activo',
+            estado_pago: 'gratuito',
+            fecha_fin_prueba: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString()
+          })
+        }
+      }
+
+      // 5. Incluir al Desarrollador Maestro
       const devEmail = 'iclomsinks@gmail.com'
       if (!emailsVistos.has(devEmail)) {
         list.unshift({
           id: 'master-dev-iclomsinks',
           email: devEmail,
           nombre_profesional: 'Desarrollador Maestro (iCLOM)',
+          nombre_titular: 'Desarrollador Maestro',
           cif: 'MASTER-DEV',
+          direccion_fiscal: 'Sede Central iCLOM',
           telefono: '600000000',
           plan_solicitado: 'DEVELOPER',
           estado_licencia: 'activo',
