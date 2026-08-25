@@ -7,6 +7,7 @@
 import type { AiAssistantConfig, FallbackAiConfig } from '../lib/types';
 import { getMetisKnowledgePrompt } from '../ai/metisKnowledge';
 import { geminiSupportsSystemInstruction } from '../lib/geminiCompat';
+import { supabase } from '../lib/supabase';
 
 export interface AIResponse {
   text: string;
@@ -28,6 +29,33 @@ export function getAiConfig(): AiAssistantConfig {
     api_key: localStorage.getItem('gestarian_gemini_api_key') || '',
     status: 'disconnected'
   };
+}
+
+export async function fetchAiConfigFromSupabase(): Promise<AiAssistantConfig> {
+  const current = getAiConfig();
+  if (current.api_key) return current;
+
+  try {
+    const { data } = await supabase.from('configuracion').select('ai_provider, ai_model, ai_api_key').eq('id', 1).maybeSingle();
+    if (data && data.ai_api_key) {
+      localStorage.setItem('gestarian_gemini_api_key', data.ai_api_key);
+      localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify({
+        provider: data.ai_provider || 'gemini',
+        model: data.ai_model || 'gemini-3.7-flash',
+        api_key: data.ai_api_key,
+        status: 'connected'
+      }));
+      return {
+        provider: (data.ai_provider as any) || 'gemini',
+        model: data.ai_model || 'gemini-3.7-flash',
+        api_key: data.ai_api_key,
+        status: 'connected'
+      };
+    }
+  } catch (e) {
+    console.warn('Error recuperando config IA de Supabase:', e);
+  }
+  return current;
 }
 
 export function getFallbackConfig(): FallbackAiConfig {
@@ -119,7 +147,10 @@ export async function testAiConnection(config: AiAssistantConfig | FallbackAiCon
  * Procesa instrucciones en lenguaje coloquial en español enviadas al Asistente IA de GESTARIAN
  */
 export async function processAiInstruction(userMessage: string, contextData?: any): Promise<AIResponse> {
-  const config = getAiConfig();
+  let config = getAiConfig();
+  if (!config.api_key) {
+    config = await fetchAiConfigFromSupabase();
+  }
   const fallback = getFallbackConfig();
 
   // Prompt del sistema para la comprensión coloquial en español de España y dialecto andaluz en GESTARIAN

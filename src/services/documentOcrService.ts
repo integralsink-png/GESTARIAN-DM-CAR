@@ -7,6 +7,7 @@
 
 import type { DocumentOcrConfig } from '../lib/types';
 import { extractTextFromImage as tesseractExtract } from '../lib/ocrService';
+import { supabase } from '../lib/supabase';
 
 export interface StructuredInvoiceData {
   proveedor?: string;
@@ -32,6 +33,32 @@ export function getDocumentOcrConfig(): DocumentOcrConfig {
     api_key: localStorage.getItem('gestarian_gemini_api_key') || '',
     status: 'disconnected'
   };
+}
+
+export async function fetchDocOcrConfigFromSupabase(): Promise<DocumentOcrConfig> {
+  const current = getDocumentOcrConfig();
+  if (current.api_key) return current;
+
+  try {
+    const { data } = await supabase.from('configuracion').select('doc_ocr_provider, doc_ocr_model, doc_ocr_api_key').eq('id', 1).maybeSingle();
+    if (data && data.doc_ocr_api_key) {
+      localStorage.setItem('gestarian_document_ocr_config', JSON.stringify({
+        provider: data.doc_ocr_provider || 'gemini',
+        model: data.doc_ocr_model || 'gemini-3.7-flash',
+        api_key: data.doc_ocr_api_key,
+        status: 'connected'
+      }));
+      return {
+        provider: (data.doc_ocr_provider as any) || 'gemini',
+        model: data.doc_ocr_model || 'gemini-3.7-flash',
+        api_key: data.doc_ocr_api_key,
+        status: 'connected'
+      };
+    }
+  } catch (e) {
+    console.warn('Error recuperando config OCR de Supabase:', e);
+  }
+  return current;
 }
 
 export async function testDocumentOcrConnection(config: DocumentOcrConfig): Promise<{ success: boolean; message: string }> {
@@ -104,7 +131,10 @@ async function fileOrUrlToBase64(fileOrUrl: string | File): Promise<{ base64Data
  * y devuelve datos estandarizados en JSON estricto sin inventar nada.
  */
 export async function processDocumentOcr(imageFileOrUrl: string | File): Promise<StructuredInvoiceData> {
-  const config = getDocumentOcrConfig();
+  let config = getDocumentOcrConfig();
+  if (!config.api_key) {
+    config = await fetchDocOcrConfigFromSupabase();
+  }
 
   // Si tenemos API Key de Gemini, usar Gemini 1.5 Flash Multimodal Directo
   if (config.provider === 'gemini' && config.api_key) {
