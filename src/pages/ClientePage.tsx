@@ -1020,11 +1020,11 @@ export function ClientePage() {
                                       </div>
 
                                       {/* SIGUIENTE LÍNEA: DD/MM/AA (TAMAÑO x2) Y HORA 00:00 (TAMAÑO x1.5) SIN 'Fecha:' NI 'h' */}
-                                      <div className="flex items-baseline gap-4 text-slate-200 py-1.5">
+                                      <div className="flex items-baseline justify-between text-slate-200 py-1.5 w-full">
                                         <span className="text-white font-mono font-black text-3xl sm:text-4xl tracking-tight">
                                           {fechaShort}
                                         </span>
-                                        <span className="text-cyan-400 font-mono font-black text-2xl sm:text-3xl">
+                                        <span className="text-cyan-400 font-mono font-black text-3xl sm:text-4xl tracking-tight text-right">
                                           {horaStr}
                                         </span>
                                       </div>
