@@ -407,7 +407,7 @@ export function RegistroUsuarioTallerPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-[90%] py-4 px-6 rounded-2xl bg-black/90 hover:bg-black text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-wider border-[3px] border-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.35)] hover:shadow-[0_0_30px_rgba(6,182,212,0.6)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
+            className="w-[90%] py-4 px-6 rounded-2xl bg-black/90 hover:bg-black text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-wider border border-cyan-200/90 shadow-[0_0_15px_rgba(6,182,212,0.45)] hover:shadow-[0_0_25px_rgba(6,182,212,0.7)] transition-all active:scale-[0.99] flex items-center justify-center text-center cursor-pointer disabled:opacity-50"
           >
             <span>{loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO (GRATUITO)'}</span>
           </button>
