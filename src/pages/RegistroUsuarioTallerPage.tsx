@@ -170,8 +170,8 @@ export function RegistroUsuarioTallerPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6 pb-20 p-2 sm:p-4">
       <PageHeader
-        title="Registro de usuario GESTARIAN"
-        subtitle="Registro de usuario GESTARIAN"
+        title="GESTARIAN"
+        subtitle="Registro de Usuario"
       >
         <button
           onClick={() => navigate('/configuracion')}
