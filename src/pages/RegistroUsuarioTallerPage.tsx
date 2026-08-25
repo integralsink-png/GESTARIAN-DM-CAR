@@ -203,7 +203,7 @@ export function RegistroUsuarioTallerPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { id: 'FREE', title: 'GESTARIAN FREE', desc: 'Hasta 3 empleados autorizados', badge: '0.00 € / mes' },
+              { id: 'FREE', title: 'GESTARIAN FREE', desc: 'Hasta 3 empleados autorizados', badge: '0.00 € (Siempre Gratis)' },
               { id: 'PRO', title: 'GESTARIAN PRO', desc: 'Empleados ilimitados + OCR + IA', badge: '0.00 € (En Promoción)' },
               { id: 'ENTERPRISE', title: 'ENTERPRISE', desc: 'Multi-taller y franquicias', badge: '0.00 € (En Promoción)' }
             ].map((p) => {
