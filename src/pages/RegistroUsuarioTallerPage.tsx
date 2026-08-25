@@ -412,9 +412,9 @@ export function RegistroUsuarioTallerPage() {
             <div className="w-full mx-auto flex flex-col items-center justify-center leading-tight">
               <span 
                 className="w-full block text-center font-black tracking-wide whitespace-nowrap overflow-hidden text-ellipsis"
-                style={{ fontSize: 'clamp(0.75rem, 3.3vw, 1.15rem)' }}
+                style={{ fontSize: 'clamp(0.98rem, 4.3vw, 1.5rem)' }}
               >
-                {loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITAR AUTORIZACIÓN DE USO'}
+                {loading ? 'PROCESANDO AUTORIZACIÓN...' : 'SOLICITUD AUTORIZACIÓN DE USO'}
               </span>
               {!loading && (
                 <span 
