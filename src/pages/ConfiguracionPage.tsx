@@ -1444,56 +1444,67 @@ export function ConfiguracionPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Email Remitente (From)</label>
-                  <input
-                    type="email"
-                    value={config.email_from ?? ''}
-                    onChange={(e) => setConfig({ ...config, email_from: e.target.value })}
-                    placeholder="notificaciones@taller.es"
-                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
-                  />
-                </div>
+                {/* Configuración Técnica Avanzada de Envíos (Solo Desarrollador) */}
+                {esDev && vistaModo === 'desarrollador' && (
+                  <div className="pt-3 border-t border-slate-800 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black text-amber-400 uppercase tracking-wider">
+                        ⚡ Conectores de Comunicación (Modo Desarrollador)
+                      </span>
+                    </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-400 mb-1">Email API Key (Resend / SendGrid)</label>
-                  <input
-                    type="password"
-                    value={config.email_api_key ?? ''}
-                    onChange={(e) => setConfig({ ...config, email_api_key: e.target.value })}
-                    placeholder="re_123456789..."
-                    className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Email Remitente (From)</label>
+                      <input
+                        type="email"
+                        value={config.email_from ?? ''}
+                        onChange={(e) => setConfig({ ...config, email_from: e.target.value })}
+                        placeholder="notificaciones@taller.es"
+                        className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                      />
+                    </div>
 
-                <div className="pt-2 border-t border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-emerald-400">WhatsApp Business API</span>
-                    <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Preparado (Desactivado)</span>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-400 mb-1">Email API Key (Resend / SendGrid)</label>
+                      <input
+                        type="password"
+                        value={config.email_api_key ?? ''}
+                        onChange={(e) => setConfig({ ...config, email_api_key: e.target.value })}
+                        placeholder="re_123456789..."
+                        className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
+                      />
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-emerald-400">WhatsApp Business API</span>
+                        <span className="text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">Preparado (Desactivado)</span>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Phone Number ID</label>
+                        <input
+                          type="text"
+                          value={config.whatsapp_phone_number_id ?? ''}
+                          onChange={(e) => setConfig({ ...config, whatsapp_phone_number_id: e.target.value })}
+                          placeholder="1092837465..."
+                          className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Access Token</label>
+                        <input
+                          type="password"
+                          value={config.whatsapp_api_key ?? ''}
+                          onChange={(e) => setConfig({ ...config, whatsapp_api_key: e.target.value })}
+                          placeholder="EAA..."
+                          className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
+                        />
+                      </div>
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Phone Number ID</label>
-                    <input
-                      type="text"
-                      value={config.whatsapp_phone_number_id ?? ''}
-                      onChange={(e) => setConfig({ ...config, whatsapp_phone_number_id: e.target.value })}
-                      placeholder="1092837465..."
-                      className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-semibold"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-400 mb-1">WhatsApp Access Token</label>
-                    <input
-                      type="password"
-                      value={config.whatsapp_api_key ?? ''}
-                      onChange={(e) => setConfig({ ...config, whatsapp_api_key: e.target.value })}
-                      placeholder="EAA..."
-                      className="w-full bg-[#111827] text-white rounded-2xl px-4 py-3 border border-slate-800 focus:border-cyan-500 focus:outline-none text-sm font-mono"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
             </Card>
           </div>
