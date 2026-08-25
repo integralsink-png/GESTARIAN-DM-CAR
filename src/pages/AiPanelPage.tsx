@@ -17,7 +17,7 @@ export function AiPanelPage() {
   // Formulario para nueva config
   const [servicio, setServicio] = useState('metis')
   const [proveedorId, setProveedorId] = useState('google')
-  const [modeloId, setModeloId] = useState('gemini-1.5-flash')
+  const [modeloId, setModeloId] = useState('gemini-3.5-flash')
   const [apiKey, setApiKey] = useState('')
   const [showKey, setShowKey] = useState(false)
 

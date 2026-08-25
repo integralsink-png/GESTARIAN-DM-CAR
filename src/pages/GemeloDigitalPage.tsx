@@ -34,6 +34,7 @@ import {
   Database,
   ArrowLeft
 } from 'lucide-react'
+import { speakSpanish, stopSpanishSpeech, initSpanishVoice } from '../services/voiceService'
 
 // ─────────────────────────────────────────────────────────────
 // ESTRUCTURA DE NODOS DEL GEMELO DIGITAL
@@ -345,23 +346,15 @@ export function GemeloDigitalPage() {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // LOCUCIÓN CON WEB SPEECH API
+  // LOCUCIÓN CON SERVICIO UNIVERSAL EN ESPAÑOL
   // ─────────────────────────────────────────────────────────────
   const speakNarration = (text: string) => {
-    if (!voiceEnabled || !('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
-
-    const utterance = new SpeechSynthesisUtterance(text)
-    utterance.lang = 'es-ES'
-    utterance.rate = 1.05
-    utterance.pitch = 1.0
-
-    // Buscar voz española con buen tono
-    const voices = window.speechSynthesis.getVoices()
-    const spanishVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Castilian')))
-    if (spanishVoice) utterance.voice = spanishVoice
-
-    window.speechSynthesis.speak(utterance)
+    if (!voiceEnabled) return
+    speakSpanish(text, {
+      rate: 1.04,
+      pitch: 1.0,
+      volume: 1.0
+    })
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -369,7 +362,7 @@ export function GemeloDigitalPage() {
   // ─────────────────────────────────────────────────────────────
   useEffect(() => {
     if (!isPlayingTour) {
-      window.speechSynthesis.cancel()
+      stopSpanishSpeech()
       setVirtualPointer(prev => ({ ...prev, visible: false }))
       if (tourTimerRef.current) clearTimeout(tourTimerRef.current)
       return

@@ -29,7 +29,7 @@ export function getDocumentOcrConfig(): DocumentOcrConfig {
   }
   return {
     provider: 'gemini',
-    model: localStorage.getItem('gestarian_document_ocr_model') || 'gemini-2.0-flash',
+    model: localStorage.getItem('gestarian_document_ocr_model') || 'gemini-3.5-flash',
     api_key: localStorage.getItem('gestarian_gemini_api_key') || '',
     status: 'disconnected'
   };
@@ -44,13 +44,13 @@ export async function fetchDocOcrConfigFromSupabase(): Promise<DocumentOcrConfig
     if (data && data.doc_ocr_api_key) {
       localStorage.setItem('gestarian_document_ocr_config', JSON.stringify({
         provider: data.doc_ocr_provider || 'gemini',
-        model: data.doc_ocr_model || 'gemini-3.7-flash',
+        model: data.doc_ocr_model || 'gemini-3.5-flash',
         api_key: data.doc_ocr_api_key,
         status: 'connected'
       }));
       return {
         provider: (data.doc_ocr_provider as any) || 'gemini',
-        model: data.doc_ocr_model || 'gemini-3.7-flash',
+        model: data.doc_ocr_model || 'gemini-3.5-flash',
         api_key: data.doc_ocr_api_key,
         status: 'connected'
       };
@@ -69,10 +69,10 @@ export async function testDocumentOcrConnection(config: DocumentOcrConfig): Prom
   try {
     if (config.provider === 'gemini') {
       const modelsToTry = [
-        config.model || 'gemini-1.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
-        'gemini-2.5-flash'
+        config.model || 'gemini-3.5-flash',
+        'gemini-3.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash'
       ];
       // Eliminar duplicados manteniendo orden
       const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
@@ -187,10 +187,10 @@ Responde ÚNICAMENTE un objeto JSON válido con esta estructura:
 }`
 
       const modelsToTry = [
-        config.model || 'gemini-1.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
-        'gemini-2.5-flash'
+        config.model || 'gemini-3.5-flash',
+        'gemini-3.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash'
       ];
       const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
 

@@ -18,14 +18,11 @@ export const AI_PROVIDERS: AIProvider[] = [
     name: 'Google Gemini (AI Pro)',
     urlApiKey: 'https://aistudio.google.com/app/apikey',
     models: [
-      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash ⭐ Recomendado', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash ⭐ (Recomendado)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
       { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash (Ultra Rápido)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-1.5-flash-latest', name: 'Gemini 1.5 Flash (Latest)', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
-      { id: 'gemini-2.0-pro-exp', name: 'Gemini 2.0 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', isFree: true, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-3.5-pro', name: 'Gemini 3.5 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
+      { id: 'gemini-3.7-pro', name: 'Gemini 3.7 Pro', isFree: false, capabilities: ['text', 'vision', 'ocr', 'json'] },
     ]
   },
   {

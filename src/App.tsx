@@ -60,7 +60,7 @@ function BackgroundImage() {
           localStorage.setItem('gestarian_gemini_api_key', data.ai_api_key)
           localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify({
             provider: data.ai_provider || 'gemini',
-            model: data.ai_model || 'gemini-3.7-flash',
+            model: data.ai_model || 'gemini-3.5-flash',
             api_key: data.ai_api_key,
             status: 'connected'
           }))
@@ -68,7 +68,7 @@ function BackgroundImage() {
         if (data.doc_ocr_api_key) {
           localStorage.setItem('gestarian_document_ocr_config', JSON.stringify({
             provider: data.doc_ocr_provider || 'gemini',
-            model: data.doc_ocr_model || 'gemini-3.7-flash',
+            model: data.doc_ocr_model || 'gemini-3.5-flash',
             api_key: data.doc_ocr_api_key,
             status: 'connected'
           }))

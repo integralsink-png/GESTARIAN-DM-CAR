@@ -337,19 +337,19 @@ PERSONALIDAD Y VOZ:
     "navigationPath": "/" | "/presupuestos" | "/presupuesto-hibrido" | "/citas" | "/clientes" | "/cliente-admin/:id" | "/vehiculo-admin/:id" | "/expedientes" | "/expediente/:vehiculoId" | "/reparaciones" | "/facturas" | "/balances" | "/proveedores" | "/incidencias" | "/usuarios" | "/configuracion" | "/asignar-cita" | "/cliente/:token"
 - Si es una consulta o conversación, devuelve el JSON con "text" respondiendo directamente con la información cruzada de la base de datos.`
 
-  // Modelos preferentes por orden: 3.7 → 3.6 → 3.5
-  const PREFERRED_MODELS = ['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash']
+  // Modelos vigentes serie 3 por orden de preferencia y estabilidad
+  const PREFERRED_MODELS = ['gemini-3.5-flash', 'gemini-3.6-flash', 'gemini-3.7-flash', 'gemini-3.5-pro', 'gemini-3.7-pro']
 
   const aiConfig = localStorage.getItem('gestarian_ai_assistant_config')
-  let selectedModel = PREFERRED_MODELS[0] // gemini-3.7-flash por defecto
+  let selectedModel = PREFERRED_MODELS[0] // gemini-3.5-flash por defecto
   if (aiConfig) {
     try {
       const parsed = JSON.parse(aiConfig)
-      // Migración automática: si el modelo guardado es el antiguo 2.0-flash, actualizar al preferente
-      if (parsed.model && parsed.model !== 'gemini-2.0-flash' && parsed.model !== 'gemini-2.0-flash-exp') {
+      // Migración automática: si el modelo guardado es de la serie 1 o 2 (obsoletos), actualizar a serie 3
+      if (parsed.model && !parsed.model.startsWith('gemini-1') && !parsed.model.startsWith('gemini-2')) {
         selectedModel = parsed.model
-      } else if (parsed.model === 'gemini-2.0-flash' || parsed.model === 'gemini-2.0-flash-exp') {
-        // Migración silenciosa al nuevo modelo preferente
+      } else {
+        // Migración silenciosa al nuevo modelo serie 3
         selectedModel = PREFERRED_MODELS[0]
         parsed.model = selectedModel
         localStorage.setItem('gestarian_ai_assistant_config', JSON.stringify(parsed))

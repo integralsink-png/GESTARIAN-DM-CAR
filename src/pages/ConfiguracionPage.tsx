@@ -34,14 +34,14 @@ export function ConfiguracionPage() {
   // ----------------------------------------------------
   // 1. Ayudante IA
   const [aiProvider, setAiProvider] = useState<'gemini' | 'groq' | 'openai'>('gemini')
-  const [aiModel, setAiModel] = useState('gemini-1.5-flash')
+  const [aiModel, setAiModel] = useState('gemini-3.5-flash')
   const [aiApiKey, setAiApiKey] = useState('')
   const [showAiKey, setShowAiKey] = useState(false)
   const [aiStatus, setAiStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
 
   // 2. OCR Documentos
   const [docOcrProvider, setDocOcrProvider] = useState<'gemini' | 'tesseract'>('gemini')
-  const [docOcrModel, setDocOcrModel] = useState('gemini-1.5-flash')
+  const [docOcrModel, setDocOcrModel] = useState('gemini-3.5-flash')
   const [docOcrApiKey, setDocOcrApiKey] = useState('')
   const [showDocOcrKey, setShowDocOcrKey] = useState(false)
   const [docOcrStatus, setDocOcrStatus] = useState<'connected' | 'disconnected' | 'testing' | 'error'>('disconnected')
@@ -611,7 +611,7 @@ export function ConfiguracionPage() {
                   checked={['gemini-3.7-flash', 'gemini-3.6-flash', 'gemini-3.5-flash'].includes(aiModel)}
                   onChange={(e) => {
                     if (e.target.checked) setAiModel('gemini-3.7-flash')
-                    else setAiModel('gemini-2.5-flash')
+                    else setAiModel('gemini-3.5-flash')
                   }}
                   sx={{ '& .MuiSwitch-thumb': { bgcolor: '#10b981' }, '& .Mui-checked + .MuiSwitch-track': { bgcolor: '#10b981' } }}
                 />
@@ -652,7 +652,7 @@ export function ConfiguracionPage() {
                     onChange={(e) => {
                       const p = e.target.value as any
                       setAiProvider(p)
-                      const firstModel = AI_CATALOG[p]?.models[0]?.id || 'gemini-1.5-flash'
+                      const firstModel = AI_CATALOG[p]?.models[0]?.id || 'gemini-3.5-flash'
                       setAiModel(firstModel)
                     }}
                     className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs font-bold text-white focus:outline-none cursor-pointer"
@@ -749,7 +749,7 @@ export function ConfiguracionPage() {
                     onChange={(e) => {
                       const p = e.target.value as any
                       setDocOcrProvider(p)
-                      if (p === 'gemini') setDocOcrModel('gemini-1.5-flash')
+                      if (p === 'gemini') setDocOcrModel('gemini-3.5-flash')
                       else if (p === 'openai') setDocOcrModel('gpt-4o-mini')
                       else if (p === 'anthropic') setDocOcrModel('claude-3-5-haiku-20241022')
                       else if (p === 'tesseract') setDocOcrModel('tesseract-local')
@@ -1029,7 +1029,7 @@ export function ConfiguracionPage() {
                     [
                       { id: 'deepseek/deepseek-chat:free', label: 'DeepSeek V3 (Free) ⭐' },
                       { id: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 (Free)' },
-                      { id: 'google/gemini-2.0-flash-thinking-exp:free', label: 'Gemini 2.0 Free' },
+                      { id: 'deepseek/deepseek-r1:free', label: 'DeepSeek R1 (Free)' },
                     ].map(m => (
                       <button
                         key={m.id}

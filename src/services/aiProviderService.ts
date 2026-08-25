@@ -80,10 +80,10 @@ export async function testAiConnection(config: AiAssistantConfig | FallbackAiCon
   try {
     if (config.provider === 'gemini') {
       const modelsToTry = [
-        config.model || 'gemini-1.5-flash',
-        'gemini-1.5-flash',
-        'gemini-2.0-flash',
-        'gemini-2.5-flash'
+        config.model || 'gemini-3.5-flash',
+        'gemini-3.5-flash',
+        'gemini-3.6-flash',
+        'gemini-3.7-flash'
       ];
       const uniqueModels = Array.from(new Set(modelsToTry.filter(Boolean)));
 

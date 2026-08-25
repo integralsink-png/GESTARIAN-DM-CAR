@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Radio, Mic, MicOff, Volume2, Loader2, Sparkles, PhoneOff } from 'lucide-react';
 import { processMetisMessage } from '../lib/metisAiEngine';
 import { transcribeAudio } from '../services/aiProviderService';
+import { speakSpanish, stopSpanishSpeech, initSpanishVoice } from '../services/voiceService';
 
 export const MetisVoiceCall: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
@@ -41,7 +42,7 @@ export const MetisVoiceCall: React.FC = () => {
       mediaRecorderRef.current.onstop = null; // Prevent triggering transcription
       mediaRecorderRef.current.stop();
     }
-    window.speechSynthesis.cancel();
+    stopSpanishSpeech();
     stopAudioTracks();
   }, [stopAudioTracks]);
 
@@ -151,12 +152,6 @@ export const MetisVoiceCall: React.FC = () => {
 
   const speakResponse = (text: string) => {
     setStatus('speaking');
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-ES';
-    
-    const voices = window.speechSynthesis.getVoices();
-    const googleEs = voices.find(v => v.name.includes('Google español') || v.lang === 'es-ES' || v.lang === 'es_ES');
-    if (googleEs) utterance.voice = googleEs;
 
     const onTTSFinished = () => {
       if (isActiveRef.current) {
@@ -165,10 +160,13 @@ export const MetisVoiceCall: React.FC = () => {
       }
     };
 
-    utterance.onend = onTTSFinished;
-    utterance.onerror = onTTSFinished;
-
-    window.speechSynthesis.speak(utterance);
+    speakSpanish(text, {
+      rate: 1.05,
+      pitch: 1.0,
+      volume: 1.0,
+      onEnd: onTTSFinished,
+      onError: onTTSFinished
+    });
   };
 
   const toggleCall = () => {
@@ -179,7 +177,7 @@ export const MetisVoiceCall: React.FC = () => {
       setIsActive(true);
       setShowModal(true);
       setStatus('listening');
-      window.speechSynthesis.cancel();
+      stopSpanishSpeech();
       // Inicializar micrófono y MediaRecorder
       setTimeout(() => startListening(), 100);
     }

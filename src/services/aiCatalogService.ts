@@ -35,12 +35,11 @@ export const AI_CATALOG: Record<string, ProviderInfo> = {
     keyPrefix: 'AIzaSy',
     websiteUrl: 'https://aistudio.google.com/',
     models: [
-      { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Alta velocidad, cuota amplia de 15 RPM en free tier y excelente para OCR.', badge: 'Recomendado', isMultimodal: true, status: 'active' },
-      { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Nueva generación rápida con soporte nativo de imagen y audio.', badge: 'Ultra-Rápido', isMultimodal: true, status: 'active' },
-      { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Motor optimizado de última hornada para respuestas en tiempo real.', badge: 'Popular', isMultimodal: true, status: 'active' },
-      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Alta velocidad y eficiencia en extracción de conceptos.', badge: 'Ultra-Rápido', isMultimodal: true, status: 'active' },
-      { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'Máxima capacidad analítica para razonamiento complejo y análisis de documentos largos.', badge: 'Razonamiento', isMultimodal: true, status: 'active' },
-      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', description: 'Modelo híbrido experimental de última generación (requiere cuota disponible).', isMultimodal: true, status: 'active' }
+      { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Alta velocidad, ultra-rápido y con cuota estable y soporte completo de visión OCR.', badge: 'Recomendado', isMultimodal: true, status: 'active' },
+      { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', description: 'Modelo rápido y optimizado para análisis de taller.', badge: 'Ultra-Rápido', isMultimodal: true, status: 'active' },
+      { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', description: 'Modelo híbrido de última generación.', badge: 'Popular', isMultimodal: true, status: 'active' },
+      { id: 'gemini-3.5-pro', name: 'Gemini 3.5 Pro', description: 'Máxima capacidad analítica para razonamiento y facturación compleja.', badge: 'Razonamiento', isMultimodal: true, status: 'active' },
+      { id: 'gemini-3.7-pro', name: 'Gemini 3.7 Pro', description: 'Modelo insignia de precisión avanzada.', badge: 'Razonamiento', isMultimodal: true, status: 'active' }
     ]
   },
 
@@ -103,7 +102,6 @@ export const AI_CATALOG: Record<string, ProviderInfo> = {
     models: [
       { id: 'deepseek/deepseek-chat:free', name: 'DeepSeek Chat (Gratis)', description: 'Acceso 100% gratuito a DeepSeek sin coste alguno.', badge: 'Gratuito', status: 'active' },
       { id: 'meta-llama/llama-3.3-70b-instruct:free', name: 'Llama 3.3 70B (Gratis)', description: 'Llama 3.3 70B gratuito con alta comprensión en español.', badge: 'Gratuito', status: 'active' },
-      { id: 'google/gemini-2.0-flash-exp:free', name: 'Gemini 2.0 Flash (Gratis)', description: 'Gemini 2.0 Flash gratuito a través de OpenRouter.', badge: 'Gratuito', isMultimodal: true, status: 'active' },
       { id: 'qwen/qwen-2.5-72b-instruct', name: 'Qwen 2.5 72B', description: 'Potente modelo con excelente comprensión técnica y contable.', status: 'active' },
       { id: 'deepseek/deepseek-r1:free', name: 'DeepSeek R1 Razonador (Gratis)', description: 'Modelo de razonamiento paso a paso gratuito.', badge: 'Gratuito', status: 'active' }
     ]
@@ -165,7 +163,7 @@ export async function runAiHealthCheck(): Promise<{ status: 'ok' | 'degraded' | 
 
     // 2. Verificar IA principal si es Gemini
     if (config.ai_api_key && config.ai_provider === 'gemini') {
-      const currentModel = config.ai_model || 'gemini-1.5-flash';
+      const currentModel = config.ai_model || 'gemini-3.5-flash';
       try {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${config.ai_api_key}`,
@@ -178,15 +176,15 @@ export async function runAiHealthCheck(): Promise<{ status: 'ok' | 'degraded' | 
 
         if (!res.ok) {
           if (res.status === 429 || res.status === 503) {
-            report.push(`Modelo principal ${currentModel} saturado (HTTP ${res.status}). Conmutando automáticamente a gemini-1.5-flash.`);
+            report.push(`Modelo principal ${currentModel} saturado (HTTP ${res.status}). Conmutando automáticamente a gemini-3.5-flash.`);
             degraded = true;
-            // Sincronizar en local el modelo de rescate estable
-            localStorage.setItem('gestarian_gemini_model', 'gemini-1.5-flash');
+            // Sincronizar en local el modelo de rescate estable serie 3
+            localStorage.setItem('gestarian_gemini_model', 'gemini-3.5-flash');
           } else if (res.status === 404 || res.status === 410) {
-            report.push(`Modelo ${currentModel} deprecado por Google. Migrado automáticamente a gemini-1.5-flash.`);
+            report.push(`Modelo ${currentModel} deprecado por Google. Migrado automáticamente a gemini-3.5-flash.`);
             degraded = true;
-            await supabase.from('configuracion').update({ ai_model: 'gemini-1.5-flash' }).eq('id', 1);
-            localStorage.setItem('gestarian_gemini_model', 'gemini-1.5-flash');
+            await supabase.from('configuracion').update({ ai_model: 'gemini-3.5-flash' }).eq('id', 1);
+            localStorage.setItem('gestarian_gemini_model', 'gemini-3.5-flash');
           }
         } else {
           report.push(`IA Principal Gemini (${currentModel}): Operativo ✓`);
