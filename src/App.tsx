@@ -425,7 +425,7 @@ export default function App() {
 
   useEffect(() => {
     // Si estamos en la ruta del portal del cliente final o del Gemelo Digital o Consola Dev o Acceso de Empleado, permitir acceso directo
-    const path = window.location.pathname
+    const path = window.location.pathname.toLowerCase()
     if (
       path.startsWith('/cliente') ||
       path.startsWith('/acceso-cliente') ||
@@ -435,6 +435,7 @@ export default function App() {
       path.startsWith('/gemelo-digital') ||
       path.startsWith('/digital-twin') ||
       path.startsWith('/dev') ||
+      path.startsWith('/gestarian/dev') ||
       path.startsWith('/desarrollador')
     ) {
       setProfileReady(true)
@@ -530,6 +531,11 @@ export default function App() {
               <BrowserRouter>
                 <DevModeFloatingButton />
                 <Routes>
+                  <Route path="/GESTARIAN/DEV" element={<DeveloperAuthPage />} />
+                  <Route path="/gestarian/dev" element={<DeveloperAuthPage />} />
+                  <Route path="/gestarian/DEV" element={<DeveloperAuthPage />} />
+                  <Route path="/GESTARIAN/dev" element={<DeveloperAuthPage />} />
+                  <Route path="/DEV" element={<DeveloperAuthPage />} />
                   <Route path="/dev" element={<DeveloperAuthPage />} />
                   <Route path="/desarrollador" element={<DeveloperAuthPage />} />
                   <Route path="/gemelo-digital" element={<GemeloDigitalPage />} />
