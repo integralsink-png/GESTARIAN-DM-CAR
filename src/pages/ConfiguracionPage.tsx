@@ -5,7 +5,7 @@ import type { Configuracion, ThemePreset, TextColorValue, TextColorSettings } fr
 import { PageHeader, Card } from '../components/UI'
 import { useTheme, DEFAULT_THEME_SETTINGS } from '../lib/theme'
 import { Chip, Stack, Switch } from '@mui/material'
-import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog, ShieldCheck, Image as ImageIcon, Upload, Trash2 } from 'lucide-react'
+import { Save, Building2, Mail, Palette, Sparkles, History, ArrowLeft, Eye, EyeOff, CheckCircle2, XCircle, Bot, FileSearch, Car, HardDrive, RefreshCw, UserCog, ShieldCheck, Image as ImageIcon, Upload, Trash2, Layers } from 'lucide-react'
 import { CommunicationHistoryModal } from '../components/CommunicationHistoryModal'
 
 // Servicios centralizados
@@ -23,6 +23,7 @@ export function ConfiguracionPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [showHistoryModal, setShowHistoryModal] = useState(false)
+  const [mostrarMenuModos, setMostrarMenuModos] = useState(false)
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance } = useTheme()
 
   const perfil = getPerfil()
@@ -494,41 +495,120 @@ export function ConfiguracionPage() {
         </div>
       </PageHeader>
 
-      {/* SELECTOR DE MODO EXCLUSIVO PARA DESARROLLADOR */}
+      {/* CONTROL MAESTRO DE DESARROLLADOR Y ACCESO A MODOS */}
       {esDev && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-slate-900/90 border-2 border-indigo-500/40 shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black">
-              <ShieldCheck className="w-5 h-5" />
+        <div className="space-y-3">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3.5 rounded-2xl bg-slate-900/90 border-2 border-indigo-500/40 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-black">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-white uppercase tracking-wider">Control Maestro de Desarrollador</p>
+                <p className="text-[11px] text-slate-400">Accede directamente a cualquier entorno y modo de la aplicación</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-black text-white uppercase tracking-wider">Modo de Visualización de Configuración</p>
-              <p className="text-[11px] text-slate-400">Alterna para editar como Desarrollador o comprobar la vista del Usuario del Taller</p>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {/* Botón General: ENTRAR A MODOS */}
+              <button
+                type="button"
+                onClick={() => setMostrarMenuModos(!mostrarMenuModos)}
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer font-extrabold"
+              >
+                <Layers className="w-4 h-4 text-slate-950" />
+                <span>Entrar a Modos {mostrarMenuModos ? '▲' : '▼'}</span>
+              </button>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800 w-full sm:w-auto">
-            <button
-              onClick={() => setVistaModo('usuario')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                vistaModo === 'usuario'
-                  ? 'bg-teal-500 text-slate-950 shadow-[0_0_12px_rgba(20,184,166,0.6)] font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Configuración Usuario
-            </button>
-            <button
-              onClick={() => setVistaModo('desarrollador')}
-              className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
-                vistaModo === 'desarrollador'
-                  ? 'bg-indigo-600 text-white shadow-[0_0_12px_rgba(99,102,241,0.6)] font-extrabold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Configuración Desarrollador
-            </button>
-          </div>
+          {/* DESPLEGABLE: ACCESOS DIRECTOS A MODOS PARA DESARROLLO */}
+          {mostrarMenuModos && (
+            <div className="p-4 rounded-2xl bg-slate-900/95 border-2 border-amber-500/40 shadow-[0_0_30px_rgba(245,158,11,0.2)] animate-fade-in space-y-3">
+              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                <div className="flex items-center gap-2 text-amber-400 font-black text-xs uppercase tracking-wider">
+                  <Sparkles className="w-4 h-4" />
+                  <span>MODOS DE LA APLICACIÓN (ACCESO RÁPIDO DESARROLLADOR)</span>
+                </div>
+                <span className="text-[10px] text-slate-400">
+                  Podrás volver aquí en cualquier momento con el botón flotante superior
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                {/* 1. Formulario Registro */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/registro-taller')}
+                  className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/40 hover:border-emerald-400 text-left transition-all hover:scale-[1.02] active:scale-95 group cursor-pointer shadow-md"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider group-hover:text-emerald-300">
+                      1. Formulario Registro
+                    </span>
+                    <Building2 className="w-4 h-4 text-emerald-400" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Alta de nuevos talleres y datos fiscales de clientes GESTARIAN
+                  </p>
+                </button>
+
+                {/* 2. Modo Usuario */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    localStorage.setItem('gestarian_dev_mode', 'false')
+                    navigate('/')
+                  }}
+                  className="p-3.5 rounded-xl bg-slate-950 border border-cyan-500/40 hover:border-cyan-400 text-left transition-all hover:scale-[1.02] active:scale-95 group cursor-pointer shadow-md"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black text-cyan-400 uppercase tracking-wider group-hover:text-cyan-300">
+                      2. Modo Usuario
+                    </span>
+                    <UserCog className="w-4 h-4 text-cyan-400" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Panel del titular/administrador de taller (Gestión interna)
+                  </p>
+                </button>
+
+                {/* 3. Área de Cliente */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/cliente/acceso')}
+                  className="p-3.5 rounded-xl bg-slate-950 border border-blue-500/40 hover:border-blue-400 text-left transition-all hover:scale-[1.02] active:scale-95 group cursor-pointer shadow-md"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black text-blue-400 uppercase tracking-wider group-hover:text-blue-300">
+                      3. Área de Cliente
+                    </span>
+                    <Car className="w-4 h-4 text-blue-400" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Portal de consulta y seguimiento para conductores
+                  </p>
+                </button>
+
+                {/* 4. Modo Empleado */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/acceso-empleado')}
+                  className="p-3.5 rounded-xl bg-slate-950 border border-indigo-500/40 hover:border-indigo-400 text-left transition-all hover:scale-[1.02] active:scale-95 group cursor-pointer shadow-md"
+                >
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-xs font-black text-indigo-400 uppercase tracking-wider group-hover:text-indigo-300">
+                      4. Modo Empleado
+                    </span>
+                    <Bot className="w-4 h-4 text-indigo-400" />
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-snug">
+                    Portal de personal autorizado para órdenes de trabajo
+                  </p>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

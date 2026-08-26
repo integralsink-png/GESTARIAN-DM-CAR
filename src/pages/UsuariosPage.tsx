@@ -103,6 +103,28 @@ export function UsuariosPage() {
         </button>
       </PageHeader>
 
+      {/* Banner Informativo si se accede en Modo Desarrollador */}
+      {perfil?.esDeveloper && (
+        <div className="p-3.5 rounded-2xl bg-indigo-950/40 border-2 border-indigo-500/50 flex items-center justify-between gap-3 text-xs shadow-md">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center font-bold">
+              🛠️
+            </div>
+            <div>
+              <span className="font-black text-indigo-200 uppercase tracking-wider block">
+                MODO DESARROLLADOR: VISTA DE PERSONAL AUTORIZADO
+              </span>
+              <span className="text-slate-400 text-[11px]">
+                Acceso habilitado para diseño y edición de la página. Los datos reales introducidos por el usuario titular están protegidos.
+              </span>
+            </div>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-indigo-500/30 text-indigo-300 border border-indigo-500/40 uppercase">
+            Vista Dev
+          </span>
+        </div>
+      )}
+
       {/* Banner de Estado del Plan y Contador de Empleados */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md">
         <div className="flex items-center gap-3">

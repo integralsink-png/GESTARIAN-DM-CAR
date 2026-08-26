@@ -989,3 +989,35 @@ select:focus {
   transform: none !important;
 }
 
+/* ── Regla Global: Centrado y ajuste superior de ventanas/tarjetas/desplegables requeridos ── */
+/* Cuando una tarjeta, modal o menú desplegable desborda por abajo, se ancla y ajusta automáticamente
+   su parte superior bajo el header del dispositivo permitiendo scroll suave e inicio de visualización completo */
+.modal-container-auto-fit,
+[role="dialog"],
+.fixed.inset-0 {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: center !important;
+  padding-top: max(env(safe-area-inset-top, 16px), 1.5rem) !important;
+  padding-bottom: max(env(safe-area-inset-bottom, 16px), 2rem) !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.modal-content-auto-fit,
+[role="dialog"] > div:first-child,
+.fixed.inset-0 > div:first-child {
+  margin-top: auto !important;
+  margin-bottom: auto !important;
+  max-height: calc(100vh - 4rem) !important;
+}
+
+@media (max-height: 750px) {
+  .modal-content-auto-fit,
+  [role="dialog"] > div:first-child,
+  .fixed.inset-0 > div:first-child {
+    margin-top: 0.5rem !important;
+    margin-bottom: 1.5rem !important;
+  }
+}
+

@@ -40,6 +40,7 @@ import { ClientePortalAuthPage } from './pages/ClientePortalAuthPage'
 import { EmpleadoAuthPage } from './pages/EmpleadoAuthPage'
 import { GemeloDigitalPage } from './pages/GemeloDigitalPage'
 import { DeveloperAuthPage } from './pages/DeveloperAuthPage'
+import { DevModeFloatingButton } from './components/DevModeFloatingButton'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
@@ -527,6 +528,7 @@ export default function App() {
               </div>
             ) : (
               <BrowserRouter>
+                <DevModeFloatingButton />
                 <Routes>
                   <Route path="/dev" element={<DeveloperAuthPage />} />
                   <Route path="/desarrollador" element={<DeveloperAuthPage />} />
