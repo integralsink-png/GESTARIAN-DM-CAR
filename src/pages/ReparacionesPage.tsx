@@ -36,6 +36,9 @@ export function ReparacionesPage() {
   const [conceptoOrden, setConceptoOrden] = useState('')
   const [operariosOrden, setOperariosOrden] = useState<string[]>([])
   const [enviandoOrden, setEnviandoOrden] = useState(false)
+  
+  // Modal de Detalle de Tarjeta de Reparación Emergente y Centrada
+  const [selectedRepModal, setSelectedRepModal] = useState<Reparacion | null>(null)
 
   useEffect(() => {
     loadReparaciones()
@@ -266,12 +269,17 @@ export function ReparacionesPage() {
             return (
               <div
                 key={rep.id}
+                onClick={() => {
+                  if (!longPressTriggered.current) {
+                    setSelectedRepModal(rep)
+                  }
+                }}
                 onMouseDown={() => startLongPress(rep)}
                 onMouseUp={cancelLongPress}
                 onMouseLeave={cancelLongPress}
                 onTouchStart={() => startLongPress(rep)}
                 onTouchEnd={cancelLongPress}
-                className={`relative p-4 sm:p-5 rounded-2xl border-[3px] bg-bg-800/90 transition-all select-none ${borderClass}`}
+                className={`relative p-4 sm:p-5 rounded-2xl border-[3px] bg-bg-800/90 transition-all select-none cursor-pointer hover:scale-[1.01] hover:shadow-2xl ${borderClass}`}
               >
                 {/* LÍNEA 1: Nombre del cliente (x1.5 tamaño, sin rectángulo de estado) */}
                 <div className="flex items-center justify-between">
@@ -595,6 +603,177 @@ export function ReparacionesPage() {
           </div>
         </div>
       )}
+
+      {/* ── MODAL EMERGENTE CENTRADO: TARJETA DE REPARACIÓN EN VENTANA POPUP CON BOTÓN VOLVER ── */}
+      {selectedRepModal && (() => {
+        const rep = selectedRepModal
+        const v = rep.vehiculo_id ? vehiculos[rep.vehiculo_id] : null
+        const cli = clientes.find((c) => c.id === rep.cliente_id)
+        const cita = citas.find((c) => c.id === rep.cita_id)
+        const p = cita ? presupuestos.find((p) => p.id === cita.presupuesto_id) : null
+        const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
+        const borderClass = getBorderColor(rep)
+
+        return (
+          <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
+            <div className="w-full max-w-xl bg-slate-900 border-2 border-cyan-500 rounded-3xl p-6 sm:p-7 shadow-[0_0_50px_rgba(6,182,212,0.4)] space-y-5 max-h-[90vh] flex flex-col">
+              {/* Cabecera del modal con botón VOLVER */}
+              <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                    <Wrench className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+                      Detalle de Reparación
+                    </h3>
+                    <p className="text-xs text-cyan-300 font-mono">Expediente {expNum}</p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedRepModal(null)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-black uppercase tracking-wider flex items-center gap-2 border border-slate-700 transition-all active:scale-95 shadow cursor-pointer"
+                  title="Volver a la lista"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span>Volver</span>
+                </button>
+              </div>
+
+              {/* Contenido centrado de la tarjeta */}
+              <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+                <div className={`p-5 rounded-2xl border-[3px] bg-bg-800/95 select-none ${borderClass} space-y-4`}>
+                  {/* Cliente */}
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase font-bold block">Cliente Titular</span>
+                    <h2 className="text-2xl font-black text-white capitalize tracking-wide">
+                      {clienteNombre(rep.cliente_id).toLowerCase()}
+                    </h2>
+                  </div>
+
+                  {/* Vehículo y Matrícula */}
+                  <div className="flex items-center justify-between gap-3 p-3.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold block">Vehículo</span>
+                      <span className="font-bold text-white text-sm sm:text-base uppercase">
+                        {v ? `${v.marca || ''} ${v.modelo || ''}` : 'Sin datos vehículo'}
+                      </span>
+                    </div>
+                    {v?.matricula && (
+                      <div className="shrink-0 scale-105">
+                        <MatriculaBadge matricula={v.matricula} size="md" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Concepto / Instrucciones */}
+                  {rep.descripcion && (
+                    <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-slate-200">
+                      <span className="text-[11px] font-black text-indigo-300 uppercase tracking-wider block mb-1">
+                        🛠️ Concepto e Instrucciones:
+                      </span>
+                      <p className="whitespace-pre-line leading-relaxed">{rep.descripcion}</p>
+                    </div>
+                  )}
+
+                  {/* Personal Autorizado Adjudicado */}
+                  {(() => {
+                    const asigIds: string[] = rep.operarios_asignados || []
+                    let nombres = rep.operarios_nombres || []
+                    if (nombres.length === 0 && rep.vehiculo_id) {
+                      try {
+                        const localNombres = localStorage.getItem(`gestarian_asig_nombres_${rep.vehiculo_id}`)
+                        if (localNombres) nombres = JSON.parse(localNombres)
+                      } catch (e) {}
+                    }
+
+                    return (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/10">
+                        <span className="text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                          Operarios Adjudicados:
+                        </span>
+                        {nombres.length > 0 ? (
+                          nombres.map((nom: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="text-xs px-2.5 py-1 rounded-full font-bold bg-indigo-500/20 text-indigo-200 border border-indigo-500/30"
+                            >
+                              {nom}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-xs text-slate-400 italic">
+                            {asigIds.length > 0 ? `${asigIds.length} operario(s)` : 'Sin operario asignado'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })()}
+
+                  {/* Acciones flotantes integradas */}
+                  <div className="flex items-center justify-around gap-2 pt-3 border-t border-white/10">
+                    {/* 1. Expediente */}
+                    <button
+                      onClick={() => {
+                        setSelectedRepModal(null)
+                        navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                      }}
+                      className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+                      title="Abrir Expediente"
+                    >
+                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                    </button>
+
+                    {/* 2. Presupuesto */}
+                    <button
+                      onClick={() => {
+                        setSelectedRepModal(null)
+                        navigate('/presupuestos', { state: { presupuestoId: p?.id, matricula: v?.matricula } })
+                      }}
+                      className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+                      title="Presupuesto"
+                    >
+                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                    </button>
+
+                    {/* 3. Orden de Trabajo */}
+                    <button
+                      onClick={() => {
+                        setSelectedRepModal(null)
+                        abrirModalOrden(rep, p, v)
+                      }}
+                      className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
+                      title="Asignar Operario y Orden de Trabajo"
+                    >
+                      <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
+                    </button>
+
+                    {/* 4. Galería Imágenes */}
+                    <button
+                      onClick={async () => {
+                        const fotos = await fetchExpedienteFotos(rep.cliente_id, rep.vehiculo_id, rep.fotos || [], {
+                          reparacionId: rep.id,
+                          citaId: rep.cita_id,
+                          presupuestoId: p?.id
+                        })
+                        setExpedienteFotos(fotos)
+                        setViewerMatricula(v?.matricula || null)
+                        setExpedienteViewerTitle(`Reparación ${expNum}`)
+                        setShowExpedienteViewer(true)
+                      }}
+                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
+                      title="Ver Imágenes"
+                    >
+                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Visor Global único de Imágenes */}
       <GlobalImageViewer

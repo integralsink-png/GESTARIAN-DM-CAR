@@ -16,8 +16,10 @@ export function getMicSettingsUrl(): string {
 }
 
 function canRequestMicPermission(): boolean {
-  return typeof navigator !== 'undefined' &&
-    typeof navigator.mediaDevices?.getUserMedia === 'function'
+  if (typeof window === 'undefined') return false
+  const hasRecognition = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window
+  const hasMediaDevices = typeof navigator !== 'undefined' && typeof navigator.mediaDevices?.getUserMedia === 'function'
+  return hasRecognition || hasMediaDevices
 }
 
 export function useVoice() {
@@ -29,6 +31,7 @@ export function useVoice() {
   const [permissionDenied, setPermissionDenied] = useState(false)
   const [pending, setPending] = useState(false)
 
+  const recognitionRef = useRef<any>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const audioChunksRef = useRef<Blob[]>([])
   const streamRef = useRef<MediaStream | null>(null)
@@ -47,9 +50,10 @@ export function useVoice() {
       return 'unknown'
     }
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      // Guardamos el stream para no cerrarlo y mantener el micro vivo en iOS
-      streamRef.current = stream
+      if (navigator.mediaDevices?.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        streamRef.current = stream
+      }
       setPermissionDenied(false)
       setError(null)
       return 'granted'
@@ -65,12 +69,12 @@ export function useVoice() {
     try {
       const text = await transcribeAudio(blob)
       if (text) {
-        setTranscript(text)
+        setTranscript(prev => (prev ? `${prev} ${text}` : text))
       } else {
         setError('No he detectado ninguna voz.')
       }
     } catch (e) {
-      setError('Error al transcribir el audio en la nube.')
+      setError('Error al transcribir el audio.')
     } finally {
       setPending(false)
       setListening(false)
@@ -86,6 +90,67 @@ export function useVoice() {
       setError(null)
       setPermissionDenied(false)
 
+      // 1. INTENTO PRIORITARIO: Web Speech Recognition nativo (Chrome Android, Desktop, Safari)
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+      if (SpeechRecognition) {
+        try {
+          if (recognitionRef.current) {
+            try { recognitionRef.current.abort() } catch (e) {}
+          }
+          const recognition = new SpeechRecognition()
+          recognition.lang = 'es-ES'
+          recognition.continuous = true
+          recognition.interimResults = true
+          recognition.maxAlternatives = 1
+
+          let finalAccumulated = ''
+
+          recognition.onstart = () => {
+            setListening(true)
+            setError(null)
+          }
+
+          recognition.onresult = (event: any) => {
+            let currentInterim = ''
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+              const item = event.results[i]
+              if (item.isFinal) {
+                finalAccumulated += (finalAccumulated ? ' ' : '') + item[0].transcript
+                setTranscript(finalAccumulated.trim())
+              } else {
+                currentInterim += item[0].transcript
+              }
+            }
+            setInterim(currentInterim)
+          }
+
+          recognition.onerror = (e: any) => {
+            console.warn('[VOICE] SpeechRecognition error:', e.error)
+            if (e.error === 'not-allowed') {
+              setPermissionDenied(true)
+              setError('Permiso de micrófono denegado.')
+              setListening(false)
+            } else if (e.error === 'no-speech') {
+              // Silencio momentáneo, no cancelar
+            } else {
+              setError(`Aviso de voz: ${e.error}`)
+            }
+          }
+
+          recognition.onend = () => {
+            setListening(false)
+            setInterim('')
+          }
+
+          recognitionRef.current = recognition
+          recognition.start()
+          return
+        } catch (recErr) {
+          console.warn('[VOICE] Falló SpeechRecognition nativo, recurriendo a MediaRecorder:', recErr)
+        }
+      }
+
+      // 2. FALLBACK: MediaRecorder + Transcripción en la nube
       let stream = streamRef.current
       if (!stream) {
         const perm = await requestPermission()
@@ -95,7 +160,15 @@ export function useVoice() {
 
       if (!stream) return
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' })
+      // Determinar mimeType compatible según navegador móvil (Android / iOS)
+      let mimeType = 'audio/webm'
+      if (typeof MediaRecorder !== 'undefined' && !MediaRecorder.isTypeSupported('audio/webm')) {
+        if (MediaRecorder.isTypeSupported('audio/mp4')) mimeType = 'audio/mp4'
+        else if (MediaRecorder.isTypeSupported('audio/aac')) mimeType = 'audio/aac'
+        else mimeType = ''
+      }
+
+      const mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -104,14 +177,15 @@ export function useVoice() {
       }
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
+        const blob = new Blob(audioChunksRef.current, { type: mimeType || 'audio/webm' })
         processAudioBlob(blob)
       }
 
-      mediaRecorder.start()
+      mediaRecorder.start(250)
       setListening(true)
-    } catch (e) {
-      setError('Error al iniciar la grabación.')
+    } catch (e: any) {
+      console.error('[VOICE] Error al iniciar grabación:', e)
+      setError('Error al iniciar el micrófono.')
       setListening(false)
     } finally {
       startingRef.current = false
@@ -119,6 +193,9 @@ export function useVoice() {
   }, [requestPermission])
 
   const stop = useCallback(() => {
+    if (recognitionRef.current) {
+      try { recognitionRef.current.stop() } catch (e) {}
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.stop()
     } else {
@@ -131,6 +208,15 @@ export function useVoice() {
   }, [])
 
   const dispose = useCallback(() => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.onresult = null
+        recognitionRef.current.onend = null
+        recognitionRef.current.onerror = null
+        recognitionRef.current.abort()
+      } catch (e) {}
+      recognitionRef.current = null
+    }
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
       mediaRecorderRef.current.onstop = null
       mediaRecorderRef.current.stop()

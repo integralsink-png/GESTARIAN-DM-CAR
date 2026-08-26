@@ -171,52 +171,36 @@ export function CitasPage() {
                   </h2>
 
                   {/* Botón de acción según estado */}
-                  {(cita.estado === 'confirmada' || cita.estado === 'completada') ? (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate('/asignar-cita', {
-                          state: {
-                            vehiculoId: cita.vehiculo_id,
-                            clienteId: cita.cliente_id,
-                            presupuestoId: cita.presupuesto_id,
-                            citaId: cita.id,
-                            clienteNombre: clienteNombre(cita.cliente_id),
-                            matricula: v?.matricula,
-                          }
-                        })
-                      }}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 text-xs font-black uppercase tracking-wider hover:bg-cyan-500/30 transition-all active:scale-95 shadow-[0_0_10px_rgba(6,182,212,0.25)]"
-                    >
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      MODIFICAR
-                    </button>
-                  ) : (cita.fecha && cita.hora) ? (
-                    <span className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/60 text-xs font-black uppercase tracking-wider shadow-[0_0_10px_rgba(245,158,11,0.2)]">
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      PENDIENTE
-                    </span>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate('/asignar-cita', {
-                          state: {
-                            vehiculoId: cita.vehiculo_id,
-                            clienteId: cita.cliente_id,
-                            presupuestoId: cita.presupuesto_id,
-                            citaId: cita.id,
-                            clienteNombre: clienteNombre(cita.cliente_id),
-                            matricula: v?.matricula,
-                          }
-                        })
-                      }}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 text-xs font-black uppercase tracking-wider hover:bg-emerald-500/30 transition-all active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
-                    >
-                      <CalendarClock className="w-3.5 h-3.5" />
-                      ASIGNAR
-                    </button>
-                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      navigate('/asignar-cita', {
+                        state: {
+                          vehiculoId: cita.vehiculo_id,
+                          clienteId: cita.cliente_id,
+                          presupuestoId: cita.presupuesto_id,
+                          citaId: cita.id,
+                          clienteNombre: clienteNombre(cita.cliente_id),
+                          matricula: v?.matricula,
+                        }
+                      })
+                    }}
+                    className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shadow-md ${
+                      (cita.estado === 'confirmada' || cita.estado === 'completada')
+                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/60 hover:bg-cyan-500/30 shadow-[0_0_10px_rgba(6,182,212,0.25)]'
+                        : (cita.fecha && cita.hora)
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/60 hover:bg-amber-500/30 shadow-[0_0_10px_rgba(245,158,11,0.25)]'
+                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/60 hover:bg-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.25)]'
+                    }`}
+                    title="Modificar o Asignar Cita"
+                  >
+                    <CalendarClock className="w-3.5 h-3.5" />
+                    {(cita.estado === 'confirmada' || cita.estado === 'completada')
+                      ? 'MODIFICAR'
+                      : (cita.fecha && cita.hora)
+                      ? 'MODIFICAR CITA'
+                      : 'ASIGNAR CITA'}
+                  </button>
                 </div>
 
                 {/* LÍNEA 2: Número de expediente flotante (x1.5), Fecha y Hora repartidas equitativamente */}

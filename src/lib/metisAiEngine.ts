@@ -384,30 +384,96 @@ PERSONALIDAD Y VOZ:
     bodyGemini.generationConfig.responseMimeType = 'application/json'
   }
 
-  const urlGemini = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:generateContent?key=${apiKey}`
+  // Modelos alternativos de Gemini para auto-reconexión y conmutación transparente si Google satura uno
+  const candidateModels = [
+    selectedModel,
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash'
+  ].filter((m, idx, arr) => m && arr.indexOf(m) === idx)
 
-  let response = await fetch(urlGemini, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(bodyGemini)
-  })
+  let response: Response | null = null
+  let lastErrTxt = ''
 
-  // Si un modelo "compatible" rechaza los campos nuevos (variantes del API),
-  // reintentar una vez con el formato legacy incrustado en el mensaje de usuario.
-  if (!response.ok && soportaSystem) {
-    response = await fetch(urlGemini, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: mensajeUsuarioLegacy }] }],
-        generationConfig: { temperature: 0.2 }
+  for (const m of candidateModels) {
+    const currentUrl = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`
+    const soporta = geminiSupportsSystemInstruction(m)
+
+    try {
+      response = await fetch(currentUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(soporta ? bodyGemini : {
+          contents: [{ role: 'user', parts: [{ text: mensajeUsuarioLegacy }] }],
+          generationConfig: { temperature: 0.2 }
+        })
       })
-    })
+
+      if (response.ok) {
+        break
+      }
+
+      // Si da error 429 (Rate Limit temporal) o 503 (Servidor ocupado), esperar 1s y reintentar con el siguiente modelo
+      if (response.status === 429 || response.status === 503) {
+        lastErrTxt = `Google Gemini temporalmente saturado en ${m} (HTTP ${response.status})`
+        await new Promise(res => setTimeout(res, 1200))
+        continue
+      }
+
+      // Si da 400 por systemInstruction, reintentar en modo legacy
+      if (soporta && response.status === 400) {
+        response = await fetch(currentUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: mensajeUsuarioLegacy }] }],
+            generationConfig: { temperature: 0.2 }
+          })
+        })
+        if (response.ok) break
+      }
+    } catch (fetchErr: any) {
+      lastErrTxt = fetchErr.message || 'Error de red con Gemini'
+    }
   }
 
-  if (!response.ok) {
-    const errTxt = await response.text()
-    throw new Error(`Gemini API error ${response.status}: ${errTxt}`)
+  if (!response || !response.ok) {
+    // Si todos los modelos de Gemini fallaron por saturación de créditos/cuota, intentar Fallback automático (OpenRouter/Groq)
+    const fallbackCfg = (typeof window !== 'undefined') ? JSON.parse(localStorage.getItem('gestarian_fallback_ai_config') || '{}') : {}
+    if (fallbackCfg.api_key) {
+      try {
+        const endpoint = fallbackCfg.provider === 'groq'
+          ? 'https://api.groq.com/openai/v1/chat/completions'
+          : 'https://openrouter.ai/api/v1/chat/completions'
+        const fbRes = await fetch(endpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${fallbackCfg.api_key}`
+          },
+          body: JSON.stringify({
+            model: fallbackCfg.model || 'deepseek/deepseek-chat:free',
+            messages: [
+              { role: 'system', content: systemInstruction },
+              { role: 'user', content: userText }
+            ]
+          })
+        })
+        if (fbRes.ok) {
+          const fbData = await fbRes.json()
+          const content = fbData.choices?.[0]?.message?.content || 'Hecho'
+          return {
+            text: content.replace(/```json/g, '').replace(/```/g, '').trim(),
+            actionResult: undefined
+          }
+        }
+      } catch (fbErr) {
+        console.warn('Fallback automático también falló:', fbErr)
+      }
+    }
+
+    const errTxt = response ? await response.text() : lastErrTxt
+    throw new Error(`Gemini se está reconectando automáticamente. Inténtalo de nuevo en un instante. (${lastErrTxt || errTxt})`)
   }
 
   const data = await response.json()
