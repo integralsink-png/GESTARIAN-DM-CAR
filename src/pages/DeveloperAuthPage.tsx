@@ -136,17 +136,19 @@ export function DeveloperAuthPage() {
 
             <div>
               <label className="block text-xs font-black uppercase tracking-wider text-slate-300 mb-1.5">
-                Contraseña
+                PIN de Desarrollador
               </label>
               <div className="relative">
                 <input
                   type="password"
+                  inputMode="numeric"
+                  autoFocus
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Introduce la contraseña"
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl px-4 py-3 text-sm text-white font-medium outline-none transition-colors"
+                  placeholder="Introduce el PIN (ej: 123321)"
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl px-4 py-3 text-sm font-mono tracking-widest text-cyan-300 font-bold outline-none transition-colors"
                 />
-                <Lock className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5" />
+                <Lock className="w-4 h-4 text-cyan-400 absolute right-3.5 top-3.5" />
               </div>
             </div>
 
@@ -160,7 +162,7 @@ export function DeveloperAuthPage() {
               ) : (
                 <ShieldCheck className="w-5 h-5 stroke-[2.5]" />
               )}
-              <span>ENTRAR COMO DEVELOPER</span>
+              <span>ENTRAR MODO DESARROLLADOR</span>
             </button>
           </form>
 

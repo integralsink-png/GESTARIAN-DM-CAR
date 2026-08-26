@@ -87,6 +87,14 @@ export function RegistroUsuarioTallerPage() {
         }
       } catch (e) {}
 
+      if (clean === 'iclomsinks@gmail.com' && localStorage.getItem('gestarian_dev_mode') !== 'true') {
+        showToast('Accediendo a autenticación de desarrollador...', 'info')
+        setTimeout(() => {
+          window.location.href = '/desarrollador'
+        }, 400)
+        return
+      }
+
       showToast(`Iniciando sesión con ${clean}...`, 'success')
       setTimeout(() => {
         window.location.href = '/'

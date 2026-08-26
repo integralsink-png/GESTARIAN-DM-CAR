@@ -428,12 +428,20 @@ export default function App() {
   const [savedAccounts, setSavedAccounts] = useState<CuentaGuardada[]>([])
 
   const selectAccount = async (email: string) => {
-    localStorage.setItem('gestarian_test_user', email)
+    const cleanEmail = email.trim().toLowerCase()
+    localStorage.setItem('gestarian_test_user', cleanEmail)
     sessionStorage.setItem('gestarian_account_chosen', 'true')
     setShowAccountPicker(false)
+
+    // Si es la cuenta de desarrollador y no está validado con PIN en esta sesión, ir a autenticación de desarrollador
+    if (cleanEmail === 'iclomsinks@gmail.com' && localStorage.getItem('gestarian_dev_mode') !== 'true') {
+      window.location.href = '/desarrollador'
+      return
+    }
+
     setProfileReady(false)
     try {
-      await cargarPerfil(email)
+      await cargarPerfil(cleanEmail)
       const perfil = getPerfil()
       if (perfil?.esDeveloper || perfil?.rol?.toUpperCase().includes('JEFE') || perfil?.rol?.toUpperCase().includes('ADMIN')) {
         setLicenciaValida(true)
