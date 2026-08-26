@@ -27,8 +27,11 @@ export function ConfiguracionPage() {
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance } = useTheme()
 
   const perfil = getPerfil()
-  const esDev = perfil?.esDeveloper || perfil?.email.toLowerCase() === 'iclomsinks@gmail.com'
-  const [vistaModo, setVistaModo] = useState<'usuario' | 'desarrollador'>(esDev ? 'desarrollador' : 'usuario')
+  const isDevUser = perfil?.esDeveloper || perfil?.email.toLowerCase() === 'iclomsinks@gmail.com' || localStorage.getItem('gestarian_dev_mode') === 'true'
+  const [vistaModo, setVistaModo] = useState<'usuario' | 'desarrollador'>(() => {
+    return isDevUser && localStorage.getItem('gestarian_dev_mode') !== 'false' ? 'desarrollador' : 'usuario'
+  })
+  const esDev = isDevUser && vistaModo === 'desarrollador'
 
   // ----------------------------------------------------
   // ESTADOS DE SERVICIOS Y CLAVES API (OBJETIVO 1, 2, 3)
@@ -558,6 +561,8 @@ export function ConfiguracionPage() {
                   type="button"
                   onClick={() => {
                     localStorage.setItem('gestarian_dev_mode', 'false')
+                    setVistaModo('usuario')
+                    setMostrarMenuModos(false)
                     navigate('/')
                   }}
                   className="p-3.5 rounded-xl bg-slate-950 border border-cyan-500/40 hover:border-cyan-400 text-left transition-all hover:scale-[1.02] active:scale-95 group cursor-pointer shadow-md"
@@ -1204,7 +1209,91 @@ export function ConfiguracionPage() {
       )}
 
       {/* ================================================== */}
-      {/* SECCIÓN 2: PREFERENCIAS PERSONALES: PERSONALIZACIÓN & 5 CAPAS */}
+      {/* 1. GESTIÓN DE PERSONAL AUTORIZADO DEL TALLER (ARRIBA DEL TODO EN MODO USUARIO) */}
+      {/* ================================================== */}
+      <Card className="p-6 border border-teal-500/40 bg-slate-900/90 shadow-xl rounded-2xl">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-400 flex items-center justify-center font-bold">
+              <UserCog className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                {vistaModo === 'desarrollador' ? 'Gestión de Licencias y Usuarios del Sistema' : 'Personal Autorizado del Taller'}
+              </h2>
+              <p className="text-xs text-slate-400">
+                {vistaModo === 'desarrollador'
+                  ? 'Control global de clientes GESTARIAN y administración de licencias'
+                  : 'Gestión de empleados, mecánicos, operarios y permisos de acceso'}
+              </p>
+            </div>
+          </div>
+
+          <span className="text-[10px] px-2.5 py-1 rounded-full font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30 uppercase">
+            Acceso Rápido
+          </span>
+        </div>
+
+        {vistaModo === 'desarrollador' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/licencias')}
+              className="w-full flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors shrink-0">
+                  <ShieldCheck className="w-5 h-5 text-indigo-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-white text-xs uppercase tracking-wide">CONTROL DE USUARIOS (CLIENTES GESTARIAN)</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Autorizar altas, planes y tarifas</p>
+                </div>
+              </div>
+              <Sparkles className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('/autorizados')}
+              className="w-full flex items-center justify-between gap-4 px-4 py-3.5 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
+                  <UserCog className="w-5 h-5 text-teal-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-white text-xs uppercase tracking-wide">PERSONAL AUTORIZADO (EMPLEADOS)</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Inspeccionar diseño y funciones de operarios</p>
+                </div>
+              </div>
+              <Sparkles className="w-4 h-4 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+        ) : (
+          <div className="pt-2">
+            <button
+              type="button"
+              onClick={() => navigate('/autorizados')}
+              className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
+                  <UserCog className="w-6 h-6 text-teal-400" />
+                </div>
+                <div className="text-left">
+                  <p className="font-bold text-white text-sm uppercase tracking-wide">GESTIÓN DE PERSONAL AUTORIZADO (EMPLEADOS DEL TALLER)</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Alta de operarios, asignación de roles, mecánicos y permisos de acceso</p>
+                </div>
+              </div>
+              <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+        )}
+      </Card>
+
+      {/* ================================================== */}
+      {/* 2. PREFERENCIAS PERSONALES: PERSONALIZACIÓN & 5 CAPAS */}
       {/* ================================================== */}
       <Card className="p-6 space-y-6 border border-slate-800">
         <div className="flex items-center justify-between">
@@ -1868,93 +1957,6 @@ export function ConfiguracionPage() {
             isOpen={showHistoryModal}
             onClose={() => setShowHistoryModal(false)}
           />
-
-          {/* ── SECCIÓN DE GESTIÓN DEL TALLER / DESARROLLADOR ────────── */}
-          <Card className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <HardDrive className="w-5 h-5 text-teal-400" />
-              <h2 className="text-lg font-semibold text-white uppercase tracking-wider">
-                {vistaModo === 'desarrollador' ? 'Gestión del Desarrollador y Licencias' : 'Gestión del Taller (Autorizados)'}
-              </h2>
-            </div>
-
-            {vistaModo === 'desarrollador' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {/* 1. Botón de acceso a la página de CONFIGURACIÓN de usuario para edición */}
-                <button
-                  type="button"
-                  onClick={() => setVistaModo('usuario')}
-                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
-                      <Building2 className="w-5 h-5 text-teal-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONFIGURACIÓN DE USUARIO</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Editar panel de usuario del taller</p>
-                    </div>
-                  </div>
-                  <Sparkles className="w-4 h-4 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </button>
-
-                {/* 2. Botón de USUARIOS para acceso al panel de control de licencias y usuarios registrados */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/licencias')}
-                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-indigo-500/10 border border-indigo-500/30 hover:bg-indigo-500/20 hover:border-indigo-400/50 transition-all active:scale-[0.99] group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-indigo-500/20 flex items-center justify-center group-hover:bg-indigo-500/30 transition-colors shrink-0">
-                      <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white text-xs uppercase tracking-wide">CONTROL DE USUARIOS (CLIENTES GESTARIAN)</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Autorizar altas de talleres, planes y fijar tarifas</p>
-                    </div>
-                  </div>
-                  <Sparkles className="w-4 h-4 text-indigo-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </button>
-
-                {/* 3. Botón del PORTAL DEL CLIENTE FINAL */}
-                <button
-                  type="button"
-                  onClick={() => navigate('/cliente/demo')}
-                  className="w-full flex items-center justify-between gap-4 px-4 py-4 rounded-xl bg-amber-500/10 border border-amber-500/30 hover:bg-amber-500/20 hover:border-amber-400/50 transition-all active:scale-[0.99] group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/30 transition-colors shrink-0">
-                      <Car className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white text-xs uppercase tracking-wide">PORTAL CLIENTE FINAL</p>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Seguimiento de expediente y normativa</p>
-                    </div>
-                  </div>
-                  <Sparkles className="w-4 h-4 text-amber-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate('/autorizados')}
-                  className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-xl bg-teal-500/10 border border-teal-500/30 hover:bg-teal-500/20 hover:border-teal-400/50 transition-all active:scale-[0.99] group cursor-pointer"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-xl bg-teal-500/20 flex items-center justify-center group-hover:bg-teal-500/30 transition-colors shrink-0">
-                      <UserCog className="w-6 h-6 text-teal-400" />
-                    </div>
-                    <div className="text-left">
-                      <p className="font-bold text-white text-sm uppercase tracking-wide">AUTORIZADOS (EMPLEADOS DEL TALLER)</p>
-                      <p className="text-xs text-slate-400 mt-0.5">Gestionar operarios, mecánicos y permisos de acceso</p>
-                    </div>
-                  </div>
-                  <Sparkles className="w-5 h-5 text-teal-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </button>
-              </div>
-            )}
-          </Card>
 
           {/* ── SECCIÓN DE PLAN DE SUSCRIPCIÓN (VISTA USUARIO VS DESARROLLADOR) ──── */}
           {vistaModo === 'usuario' ? (
