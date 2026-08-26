@@ -72,26 +72,18 @@ export function RegistroUsuarioTallerPage() {
 
     setLoading(true)
     try {
-      // 1. Registrar / Actualizar en gestarian_licencias
+      // 1. Registrar / Actualizar en gestarian_licencias con el esquema real de Supabase
       const fechaPrueba = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
       const cleanEmail = form.email.trim().toLowerCase()
       
       const licPayload = {
         email: cleanEmail,
-        nombre_profesional: form.nombre_profesional.trim(),
-        nombre_titular: form.nombre_titular.trim(),
-        cif: form.cif.trim().toUpperCase(),
-        direccion_fiscal: `${form.direccion_fiscal}, CP ${form.codigo_postal}, ${form.poblacion} (${form.provincia}), ${form.pais}`,
-        telefono: form.telefono.trim(),
-        tipo_empresa: form.tipo_empresa,
-        plan_solicitado: form.plan_solicitado,
-        estado_licencia: 'activo',
-        suscripcion_activa: true,
-        estado_pago: 'gratuito',
+        nombre_taller: form.nombre_profesional.trim(),
+        estado: 'activo',
         fecha_fin_prueba: fechaPrueba
       }
 
-      // Intentar upsert o insert
+      // Upsert directo en la nube de Supabase (accesible desde cualquier móvil o PC)
       try {
         const { error: licErr } = await supabase.from('gestarian_licencias').upsert(licPayload, { onConflict: 'email' })
         if (licErr) {
@@ -102,21 +94,32 @@ export function RegistroUsuarioTallerPage() {
         console.warn('Aviso en gestarian_licencias:', e)
       }
 
-      // 2. Guardar también en usuarios como JEFE_TALLER
+      // 2. Guardar en tabla usuarios de Supabase
       try {
         await supabase.from('usuarios').upsert({
           email: cleanEmail,
           nombre: form.nombre_titular.trim() || form.nombre_profesional.trim(),
-          telefono: form.telefono.trim(),
           rol: 'JEFE_TALLER',
-          es_pro: form.plan_solicitado === 'PRO' || form.plan_solicitado === 'ENTERPRISE',
           activo: true
         }, { onConflict: 'email' })
       } catch (e) {
         console.warn('Aviso en usuarios:', e)
       }
 
-      // 3. Sincronizar datos fiscales de la empresa en configuracion (id=1)
+      // 3. Registrar también en la tabla clientes de Supabase para respaldo cloud universal
+      try {
+        await supabase.from('clientes').upsert({
+          nombre: `${form.nombre_profesional.trim()} (${form.nombre_titular.trim()})`,
+          email: cleanEmail,
+          telefono: form.telefono.trim(),
+          dni: form.cif.trim().toUpperCase(),
+          direccion: `${form.direccion_fiscal}, CP ${form.codigo_postal}, ${form.poblacion} (${form.provincia})`
+        }, { onConflict: 'email' })
+      } catch (e) {
+        console.warn('Aviso en clientes cloud:', e)
+      }
+
+      // 4. Sincronizar datos fiscales de la empresa en configuracion (id=1)
       try {
         await supabase.from('configuracion').upsert({
           id: 1,

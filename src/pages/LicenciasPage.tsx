@@ -30,16 +30,17 @@ export function LicenciasPage() {
   async function loadData() {
     setLoading(true)
     try {
-      const [{ data: licData }, { data: usrData }, cfg] = await Promise.all([
+      const [{ data: licData }, { data: usrData }, { data: cliData }, cfg] = await Promise.all([
         supabase.from('gestarian_licencias').select('*').order('created_at', { ascending: false }),
         supabase.from('usuarios').select('*').order('created_at', { ascending: false }),
+        supabase.from('clientes').select('*').order('created_at', { ascending: false }),
         configuracionService.obtenerConfiguracion().catch(() => null)
       ])
 
       const list: any[] = []
       const emailsVistos = new Set<string>()
 
-      // 1. Clientes registrados en gestarian_licencias
+      // 1. Clientes y talleres registrados en la nube en gestarian_licencias
       if (licData && Array.isArray(licData)) {
         for (const item of licData) {
           if (item.email) {
@@ -48,15 +49,15 @@ export function LicenciasPage() {
             list.push({
               id: item.id || `lic-${em}`,
               email: item.email,
-              nombre_profesional: item.nombre_profesional || item.nombre_taller || em.split('@')[0],
-              nombre_titular: item.nombre_titular || '',
+              nombre_profesional: item.nombre_taller || item.nombre_profesional || em.split('@')[0],
+              nombre_titular: item.nombre_titular || item.nombre_taller || '',
               cif: item.cif || '',
               direccion_fiscal: item.direccion_fiscal || '',
               telefono: item.telefono || '',
               plan_solicitado: item.plan_solicitado || 'PRO',
-              estado_licencia: item.estado_licencia || 'activo',
-              estado_pago: item.estado_pago || 'gratuito',
-              fecha_fin_prueba: item.fecha_fin_prueba,
+              estado_licencia: item.estado || item.estado_licencia || 'activo',
+              estado_pago: 'gratuito',
+              fecha_fin_prueba: item.fecha_fin_prueba || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
               created_at: item.created_at || new Date().toISOString()
             })
           }
@@ -115,7 +116,31 @@ export function LicenciasPage() {
         }
       }
 
-      // 4. Clientes conocidos o en sesión activa (cualquier test_user registrado en el navegador)
+      // 4. Clientes y registros de taller en la tabla clientes de Supabase
+      if (cliData && Array.isArray(cliData)) {
+        for (const c of cliData) {
+          const em = (c.email || '').toLowerCase().trim()
+          if (em && !emailsVistos.has(em) && em !== 'iclomsinks@gmail.com') {
+            emailsVistos.add(em)
+            list.push({
+              id: c.id || `cli-${em}`,
+              email: c.email,
+              nombre_profesional: c.nombre || em.split('@')[0],
+              nombre_titular: c.nombre || '',
+              cif: c.dni || 'REGISTRADO',
+              direccion_fiscal: c.direccion || '',
+              telefono: c.telefono || '',
+              plan_solicitado: 'PRO',
+              estado_licencia: 'activo',
+              estado_pago: 'gratuito',
+              fecha_fin_prueba: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+              created_at: c.created_at || new Date().toISOString()
+            })
+          }
+        }
+      }
+
+      // 5. Clientes conocidos o en sesión activa (cualquier test_user registrado en el navegador)
       const knownClients = ['alimajefe@gmail.com', 'alimajefe2@gmail.com', 'alimajefe3@gmail.com']
       const activeTestUser = localStorage.getItem('gestarian_test_user')
       if (activeTestUser && !knownClients.includes(activeTestUser.toLowerCase())) {
