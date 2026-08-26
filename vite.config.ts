@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
     server: {
       host: true,
       port,
-      strictPort: true,
+      strictPort: false,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache',

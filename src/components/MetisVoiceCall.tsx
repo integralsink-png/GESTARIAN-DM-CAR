@@ -142,10 +142,15 @@ export const MetisVoiceCall: React.FC = () => {
       mediaRecorder.start();
       setStatus('listening');
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error accediendo al micrófono (MediaRecorder)", e);
       setStatus('idle');
-      alert('Permiso de micrófono denegado o error de hardware.');
+      const isSecure = window.isSecureContext || window.location.hostname === 'localhost' || window.location.protocol === 'https:';
+      if (!isSecure) {
+        alert('Para usar el micrófono en el móvil, el navegador requiere HTTPS (Contexto Seguro). Usa "npm run dev:mobile" (con HTTPS) o accede por https://');
+      } else {
+        alert('Permiso de micrófono denegado en el navegador móvil. Revisa los permisos de la página.');
+      }
       stopCall();
     }
   };
