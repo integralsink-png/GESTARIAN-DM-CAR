@@ -119,10 +119,25 @@ export function AsignarCitaPage() {
     setGuardando(true);
 
     try {
-      // 1. Insertar o actualizar la cita en la tabla `citas`
+      // Formatear fecha y hora seleccionadas de forma robusta
+      const mStr = String(currentMonth + 1).padStart(2, '0');
+      const dStr = String(selectedDay).padStart(2, '0');
+      const fechaStr = `${currentYear}-${mStr}-${dStr}`;
+      const horaStr = TIME_SLOTS[selectedTimeIndex] || '12:00';
+
+      // 1. Resolver cliente si no viene en el estado de navegación
+      let resolvedClienteId = state.clienteId;
+      if (!resolvedClienteId && !state.citaId) {
+        const { data: firstCli } = await supabase.from('clientes').select('id, nombre, email').limit(1).maybeSingle();
+        if (firstCli) {
+          resolvedClienteId = firstCli.id;
+        }
+      }
+
+      // 2. Insertar o actualizar la cita en la tabla `citas`
       let citaIdTarget = state.citaId;
       if (citaIdTarget) {
-        await supabase
+        const { error: updateErr } = await supabase
           .from('citas')
           .update({
             fecha: fechaStr,
@@ -130,65 +145,80 @@ export function AsignarCitaPage() {
             estado: 'confirmada',
           })
           .eq('id', citaIdTarget);
+        if (updateErr) throw updateErr;
       } else {
         const citaData: any = {
           fecha: fechaStr,
           hora: horaStr,
           estado: 'confirmada',
         };
-        if (state.clienteId) citaData.cliente_id = state.clienteId;
+        if (resolvedClienteId) citaData.cliente_id = resolvedClienteId;
         if (state.vehiculoId) citaData.vehiculo_id = state.vehiculoId;
         if (state.presupuestoId) citaData.presupuesto_id = state.presupuestoId;
 
-        const { data: nuevaCita } = await supabase
+        const { data: nuevaCita, error: insertErr } = await supabase
           .from('citas')
           .insert(citaData)
           .select()
           .single();
+        if (insertErr) throw insertErr;
         citaIdTarget = nuevaCita?.id;
       }
 
-      // 2. Notificar al cliente de la cita asignada/propuesta
-      if (state.clienteId) {
-        const { data: cli } = await supabase.from('clientes').select('nombre, email').eq('id', state.clienteId).maybeSingle();
-        const { data: inv } = await supabase.from('cliente_invitaciones').select('token').eq('cliente_id', state.clienteId).maybeSingle();
-        if (cli?.email) {
-          void notificarModificacionCitaAlCliente({
-            clienteEmail: cli.email,
-            clienteNombre: cli.nombre || state.clienteNombre || 'Cliente',
-            matricula: state.matricula,
-            nuevaFecha: fechaStr,
-            nuevaHora: horaStr,
-            token: inv?.token
-          });
+      // 3. Notificar al cliente de la cita asignada/propuesta si tiene email
+      if (resolvedClienteId) {
+        try {
+          const { data: cli } = await supabase.from('clientes').select('nombre, email').eq('id', resolvedClienteId).maybeSingle();
+          const { data: inv } = await supabase.from('cliente_invitaciones').select('token').eq('cliente_id', resolvedClienteId).maybeSingle();
+          if (cli?.email) {
+            void notificarModificacionCitaAlCliente({
+              clienteEmail: cli.email,
+              clienteNombre: cli.nombre || state.clienteNombre || 'Cliente',
+              matricula: state.matricula,
+              nuevaFecha: fechaStr,
+              nuevaHora: horaStr,
+              token: inv?.token
+            });
+          }
+        } catch (notifErr) {
+          console.warn('Aviso enviando notificación de cita:', notifErr);
         }
       }
 
-      // 3. Marcar el presupuesto como aceptado si existe
+      // 4. Marcar el presupuesto como aceptado si existe
       if (state.presupuestoId) {
-        await supabase
-          .from('presupuestos')
-          .update({ estado: 'aceptado' })
-          .eq('id', state.presupuestoId);
+        try {
+          await supabase
+            .from('presupuestos')
+            .update({ estado: 'aceptado' })
+            .eq('id', state.presupuestoId);
+        } catch (presErr) {
+          console.warn('Aviso actualizando presupuesto:', presErr);
+        }
       }
 
-      // 4. Sonido y Toast animado verde
+      // 5. Sonido y Toast animado verde
       playSuccessChime();
       setShowSuccessToast(true);
 
-      // 5. Regreso automático tras 2 segundos a Expedientes con roadmap abierto
+      // 6. Regreso automático tras 1.5 segundos
       setTimeout(() => {
-        navigate('/expedientes', {
-          state: {
-            expandPresupuestoId: state.presupuestoId,
-            expandExpedienteId: state.expedienteId,
-            expandVehiculoId: state.vehiculoId,
-            search: state.matricula || state.clienteNombre || '',
-          },
-        });
-      }, 2000);
-    } catch (err) {
+        if (state.presupuestoId || state.expedienteId) {
+          navigate('/expedientes', {
+            state: {
+              expandPresupuestoId: state.presupuestoId,
+              expandExpedienteId: state.expedienteId,
+              expandVehiculoId: state.vehiculoId,
+              search: state.matricula || state.clienteNombre || '',
+            },
+          });
+        } else {
+          navigate('/citas');
+        }
+      }, 1500);
+    } catch (err: any) {
       console.error('Error al asignar cita:', err);
+      alert(`Error al guardar la cita: ${err.message || 'Comprueba los datos e inténtalo de nuevo.'}`);
       setGuardando(false);
     }
   };
