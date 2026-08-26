@@ -253,29 +253,36 @@ export function InicioPage() {
                   )}
                 </div>
                 
-                {/* Banner Destacado: GEMELO DIGITAL 3D (Solo visible para Desarrollador) */}
-                {(getPerfil()?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true') && (
-                  <button
-                    onClick={() => navigate('/gemelo-digital')}
-                    disabled={!panelInteractable}
-                    className="w-full flex items-center justify-between px-4 py-3.5 mb-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-cyan-400/80 border-[2px] backdrop-blur-md shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.75)] cursor-pointer group"
-                    style={{ backgroundColor: 'rgba(6, 182, 212, 0.28)' }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-300 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
-                        <Sparkles className="w-5 h-5 text-cyan-300" />
-                      </div>
-                      <div className="text-left">
-                        <div className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
-                          <span>GEMELO DIGITAL 3D</span>
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400 text-slate-950 font-black">DEV SHOWROOM</span>
+                {/* Banner Destacado: GEMELO DIGITAL 3D (Solo visible para Desarrollador o iclomsinks@gmail.com) */}
+                {(() => {
+                  const perfil = getPerfil()
+                  const activeUser = (localStorage.getItem('gestarian_test_user') || perfil?.email || '').toLowerCase().trim()
+                  const isDev = perfil?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true' || activeUser === 'iclomsinks@gmail.com'
+                  if (!isDev) return null
+
+                  return (
+                    <button
+                      onClick={() => navigate('/gemelo-digital')}
+                      disabled={!panelInteractable}
+                      className="w-full flex items-center justify-between px-4 py-3.5 mb-3 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] border border-cyan-400/80 border-[2px] backdrop-blur-md shadow-[0_0_25px_rgba(6,182,212,0.45)] hover:shadow-[0_0_35px_rgba(6,182,212,0.75)] cursor-pointer group"
+                      style={{ backgroundColor: 'rgba(6, 182, 212, 0.28)' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/30 border border-cyan-400 text-cyan-300 flex items-center justify-center group-hover:scale-110 transition-transform shadow-inner">
+                          <Sparkles className="w-5 h-5 text-cyan-300" />
                         </div>
-                        <p className="text-[11px] text-cyan-200/90 leading-tight mt-0.5">Mapa holográfico y presentación cinemática</p>
+                        <div className="text-left">
+                          <div className="text-sm sm:text-base font-black text-white uppercase tracking-wider flex items-center gap-2">
+                            <span>GEMELO DIGITAL 3D</span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400 text-slate-950 font-black">DEV SHOWROOM</span>
+                          </div>
+                          <p className="text-[11px] text-cyan-200/90 leading-tight mt-0.5">Mapa holográfico y presentación cinemática</p>
+                        </div>
                       </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-cyan-300 group-hover:translate-x-1 transition-transform shrink-0" />
-                  </button>
-                )}
+                      <ChevronRight className="w-5 h-5 text-cyan-300 group-hover:translate-x-1 transition-transform shrink-0" />
+                    </button>
+                  )
+                })()}
 
                 {/* Botón Expedientes a todo lo ancho */}
                 <button

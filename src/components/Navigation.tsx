@@ -233,11 +233,12 @@ export function MobileFooter() {
   const isInicio = location.pathname === '/'
   const isClientePortal = location.pathname.startsWith('/cliente')
   const perfil = getPerfil()
-  const isDev = perfil?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true'
+  const activeUser = (localStorage.getItem('gestarian_test_user') || perfil?.email || '').toLowerCase().trim()
+  const isDev = perfil?.esDeveloper || localStorage.getItem('gestarian_dev_mode') === 'true' || activeUser === 'iclomsinks@gmail.com'
 
-  // Ocultar iconos AI si es el portal del cliente. 
-  // Para usuarios de taller normales en INICIO: ocultar iconos de AI también.
-  const showAiControls = !isClientePortal && (!isInicio || isDev)
+  // El footer completo con los 4 iconos solo se muestra en modo desarrollador (o para iclomsinks@gmail.com).
+  // En modo usuario normal, solo ven en el footer los iconos de Cámara y Menú.
+  const showAiControls = !isClientePortal && isDev
 
   return (
     <>
