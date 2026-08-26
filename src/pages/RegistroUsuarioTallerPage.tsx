@@ -154,8 +154,24 @@ export function RegistroUsuarioTallerPage() {
         localStorage.setItem('gestarian_clientes_registrados_backup', JSON.stringify(clientsList))
       } catch (e) {}
 
-      // Guardar sesión de prueba activa para este usuario
+      // Guardar sesión de prueba activa para este usuario y registrar en lista multi-cuenta
       localStorage.setItem('gestarian_test_user', cleanEmail)
+      try {
+        const savedRaw = localStorage.getItem('gestarian_saved_accounts')
+        const savedAccounts: any[] = savedRaw ? JSON.parse(savedRaw) : []
+        const exists = savedAccounts.findIndex((a: any) => a.email.toLowerCase() === cleanEmail)
+        const accountEntry = {
+          email: cleanEmail,
+          nombre: form.nombre_profesional.trim() || form.nombre_titular.trim(),
+          ultimoAcceso: new Date().toISOString()
+        }
+        if (exists >= 0) {
+          savedAccounts[exists] = { ...savedAccounts[exists], ...accountEntry }
+        } else {
+          savedAccounts.unshift(accountEntry)
+        }
+        localStorage.setItem('gestarian_saved_accounts', JSON.stringify(savedAccounts))
+      } catch (e) {}
 
       setCompletado(true)
       showToast('¡Autorización concedida con éxito! Acceso concedido a GESTARIAN', 'success')

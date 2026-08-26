@@ -416,12 +416,47 @@ function Layout() {
   )
 }
 
+import { SelectorCuentasModal, type CuentaGuardada } from './components/SelectorCuentasModal'
+
 export default function App() {
   const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem('gestarian_intro_shown'))
   const [introState, setIntroState] = useState<'start' | 'grow' | 'fadeOut'>('start')
   const [profileReady, setProfileReady] = useState(false)
   const [licenciaValida, setLicenciaValida] = useState(false)
   const [necesitaRegistro, setNecesitaRegistro] = useState(false)
+  const [showAccountPicker, setShowAccountPicker] = useState(false)
+  const [savedAccounts, setSavedAccounts] = useState<CuentaGuardada[]>([])
+
+  const selectAccount = async (email: string) => {
+    localStorage.setItem('gestarian_test_user', email)
+    sessionStorage.setItem('gestarian_account_chosen', 'true')
+    setShowAccountPicker(false)
+    setProfileReady(false)
+    try {
+      await cargarPerfil(email)
+      const perfil = getPerfil()
+      if (perfil?.esDeveloper || perfil?.rol?.toUpperCase().includes('JEFE') || perfil?.rol?.toUpperCase().includes('ADMIN')) {
+        setLicenciaValida(true)
+      } else {
+        setLicenciaValida(tieneLicenciaValida())
+      }
+    } catch (e) {
+      setLicenciaValida(true)
+    } finally {
+      setProfileReady(true)
+    }
+  }
+
+  const handleEliminarCuenta = (email: string) => {
+    const updated = savedAccounts.filter(a => a.email.toLowerCase() !== email.toLowerCase())
+    setSavedAccounts(updated)
+    localStorage.setItem('gestarian_saved_accounts', JSON.stringify(updated))
+    if (updated.length <= 1) {
+      if (updated.length === 1) {
+        selectAccount(updated[0].email)
+      }
+    }
+  }
 
   useEffect(() => {
     // Si estamos en la ruta del portal del cliente final o del Gemelo Digital o Consola Dev o Acceso de Empleado, permitir acceso directo
@@ -443,17 +478,61 @@ export default function App() {
       return
     }
 
+    // Verificar si hay múltiples cuentas en el dispositivo
+    const savedRaw = localStorage.getItem('gestarian_saved_accounts')
+    let savedList: any[] = []
+    try {
+      if (savedRaw) savedList = JSON.parse(savedRaw)
+    } catch (e) {}
+
+    // Si no hay lista pero sí backup de clientes registrados, poblar la lista
+    if (savedList.length === 0) {
+      const bkpRaw = localStorage.getItem('gestarian_clientes_registrados_backup')
+      if (bkpRaw) {
+        try {
+          const bkpList: any[] = JSON.parse(bkpRaw)
+          bkpList.forEach((b: any) => {
+            if (b.email && !savedList.some(s => s.email.toLowerCase() === b.email.toLowerCase())) {
+              savedList.push({
+                email: b.email,
+                nombre: b.nombre_profesional || b.nombre_titular || b.email.split('@')[0],
+                ultimoAcceso: b.created_at || new Date().toISOString()
+              })
+            }
+          })
+          if (savedList.length > 0) {
+            localStorage.setItem('gestarian_saved_accounts', JSON.stringify(savedList))
+          }
+        } catch (e) {}
+      }
+    }
+
+    setSavedAccounts(savedList)
+
     const testEmail = localStorage.getItem('gestarian_test_user')
+    const sessionSelected = sessionStorage.getItem('gestarian_account_chosen') === 'true'
+
+    // Si hay más de 1 cuenta registrada en el dispositivo y no se ha seleccionado en esta sesión de navegación
+    if (savedList.length > 1 && !sessionSelected) {
+      setShowAccountPicker(true)
+      setProfileReady(true)
+      return
+    }
     
     // Si la app se acaba de descargar / instalar por primera vez y no hay usuario registrado
-    if (!testEmail) {
+    if (!testEmail && savedList.length === 0) {
       setNecesitaRegistro(true)
       setProfileReady(true)
       setLicenciaValida(true)
       return
     }
 
-    cargarPerfil(testEmail)
+    const targetEmail = testEmail || savedList[0]?.email || 'iclomsinks@gmail.com'
+    if (!testEmail) {
+      localStorage.setItem('gestarian_test_user', targetEmail)
+    }
+
+    cargarPerfil(targetEmail)
       .then(() => {
         const perfil = getPerfil()
         if (perfil?.esDeveloper || perfil?.rol?.toUpperCase().includes('JEFE') || perfil?.rol?.toUpperCase().includes('ADMIN')) {
@@ -509,6 +588,17 @@ export default function App() {
           <ToastProvider>
             {showIntro ? (
               <IntroAnimation showIntro={showIntro} introState={introState} />
+            ) : showAccountPicker ? (
+              <SelectorCuentasModal
+                cuentas={savedAccounts}
+                cuentaActual={localStorage.getItem('gestarian_test_user') || undefined}
+                onSeleccionarCuenta={(email) => selectAccount(email)}
+                onNuevaCuenta={() => {
+                  setShowAccountPicker(false)
+                  setNecesitaRegistro(true)
+                }}
+                onEliminarCuenta={handleEliminarCuenta}
+              />
             ) : !profileReady ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
                 <p className="text-cyan-400 font-bold">Iniciando GESTARIAN...</p>

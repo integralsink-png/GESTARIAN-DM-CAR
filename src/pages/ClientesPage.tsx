@@ -17,6 +17,8 @@ import { getExpediente } from '../lib/utils'
 import { enviarInvitacion } from '../services/notificationService'
 import { useToast } from '../lib/ToastContext'
 
+import { getPerfil } from '../services/authService'
+
 export function ClientesPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -128,8 +130,30 @@ export function ClientesPage() {
     setLoading(true)
     const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: true })
     if (data) {
+      const activeEmail = (localStorage.getItem('gestarian_test_user') || getPerfil()?.email || '').toLowerCase().trim()
+      const isDev = activeEmail === 'iclomsinks@gmail.com' || localStorage.getItem('gestarian_dev_mode') === 'true' || getPerfil()?.esDeveloper
+
+      // Clave de almacenamiento de clientes creados por este taller
+      const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+      const rawUserClients = localStorage.getItem(userClientsKey)
+      let userClientsIds: string[] = []
+      try {
+        if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+      } catch (e) {}
+
+      // Filtrar datos: Developer ve todos; cada taller ve únicamente los clientes que ha dado de alta
+      let filteredData = data
+      if (!isDev) {
+        if (userClientsIds.length > 0) {
+          filteredData = data.filter(c => userClientsIds.includes(c.id))
+        } else {
+          // Si el usuario es nuevo y aún no tiene clientes propios
+          filteredData = []
+        }
+      }
+
       // Si la columna numero ya existe en DB, la usamos; si no, la calculamos como ordinal
-      const clientesConNumero = data.map((c: Cliente, idx: number) => ({
+      const clientesConNumero = filteredData.map((c: Cliente, idx: number) => ({
         ...c,
         numero: c.numero ?? (idx + 1)
       }))
@@ -137,15 +161,15 @@ export function ClientesPage() {
       const sorted = [...clientesConNumero].sort((a, b) => (b.numero ?? 0) - (a.numero ?? 0))
       setClientes(sorted)
 
-      // Cargar vehículos de todos los clientes
+      // Cargar vehículos de los clientes visibles
       const vehiculoMap: Record<string, Vehiculo[]> = {}
-      for (const c of data) {
+      for (const c of filteredData) {
         const { data: vehs } = await supabase.from('vehiculos').select('*').eq('cliente_id', c.id)
         vehiculoMap[c.id] = vehs ?? []
       }
       setVehiculos(vehiculoMap)
 
-      // Cargar todos los presupuestos de todos los clientes en bloque
+      // Cargar todos los presupuestos de los clientes visibles en bloque
       const { data: allPresups } = await supabase.from('presupuestos').select('*').order('created_at', { ascending: false })
       if (allPresups) {
         const pMap: Record<string, Presupuesto[]> = {}
@@ -158,7 +182,7 @@ export function ClientesPage() {
         setPresupuestosCliente(pMap)
       }
 
-      // Cargar todas las facturas de todos los clientes en bloque
+      // Cargar todas las facturas de los clientes visibles en bloque
       const { data: allFacts } = await supabase.from('facturas').select('*').order('created_at', { ascending: false })
       if (allFacts) {
         const fMap: Record<string, Factura[]> = {}
@@ -342,6 +366,20 @@ export function ClientesPage() {
           vehRes = await supabase.from('vehiculos').insert(vehPayload).select().maybeSingle()
         }
         nuevoVehiculoId = vehRes.data?.id || null
+      }
+
+      // Vincular este nuevo cliente como propiedad del taller logueado actual
+      if (clienteId) {
+        const activeEmail = (localStorage.getItem('gestarian_test_user') || getPerfil()?.email || '').toLowerCase().trim()
+        const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+        try {
+          const raw = localStorage.getItem(userClientsKey)
+          const list: string[] = raw ? JSON.parse(raw) : []
+          if (!list.includes(clienteId)) {
+            list.unshift(clienteId)
+            localStorage.setItem(userClientsKey, JSON.stringify(list))
+          }
+        } catch (e) {}
       }
 
       // Disparar invitación automática por email si el cliente tiene email
