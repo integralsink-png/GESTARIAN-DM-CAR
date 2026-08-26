@@ -513,38 +513,52 @@ export default function App() {
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
                 <p className="text-cyan-400 font-bold">Iniciando GESTARIAN...</p>
               </div>
-            ) : necesitaRegistro ? (
-              <BrowserRouter>
-                <div className="min-h-screen bg-[#05070e] text-white">
-                  <Routes>
-                    <Route path="*" element={<RegistroUsuarioTallerPage />} />
-                  </Routes>
-                </div>
-              </BrowserRouter>
-            ) : !licenciaValida ? (
-              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '20px', textAlign: 'center', color: '#fff' }}>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Licencia no válida</h1>
-                <p style={{ color: '#94a3b8', maxWidth: '400px', marginBottom: '1rem' }}>Tu licencia de GESTARIAN no está activa o ha expirado. Contacta con el administrador.</p>
-                <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Estado: {getPerfil()?.licenciaEstado || 'Sin licencia'}</p>
-              </div>
             ) : (
               <BrowserRouter>
                 <Routes>
+                  {/* Rutas Maestras de Desarrollador */}
                   <Route path="/GESTARIAN/DEV" element={<DeveloperAuthPage />} />
                   <Route path="/gestarian/dev" element={<DeveloperAuthPage />} />
                   <Route path="/gestarian/DEV" element={<DeveloperAuthPage />} />
                   <Route path="/GESTARIAN/dev" element={<DeveloperAuthPage />} />
+                  <Route path="/DEV" element={<DeveloperAuthPage />} />
+                  <Route path="/dev" element={<DeveloperAuthPage />} />
+                  <Route path="/desarrollador" element={<DeveloperAuthPage />} />
+
+                  {/* Gemelo Digital */}
                   <Route path="/gemelo-digital" element={<GemeloDigitalPage />} />
                   <Route path="/digital-twin" element={<GemeloDigitalPage />} />
+
+                  {/* Portal de Clientes */}
                   <Route path="/cliente/acceso" element={<ClientePortalAuthPage />} />
                   <Route path="/acceso-cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente" element={<ClientePortalAuthPage />} />
                   <Route path="/cliente/:token" element={<ClientePage />} />
+
+                  {/* Acceso de Empleados / Autorizados */}
                   <Route path="/acceso-empleado" element={<EmpleadoAuthPage />} />
                   <Route path="/acceso-autorizado" element={<EmpleadoAuthPage />} />
                   <Route path="/empleado" element={<EmpleadoAuthPage />} />
                   <Route path="/autorizado/acceso" element={<EmpleadoAuthPage />} />
-                  <Route path="/*" element={<Layout />} />
+
+                  {/* Registro de Taller */}
+                  <Route path="/registro-taller" element={<RegistroUsuarioTallerPage />} />
+                  <Route path="/registro-usuario" element={<RegistroUsuarioTallerPage />} />
+
+                  {/* Layout principal o Registro si es nuevo usuario */}
+                  {necesitaRegistro ? (
+                    <Route path="*" element={<RegistroUsuarioTallerPage />} />
+                  ) : !licenciaValida ? (
+                    <Route path="*" element={
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', flexDirection: 'column', padding: '20px', textAlign: 'center', color: '#fff' }}>
+                        <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem' }}>Licencia no válida</h1>
+                        <p style={{ color: '#94a3b8', maxWidth: '400px', marginBottom: '1rem' }}>Tu licencia de GESTARIAN no está activa o ha expirado. Contacta con el administrador.</p>
+                        <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Estado: {getPerfil()?.licenciaEstado || 'Sin licencia'}</p>
+                      </div>
+                    } />
+                  ) : (
+                    <Route path="/*" element={<Layout />} />
+                  )}
                 </Routes>
               </BrowserRouter>
             )}
