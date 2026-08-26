@@ -30,6 +30,8 @@ export function RegistroUsuarioTallerPage() {
     pais: 'España',
     email: 'alimajefe@gmail.com',
     telefono: '600 123 456',
+    password: '',
+    confirm_password: '',
     tipo_empresa: 'autonomo' as 'autonomo' | 'sociedad_limitada',
     plan_solicitado: 'PRO' as 'FREE' | 'PRO' | 'ENTERPRISE',
     acepta_terminos: true
@@ -123,6 +125,16 @@ export function RegistroUsuarioTallerPage() {
 
     if (!form.nombre_profesional.trim() || !form.direccion_fiscal.trim() || !form.codigo_postal.trim() || !form.poblacion.trim()) {
       showToast('Por favor cumplimenta todos los campos fiscales obligatorios exigidos por la AEAT', 'warning')
+      return
+    }
+
+    if (!form.password || form.password.length < 4) {
+      showToast('Introduce una contraseña de al menos 4 caracteres para tu cuenta', 'warning')
+      return
+    }
+
+    if (form.password !== form.confirm_password) {
+      showToast('Las contraseñas no coinciden. Por favor ratifica tu contraseña correctamente.', 'error')
       return
     }
 
@@ -580,6 +592,37 @@ export function RegistroUsuarioTallerPage() {
                 placeholder="600 123 456"
                 className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-cyan-400 outline-none"
               />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-300 block mb-1">Elegir Contraseña de Acceso *</label>
+              <input
+                type="password"
+                required
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                placeholder="••••••••"
+                className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-medium focus:border-cyan-400 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-300 block mb-1">Ratificar Contraseña *</label>
+              <input
+                type="password"
+                required
+                value={form.confirm_password}
+                onChange={(e) => setForm({ ...form, confirm_password: e.target.value })}
+                placeholder="••••••••"
+                className={`w-full bg-slate-950 border rounded-xl px-3.5 py-2.5 text-sm text-white font-medium outline-none ${
+                  form.confirm_password && form.confirm_password !== form.password
+                    ? 'border-rose-500/80 focus:border-rose-400'
+                    : 'border-slate-700 focus:border-cyan-400'
+                }`}
+              />
+              {form.confirm_password && form.confirm_password !== form.password && (
+                <span className="text-[10px] text-rose-400 mt-1 block">Las contraseñas no coinciden</span>
+              )}
             </div>
           </div>
         </Card>

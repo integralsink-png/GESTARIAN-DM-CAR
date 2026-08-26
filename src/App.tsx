@@ -507,12 +507,23 @@ export default function App() {
       }
     }
 
+    // Asegurar que la cuenta actualmente logueada esté añadida en las cuentas del dispositivo
+    const currentLogged = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    if (currentLogged && !savedList.some(s => s.email.toLowerCase() === currentLogged)) {
+      savedList.unshift({
+        email: currentLogged,
+        nombre: currentLogged.split('@')[0],
+        ultimoAcceso: new Date().toISOString()
+      })
+      localStorage.setItem('gestarian_saved_accounts', JSON.stringify(savedList))
+    }
+
     setSavedAccounts(savedList)
 
     const testEmail = localStorage.getItem('gestarian_test_user')
     const sessionSelected = sessionStorage.getItem('gestarian_account_chosen') === 'true'
 
-    // Si hay más de 1 cuenta registrada en el dispositivo y no se ha seleccionado en esta sesión de navegación
+    // Si hay más de 1 cuenta registrada en el dispositivo y no se ha seleccionado en esta sesión de arranque
     if (savedList.length > 1 && !sessionSelected) {
       setShowAccountPicker(true)
       setProfileReady(true)

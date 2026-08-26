@@ -530,7 +530,7 @@ export function ConfiguracionPage() {
         </div>
       </PageHeader>
 
-      {/* IDENTIFICACIÓN DEL USUARIO ACTIVO (ARRIBA DEL TODO EN TODOS LOS MODOS) */}
+      {/* IDENTIFICACIÓN DEL USUARIO ACTIVO Y CAMBIO DE CUENTA */}
       <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border-2 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black text-sm shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0">
@@ -551,9 +551,25 @@ export function ConfiguracionPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto text-xs text-slate-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="font-semibold text-slate-300">{perfil?.nombre || config?.nombre_empresa || 'GESTARIAN'}</span>
+        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto">
+          {/* Botón CAMBIAR DE CUENTA */}
+          <button
+            type="button"
+            onClick={() => {
+              sessionStorage.removeItem('gestarian_account_chosen')
+              window.location.reload()
+            }}
+            className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/60 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+            title="Cambiar de cuenta de taller"
+          >
+            <span>🔄</span>
+            <span>CAMBIAR DE CUENTA</span>
+          </button>
+
+          <div className="flex items-center gap-2 text-xs text-slate-400 pl-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="font-semibold text-slate-300">{perfil?.nombre || config?.nombre_empresa || 'GESTARIAN'}</span>
+          </div>
         </div>
       </div>
 
