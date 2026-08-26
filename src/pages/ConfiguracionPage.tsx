@@ -156,10 +156,57 @@ export function ConfiguracionPage() {
   }
 
   async function loadConfig() {
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || getPerfil()?.email || '').toLowerCase().trim()
     const { data } = await supabase.from('configuracion').select('*').eq('id', 1).maybeSingle()
-    if (data) {
-      setConfig(data)
+    
+    let baseConfig = data || {
+      id: 1,
+      nombre_empresa: 'DM CAR',
+      cif: '12345678Z',
+      direccion: 'Polígono Industrial Las Palmeras, Nave 4',
+      telefono: '600 123 456',
+      email: activeEmail || 'iclomsinks@gmail.com',
+      email_gestoria: '',
+      logo_color: '',
+      logo_bn: '',
+      fondo_landscape: '',
+      fondo_portrait: '',
+      tipo_empresa: 'empresa'
+    } as any
 
+    // Buscar si el usuario actual tiene sus propios datos registrados en gestarian_licencias o backup
+    if (activeEmail) {
+      try {
+        const { data: userLic } = await supabase
+          .from('gestarian_licencias')
+          .select('*')
+          .eq('email', activeEmail)
+          .maybeSingle()
+
+        if (userLic) {
+          baseConfig = {
+            ...baseConfig,
+            email: activeEmail,
+            nombre_empresa: userLic.nombre_taller || userLic.nombre_profesional || baseConfig.nombre_empresa
+          }
+        } else {
+          // Si es iclomsinks@gmail.com u otra cuenta en sesión activa
+          baseConfig = {
+            ...baseConfig,
+            email: activeEmail
+          }
+        }
+      } catch (e) {
+        baseConfig = {
+          ...baseConfig,
+          email: activeEmail
+        }
+      }
+    }
+
+    setConfig(baseConfig)
+
+    if (data) {
       // Si existen claves API guardadas en Supabase, sincronizarlas en localStorage para todos los dispositivos
       if (data.ai_api_key) {
         localStorage.setItem('gestarian_gemini_api_key', data.ai_api_key)
@@ -217,21 +264,6 @@ export function ConfiguracionPage() {
         if (data.fallback_model) setFallbackModel(data.fallback_model)
         if (data.fallback_enabled !== undefined) setFallbackEnabled(data.fallback_enabled)
       }
-    } else {
-      setConfig({
-        id: 1,
-        nombre_empresa: '',
-        cif: '',
-        direccion: '',
-        telefono: '',
-        email: '',
-        email_gestoria: '',
-        logo_color: '',
-        logo_bn: '',
-        fondo_landscape: '',
-        fondo_portrait: '',
-        tipo_empresa: 'empresa'
-      } as any)
     }
   }
 

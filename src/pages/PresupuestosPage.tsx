@@ -480,8 +480,6 @@ export function PresupuestosPage() {
     
     if (data) {
       const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
-      const isDev = activeEmail === 'iclomsinks@gmail.com' || localStorage.getItem('gestarian_dev_mode') === 'true'
-
       const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
       const rawUserClients = localStorage.getItem(userClientsKey)
       let userClientsIds: string[] = []
@@ -489,14 +487,10 @@ export function PresupuestosPage() {
         if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
       } catch (e) {}
 
-      if (!isDev) {
-        if (userClientsIds.length > 0) {
-          setClientes(data.filter(c => userClientsIds.includes(c.id)))
-        } else {
-          setClientes([])
-        }
+      if (userClientsIds.length > 0) {
+        setClientes(data.filter(c => userClientsIds.includes(c.id)))
       } else {
-        setClientes(data)
+        setClientes([])
       }
     } else {
       setClientes([])

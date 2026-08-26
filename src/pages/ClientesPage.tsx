@@ -131,7 +131,6 @@ export function ClientesPage() {
     const { data } = await supabase.from('clientes').select('*').order('created_at', { ascending: true })
     if (data) {
       const activeEmail = (localStorage.getItem('gestarian_test_user') || getPerfil()?.email || '').toLowerCase().trim()
-      const isDev = activeEmail === 'iclomsinks@gmail.com' || localStorage.getItem('gestarian_dev_mode') === 'true' || getPerfil()?.esDeveloper
 
       // Clave de almacenamiento de clientes creados por este taller
       const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
@@ -141,15 +140,12 @@ export function ClientesPage() {
         if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
       } catch (e) {}
 
-      // Filtrar datos: Developer ve todos; cada taller ve únicamente los clientes que ha dado de alta
-      let filteredData = data
-      if (!isDev) {
-        if (userClientsIds.length > 0) {
-          filteredData = data.filter(c => userClientsIds.includes(c.id))
-        } else {
-          // Si el usuario es nuevo y aún no tiene clientes propios
-          filteredData = []
-        }
+      // Filtrar datos: Cada usuario/taller ve únicamente los clientes que ha dado de alta
+      let filteredData: Cliente[] = []
+      if (userClientsIds.length > 0) {
+        filteredData = data.filter(c => userClientsIds.includes(c.id))
+      } else {
+        filteredData = []
       }
 
       // Si la columna numero ya existe en DB, la usamos; si no, la calculamos como ordinal

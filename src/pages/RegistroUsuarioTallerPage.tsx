@@ -40,9 +40,65 @@ export function RegistroUsuarioTallerPage() {
     tipo: 'DNI/NIF'
   })
 
+  const [mostrarLoginRapido, setMostrarLoginRapido] = useState(false)
+  const [loginEmail, setLoginEmail] = useState('')
+  const [loginLoading, setLoginLoading] = useState(false)
+  const [cuentasLocales, setCuentasLocales] = useState<Array<{ email: string; nombre?: string }>>([])
+
   useEffect(() => {
     configuracionService.obtenerConfiguracion().then(setConfig).catch(() => null)
+
+    // Cargar cuentas registradas en este dispositivo
+    try {
+      const savedRaw = localStorage.getItem('gestarian_saved_accounts')
+      if (savedRaw) {
+        setCuentasLocales(JSON.parse(savedRaw))
+      } else {
+        const bkpRaw = localStorage.getItem('gestarian_clientes_registrados_backup')
+        if (bkpRaw) {
+          const list: any[] = JSON.parse(bkpRaw)
+          const mapped = list.filter(c => !!c.email).map(c => ({
+            email: c.email,
+            nombre: c.nombre_taller || c.nombre_profesional || c.email
+          }))
+          setCuentasLocales(mapped)
+        }
+      }
+    } catch (e) {}
   }, [])
+
+  const ejecutarLogin = async (emailToLogin: string) => {
+    const clean = emailToLogin.trim().toLowerCase()
+    if (!clean) return
+    setLoginLoading(true)
+    try {
+      localStorage.setItem('gestarian_test_user', clean)
+      sessionStorage.setItem('gestarian_account_chosen', 'true')
+      
+      // Guardar en cuentas guardadas
+      try {
+        const raw = localStorage.getItem('gestarian_saved_accounts')
+        const list: any[] = raw ? JSON.parse(raw) : []
+        if (!list.some(a => a.email.toLowerCase() === clean)) {
+          list.unshift({ email: clean, nombre: clean.split('@')[0], ultimoAcceso: new Date().toISOString() })
+          localStorage.setItem('gestarian_saved_accounts', JSON.stringify(list))
+        }
+      } catch (e) {}
+
+      showToast(`Iniciando sesión con ${clean}...`, 'success')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 400)
+    } catch (err: any) {
+      showToast('Error al iniciar sesión: ' + (err.message || ''), 'error')
+      setLoginLoading(false)
+    }
+  }
+
+  const handleLoginDirecto = (e: React.FormEvent) => {
+    e.preventDefault()
+    ejecutarLogin(loginEmail)
+  }
 
   const handleCifChange = (val: string) => {
     const formatted = val.toUpperCase().trim()
@@ -234,6 +290,79 @@ export function RegistroUsuarioTallerPage() {
           <ArrowLeft className="w-7 h-7" />
         </button>
       </PageHeader>
+
+      {/* SECCIÓN DE LOGIN DIRECTO PARA USUARIOS YA REGISTRADOS */}
+      <div className="p-5 rounded-3xl bg-slate-900/90 border-2 border-cyan-500/60 shadow-[0_0_25px_rgba(6,182,212,0.2)] backdrop-blur-md space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-400 flex items-center justify-center text-cyan-300">
+              <ShieldCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                ¿Ya tienes una cuenta de taller?
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Inicia sesión directamente con tu correo electrónico registrado.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMostrarLoginRapido(!mostrarLoginRapido)}
+            className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/60 text-xs font-black uppercase tracking-wider transition-all active:scale-95 cursor-pointer shrink-0"
+          >
+            {mostrarLoginRapido ? 'Cerrar' : 'INICIAR SESIÓN'}
+          </button>
+        </div>
+
+        {mostrarLoginRapido && (
+          <div className="space-y-3 pt-1 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex flex-col sm:flex-row gap-2.5">
+              <input
+                type="email"
+                value={loginEmail}
+                onChange={(e) => setLoginEmail(e.target.value)}
+                placeholder="Introduce tu correo (ej: alimajefe@gmail.com)"
+                className="flex-1 bg-slate-950 border border-cyan-500/40 focus:border-cyan-400 rounded-2xl px-4 py-3 text-sm text-white font-medium outline-none transition-colors"
+              />
+              <button
+                type="button"
+                disabled={loginLoading || !loginEmail.trim()}
+                onClick={handleLoginDirecto}
+                className="py-3 px-6 rounded-2xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(6,182,212,0.4)] transition-all active:scale-95 cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5 shrink-0"
+              >
+                <span>{loginLoading ? 'ACCEDIENDO...' : 'ENTRAR AL TALLER'}</span>
+              </button>
+            </div>
+
+            {/* Cuentas guardadas en este dispositivo si existen */}
+            {cuentasLocales.length > 0 && (
+              <div className="pt-2 border-t border-slate-800">
+                <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1.5">
+                  O accede con una cuenta guardada en este equipo:
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {cuentasLocales.map((c) => (
+                    <button
+                      key={c.email}
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail(c.email)
+                        ejecutarLogin(c.email)
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 border border-slate-700 hover:border-cyan-400 text-xs text-slate-200 font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                    >
+                      <span className="text-cyan-400 font-mono">👤</span>
+                      <span>{c.nombre || c.email}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* AVISO LEGAL FISCAL OBLIGATORIO AEAT */}
       <div className="p-4 rounded-2xl bg-cyan-950/40 border-2 border-cyan-500/60 flex items-start gap-3 shadow-lg">

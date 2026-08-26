@@ -247,7 +247,23 @@ export function FacturasPage() {
 
   async function loadClientes() {
     const { data } = await supabase.from('clientes').select('*').order('nombre')
-    setClientes(data ?? [])
+    if (data) {
+      const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+      const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+      const rawUserClients = localStorage.getItem(userClientsKey)
+      let userClientsIds: string[] = []
+      try {
+        if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+      } catch (e) {}
+
+      if (userClientsIds.length > 0) {
+        setClientes(data.filter(c => userClientsIds.includes(c.id)))
+      } else {
+        setClientes([])
+      }
+    } else {
+      setClientes([])
+    }
   }
 
   async function loadVehiculos() {
