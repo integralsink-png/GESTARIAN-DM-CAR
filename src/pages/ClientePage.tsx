@@ -64,15 +64,15 @@ interface ExpedienteGroup {
   cita?: Cita | null
 }
 
-// Intervalos de 15 min de 07:00 a 21:00
+// Intervalos de 15 min de 09:00 a 18:00 (Hora inicio 09:00 am, hora máxima 18:00)
 const TIME_SLOTS: string[] = []
-for (let h = 7; h <= 21; h++) {
+for (let h = 9; h <= 18; h++) {
   for (let m = 0; m < 60; m += 15) {
-    if (h === 21 && m > 0) break
+    if (h === 18 && m > 0) break
     TIME_SLOTS.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`)
   }
 }
-const DEFAULT_12_INDEX = TIME_SLOTS.indexOf('12:00') !== -1 ? TIME_SLOTS.indexOf('12:00') : 20
+const DEFAULT_12_INDEX = TIME_SLOTS.indexOf('10:00') !== -1 ? TIME_SLOTS.indexOf('10:00') : 0
 
 const MESES = [
   'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
@@ -149,7 +149,12 @@ export function ClientePage() {
   const [formModelo, setFormModelo] = useState('')
   const [formMatricula, setFormMatricula] = useState('')
   const [formDescripcion, setFormDescripcion] = useState('')
-  const [formPreferenciaEntrega, setFormPreferenciaEntrega] = useState<'mañana' | 'tarde'>('mañana')
+  const [formPreferenciaHora, setFormPreferenciaHora] = useState('09:00')
+  const [formPreferenciaFecha, setFormPreferenciaFecha] = useState(() => {
+    const d = new Date()
+    d.setDate(d.getDate() + 1)
+    return d.toISOString().split('T')[0]
+  })
   const [formFotos, setFormFotos] = useState<{ file?: File; preview: string; uploadedUrl?: string }[]>([])
   const [enviandoSolicitud, setEnviandoSolicitud] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -513,7 +518,7 @@ export function ClientePage() {
             }
           ],
           total: 0,
-          observaciones: `[SOLICITUD CLIENTE]\nVehículo: ${formMarca} ${formModelo} (${formMatricula})\nPreferencia de Entrega: ${formPreferenciaEntrega.toUpperCase()}\nReparación requerida:\n${formDescripcion.trim()}`,
+          observaciones: `[SOLICITUD CLIENTE]\nVehículo: ${formMarca} ${formModelo} (${formMatricula})\nPreferencia de Entrega: Día ${formPreferenciaFecha} a las ${formPreferenciaHora} h\nReparación requerida:\n${formDescripcion.trim()}`,
           fotos: uploadedUrls
         })
         .select()
@@ -543,7 +548,7 @@ export function ClientePage() {
         marca: formMarca || vehiculo?.marca,
         modelo: formModelo || vehiculo?.modelo,
         matricula: formMatricula || vehiculo?.matricula,
-        descripcion: `[Preferencia Entrega: ${formPreferenciaEntrega.toUpperCase()}] ${formDescripcion.trim()}`,
+        descripcion: `[Preferencia Entrega: Día ${formPreferenciaFecha} a las ${formPreferenciaHora} h] ${formDescripcion.trim()}`,
         totalFotos: uploadedUrls.length
       })
 
@@ -551,7 +556,7 @@ export function ClientePage() {
       showToast('SOLICITUD DE PRESUPUESTO ENVIADA CORRECTAMENTE', 'success')
       setModalSolicitudPresupuesto(false)
       setFormDescripcion('')
-      setFormPreferenciaEntrega('mañana')
+      setFormPreferenciaHora('09:00')
       setFormFotos([])
       loadData()
     } catch (err: any) {
@@ -1505,42 +1510,48 @@ export function ClientePage() {
                   />
                 </div>
 
-                {/* 4. PREFERENCIA DE ENTREGA (MAÑANA / TARDE) */}
-                <div>
-                  <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 mb-2.5 flex items-center justify-between">
-                    <span>4. PREFERENCIA DE ENTREGA</span>
-                    <span className="text-xs font-mono font-bold text-slate-400 uppercase">
-                      Seleccionado: <span className="text-cyan-300 font-black">{formPreferenciaEntrega.toUpperCase()}</span>
+                {/* 4. HORA Y DÍA APROXIMADO DE ENTREGA (09:00 a 18:00) */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-black uppercase tracking-wider text-cyan-400 flex items-center justify-between">
+                    <span>4. HORA APROXIMADA Y DÍA DE ENTREGA</span>
+                    <span className="text-xs font-mono font-bold text-cyan-300">
+                      Máx. 18:00 h
                     </span>
                   </h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Opción MAÑANA */}
-                    <button
-                      type="button"
-                      onClick={() => setFormPreferenciaEntrega('mañana')}
-                      className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none ${
-                        formPreferenciaEntrega === 'mañana'
-                          ? 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-[0_0_15px_rgba(245,158,11,0.3)] scale-[1.02]'
-                          : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                      }`}
-                    >
-                      <Sun className={`w-5 h-5 ${formPreferenciaEntrega === 'mañana' ? 'text-amber-400 animate-spin-slow' : 'text-slate-400'}`} />
-                      <span className="font-black text-sm uppercase tracking-wider">MAÑANA</span>
-                    </button>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {/* Selector de Hora */}
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="text-xs font-bold text-slate-300 uppercase">Hora aprox:</span>
+                      </div>
+                      <select
+                        value={formPreferenciaHora}
+                        onChange={(e) => setFormPreferenciaHora(e.target.value)}
+                        className="bg-slate-950 border border-cyan-500/40 text-cyan-300 font-mono font-black text-xs px-2.5 py-1.5 rounded-xl outline-none focus:border-cyan-400"
+                      >
+                        {TIME_SLOTS.map((slot) => (
+                          <option key={slot} value={slot}>
+                            {slot} h
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                    {/* Opción TARDE */}
-                    <button
-                      type="button"
-                      onClick={() => setFormPreferenciaEntrega('tarde')}
-                      className={`py-3 px-4 rounded-2xl border-2 flex items-center justify-center gap-2.5 transition-all cursor-pointer select-none ${
-                        formPreferenciaEntrega === 'tarde'
-                          ? 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-[0_0_15px_rgba(99,102,241,0.3)] scale-[1.02]'
-                          : 'bg-slate-900/80 border-slate-700 text-slate-400 hover:border-slate-500 hover:text-slate-200'
-                      }`}
-                    >
-                      <Moon className={`w-5 h-5 ${formPreferenciaEntrega === 'tarde' ? 'text-indigo-400' : 'text-slate-400'}`} />
-                      <span className="font-black text-sm uppercase tracking-wider">TARDE</span>
-                    </button>
+                    {/* Selector de Fecha */}
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-700 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-cyan-400 shrink-0" />
+                        <span className="text-xs font-bold text-slate-300 uppercase">Día aprox:</span>
+                      </div>
+                      <input
+                        type="date"
+                        min={new Date().toISOString().split('T')[0]}
+                        value={formPreferenciaFecha}
+                        onChange={(e) => setFormPreferenciaFecha(e.target.value)}
+                        className="bg-slate-950 border border-cyan-500/40 text-cyan-300 font-mono font-bold text-xs px-2.5 py-1.5 rounded-xl outline-none focus:border-cyan-400"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

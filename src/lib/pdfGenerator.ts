@@ -472,13 +472,42 @@ export async function sendPresupuestoByEmail(
   const doc = generatePresupuestoPDF(presupuesto, cliente, vehiculo, config, expediente)
   const pdfBlob = doc.output('blob')
 
+  // Obtener o generar token de invitación para el área de cliente
+  let clientPortalUrl = ''
+  try {
+    if (cliente.id) {
+      const { data: inv } = await supabase
+        .from('cliente_invitaciones')
+        .select('token')
+        .eq('cliente_id', cliente.id)
+        .maybeSingle()
+
+      let token = inv?.token
+      if (!token) {
+        token = 'inv_' + crypto.randomUUID().slice(0, 8)
+        await supabase.from('cliente_invitaciones').insert({
+          cliente_id: cliente.id,
+          vehiculo_id: vehiculo?.id || null,
+          email: cliente.email,
+          token: token
+        })
+      }
+      const origin = window.location.origin || 'http://localhost:5174'
+      clientPortalUrl = `${origin}/cliente/${token}`
+    }
+  } catch (e) {
+    console.warn('Error resolviendo token de cliente para email:', e)
+  }
+
+  const messageBody = `Estimado/a ${cliente.nombre},\n\nLe adjuntamos el presupuesto ${numero} correspondiente a su vehículo ${vehiculo?.matricula ? `(${vehiculo.matricula})` : ''}.\n\nPara revisar los detalles del presupuesto y ELEGIR LA FECHA Y HORA DE SU CITA (disponible de 09:00 a 18:00 h), acceda directamente a su Área de Cliente pulsando en el siguiente enlace:\n${clientPortalUrl || window.location.origin}\n\nQuedamos a su entera disposición para cualquier duda o consulta.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`
+
   const result = await sendEstimate({
     to: cliente.email,
     documentId: presupuesto.id,
     documentNumber: numero,
     pdfContent: pdfBlob,
-    subject: `Presupuesto ${numero} - ${config?.nombre_empresa || 'DM CAR'}`,
-    message: `Estimado/a ${cliente.nombre},\n\nLe adjuntamos el presupuesto ${numero} correspondiente a su vehículo.\n\nQuedamos a su entera disposición para cualquier duda o aclaración.\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`,
+    subject: `Presupuesto ${numero} y Elección de Cita - ${config?.nombre_empresa || 'DM CAR'}`,
+    message: messageBody,
     metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id }
   })
 

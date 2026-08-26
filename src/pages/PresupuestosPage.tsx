@@ -650,19 +650,40 @@ export function PresupuestosPage() {
         .select()
         .maybeSingle();
 
-      if (error) {
-        console.error("Error actualizando presupuesto:", error);
-        showToast("Error al guardar presupuesto: " + error.message, "error");
-        return;
-      }
-      playSuccessSound();
-      setShowSentToast("Presupuesto guardado, puede enviarlo al cliente por Email o Watsapp.");
-      setAnimarEnvioPostSave(false);
-      setTimeout(() => {
-        setShowSentToast(null);
-        setAnimarEnvioPostSave(true);
-      }, 5000);
+      let targetPres = updatedPres;
       if (updatedPres?.id) setEditingId(updatedPres.id);
+
+      // Enviar correo electrónico directamente al cliente con el presupuesto y enlace para elegir cita
+      const numExp = getExpediente(updatedPres || { numero: editingId }, cliente, clientes);
+      const veh = selectedVehiculoId ? vehiculoData(selectedVehiculoId) : null;
+      let emailEnviadoConExito = false;
+      if (cliente?.email) {
+        try {
+          const resEmail = await sendPresupuestoByEmail(
+            { id: editingId, numero: updatedPres?.numero || '', conceptos: cleanConceptos, observaciones: observaciones || null, total, aplicarIva },
+            cliente,
+            veh,
+            config,
+            numExp
+          );
+          if (resEmail.success) {
+            emailEnviadoConExito = true;
+            const nowIso = new Date().toISOString();
+            localStorage.setItem(`presupuesto_${editingId}_email_at`, nowIso);
+            await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', editingId);
+          }
+        } catch (err) {
+          console.warn('Error enviando email automático tras guardar:', err);
+        }
+      }
+
+      playSuccessSound();
+      setShowSentToast(
+        emailEnviadoConExito
+          ? `PRESUPUESTO GUARDADO Y ENVIADO POR EMAIL A ${cliente?.email?.toUpperCase()}`
+          : "PRESUPUESTO GUARDADO CON ÉXITO"
+      );
+      setAnimarEnvioPostSave(false);
     } else {
       const { data: newPres, error } = await supabase.from("presupuestos").insert({
         numero,
@@ -681,16 +702,43 @@ export function PresupuestosPage() {
         showToast("Error al guardar presupuesto: " + error.message, "error");
         return;
       }
-      playSuccessSound();
-      setShowSentToast("Presupuesto guardado, puede enviarlo al cliente por Email o Watsapp.");
-      setAnimarEnvioPostSave(false);
-      setTimeout(() => {
-        setShowSentToast(null);
-        setAnimarEnvioPostSave(true);
-      }, 5000);
-      if (newPres?.id) {
-        setEditingId(newPres.id);
+      
+      const newId = newPres?.id;
+      if (newId) {
+        setEditingId(newId);
       }
+
+      // Enviar correo electrónico directamente al cliente con el presupuesto y enlace para elegir cita
+      const numExp = getExpediente(newPres || { numero, expediente_id }, cliente, clientes);
+      const veh = selectedVehiculoId ? vehiculoData(selectedVehiculoId) : null;
+      let emailEnviadoConExito = false;
+      if (cliente?.email && newId) {
+        try {
+          const resEmail = await sendPresupuestoByEmail(
+            { id: newId, numero, conceptos: cleanConceptos, observaciones: observaciones || null, total, aplicarIva },
+            cliente,
+            veh,
+            config,
+            numExp
+          );
+          if (resEmail.success) {
+            emailEnviadoConExito = true;
+            const nowIso = new Date().toISOString();
+            localStorage.setItem(`presupuesto_${newId}_email_at`, nowIso);
+            await supabase.from('presupuestos').update({ enviado_email_at: nowIso }).eq('id', newId);
+          }
+        } catch (err) {
+          console.warn('Error enviando email automático tras crear:', err);
+        }
+      }
+
+      playSuccessSound();
+      setShowSentToast(
+        emailEnviadoConExito
+          ? `PRESUPUESTO GUARDADO Y ENVIADO POR EMAIL A ${cliente?.email?.toUpperCase()}`
+          : "PRESUPUESTO GUARDADO CON ÉXITO"
+      );
+      setAnimarEnvioPostSave(false);
     }
     await loadPresupuestos();
   }
@@ -2010,20 +2058,7 @@ export function PresupuestosPage() {
         </motion.div>
       )}
 
-      {showSentToast && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[100] bg-slate-900 border-2 border-emerald-500 text-white px-6 py-5 rounded-2xl shadow-2xl flex flex-col items-center gap-4 font-bold w-[90%] sm:w-auto max-w-md text-center animate-bounce">
-          <p className="text-sm sm:text-base leading-relaxed">{showSentToast}</p>
-          <button
-            onClick={() => {
-              setShowSentToast(null);
-              setAnimarEnvioPostSave(true);
-            }}
-            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-black transition-all active:scale-95 shadow-lg border border-emerald-400 uppercase tracking-wider cursor-pointer"
-          >
-            Aceptar
-          </button>
-        </div>
-      )}
+
 
       <GlobalImageViewer
         isOpen={showExpedienteViewer || !!viewerMatricula}
