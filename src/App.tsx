@@ -529,15 +529,11 @@ export default function App() {
               </div>
             ) : (
               <BrowserRouter>
-                <DevModeFloatingButton />
                 <Routes>
                   <Route path="/GESTARIAN/DEV" element={<DeveloperAuthPage />} />
                   <Route path="/gestarian/dev" element={<DeveloperAuthPage />} />
                   <Route path="/gestarian/DEV" element={<DeveloperAuthPage />} />
                   <Route path="/GESTARIAN/dev" element={<DeveloperAuthPage />} />
-                  <Route path="/DEV" element={<DeveloperAuthPage />} />
-                  <Route path="/dev" element={<DeveloperAuthPage />} />
-                  <Route path="/desarrollador" element={<DeveloperAuthPage />} />
                   <Route path="/gemelo-digital" element={<GemeloDigitalPage />} />
                   <Route path="/digital-twin" element={<GemeloDigitalPage />} />
                   <Route path="/cliente/acceso" element={<ClientePortalAuthPage />} />

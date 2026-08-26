@@ -168,37 +168,110 @@ export function DeveloperAuthPage() {
             Acceso exclusivo para el desarrollador del sistema. Otorga privilegios totales y control de licencias.
           </p>
 
-          {/* Accesos Directos de Desarrollador */}
-          <div className="pt-4 border-t border-slate-800 space-y-2">
-            <span className="text-[10px] text-slate-500 font-mono uppercase block">Accesos Directos Maestro:</span>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Accesos Directos con Apertura en Nueva Pestaña */}
+          <div className="pt-4 border-t border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black text-cyan-400 uppercase tracking-wider block">
+                Accesos Directos (Se abren en nueva pestaña):
+              </span>
+              <span className="text-[10px] text-slate-500 font-mono">Multi-Tab</span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              {/* 1. Portal de Registro */}
               <button
-                onClick={() => navigate('/usuarios')}
-                className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-300 flex items-center justify-between cursor-pointer"
+                type="button"
+                onClick={() => window.open('/registro-taller', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-sm group"
               >
-                <span className="flex items-center gap-1.5"><Users className="w-4 h-4 text-cyan-400" /> Usuarios & Roles</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                <div className="flex items-center gap-2">
+                  <span className="text-base">📝</span>
+                  <div>
+                    <span className="text-white group-hover:text-cyan-300 transition-colors block">Portal de Registro</span>
+                    <span className="text-[10px] text-slate-500 block">Alta de nuevos talleres</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
+
+              {/* 2. Modo Usuario */}
               <button
-                onClick={() => navigate('/licencias')}
-                className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-300 flex items-center justify-between cursor-pointer"
+                type="button"
+                onClick={() => window.open('/', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-sm group"
               >
-                <span className="flex items-center gap-1.5"><Key className="w-4 h-4 text-amber-400" /> Licencias</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🚗</span>
+                  <div>
+                    <span className="text-white group-hover:text-cyan-300 transition-colors block">Modo Usuario</span>
+                    <span className="text-[10px] text-slate-500 block">Panel de control de taller</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
+
+              {/* 3. Configuración Modo Usuario */}
               <button
-                onClick={() => navigate('/configuracion')}
-                className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-300 flex items-center justify-between cursor-pointer"
+                type="button"
+                onClick={() => window.open('/configuracion', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-sm group"
               >
-                <span className="flex items-center gap-1.5"><Settings className="w-4 h-4 text-purple-400" /> Configuración & IA</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                <div className="flex items-center gap-2">
+                  <span className="text-base">⚙️</span>
+                  <div>
+                    <span className="text-white group-hover:text-cyan-300 transition-colors block">Configuración Usuario</span>
+                    <span className="text-[10px] text-slate-500 block">Ajustes del taller y perfil</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
               </button>
+
+              {/* 4. Módulo de Autorizados */}
               <button
-                onClick={() => navigate('/gemelo-digital')}
-                className="p-3 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-300 flex items-center justify-between cursor-pointer"
+                type="button"
+                onClick={() => window.open('/autorizados', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-sm group"
               >
-                <span className="flex items-center gap-1.5"><Sparkles className="w-4 h-4 text-emerald-400" /> Gemelo Digital 3D</span>
-                <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
+                <div className="flex items-center gap-2">
+                  <span className="text-base">👥</span>
+                  <div>
+                    <span className="text-white group-hover:text-cyan-300 transition-colors block">Módulo Autorizados</span>
+                    <span className="text-[10px] text-slate-500 block">Permisos de empleados</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* 5. Área de Clientes */}
+              <button
+                type="button"
+                onClick={() => window.open('/clientes', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-cyan-500/40 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-sm group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">👤</span>
+                  <div>
+                    <span className="text-white group-hover:text-cyan-300 transition-colors block">Área de Clientes</span>
+                    <span className="text-[10px] text-slate-500 block">Gestión y expedientes</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-slate-500 group-hover:translate-x-0.5 transition-transform" />
+              </button>
+
+              {/* 6. Configuración Desarrollador & Licencias */}
+              <button
+                type="button"
+                onClick={() => window.open('/licencias', '_blank')}
+                className="p-3 rounded-2xl bg-slate-950/80 hover:bg-slate-800 border border-amber-500/40 hover:border-amber-400 text-left text-xs font-bold text-slate-200 flex items-center justify-between transition-all active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.15)] group"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🔑</span>
+                  <div>
+                    <span className="text-amber-300 group-hover:text-amber-200 transition-colors block">Configuración Desarrollador</span>
+                    <span className="text-[10px] text-slate-400 block">Control maestro de licencias</span>
+                  </div>
+                </div>
+                <ArrowRight className="w-3.5 h-3.5 text-amber-400 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </div>
           </div>
