@@ -91,12 +91,11 @@ export function LicenciasPage() {
         }
       } catch (e) {}
 
-      // 3. Titulares registrados en la tabla usuarios (JEFE_TALLER / Administradores de taller)
+      // 3. Todos los usuarios registrados en la tabla usuarios (cualquier rol o registro nuevo)
       if (usrData && Array.isArray(usrData)) {
         for (const u of usrData) {
           const em = (u.email || '').toLowerCase().trim()
-          const esTitular = u.rol === 'JEFE_TALLER' || u.rol === 'ADMIN' || u.es_pro === true
-          if (em && esTitular && !emailsVistos.has(em) && em !== 'iclomsinks@gmail.com') {
+          if (em && !emailsVistos.has(em) && em !== 'iclomsinks@gmail.com') {
             emailsVistos.add(em)
             list.push({
               id: u.id || `usr-${em}`,
@@ -116,24 +115,24 @@ export function LicenciasPage() {
         }
       }
 
-      // 4. Clientes conocidos o en sesión activa (ej: alimajefe2@gmail.com)
-      const knownClients = ['alimajefe2@gmail.com']
+      // 4. Clientes conocidos o en sesión activa (cualquier test_user registrado en el navegador)
+      const knownClients = ['alimajefe@gmail.com', 'alimajefe2@gmail.com', 'alimajefe3@gmail.com']
       const activeTestUser = localStorage.getItem('gestarian_test_user')
       if (activeTestUser && !knownClients.includes(activeTestUser.toLowerCase())) {
         knownClients.push(activeTestUser.toLowerCase())
       }
 
       for (const emailKnown of knownClients) {
-        if (!emailsVistos.has(emailKnown)) {
+        if (!emailsVistos.has(emailKnown) && emailKnown !== 'iclomsinks@gmail.com') {
           emailsVistos.add(emailKnown)
           list.push({
             id: `client-${emailKnown}`,
             email: emailKnown,
-            nombre_profesional: emailKnown.includes('alimajefe') ? 'Talleres Alima Auto' : emailKnown.split('@')[0],
-            nombre_titular: emailKnown.includes('alimajefe') ? 'Jefe de Taller Alima' : emailKnown.split('@')[0],
-            cif: 'B-88349210',
-            direccion_fiscal: 'Polígono Industrial Norte, Nave 4',
-            telefono: '610 200 300',
+            nombre_profesional: emailKnown.includes('alima') ? 'Talleres Alima Auto' : `Taller ${emailKnown.split('@')[0]}`,
+            nombre_titular: emailKnown.includes('alima') ? 'Ali Mohamed' : emailKnown.split('@')[0],
+            cif: '12345678Z',
+            direccion_fiscal: 'Polígono Industrial Las Palmeras, Nave 4',
+            telefono: '600 123 456',
             plan_solicitado: 'PRO',
             estado_licencia: 'activo',
             estado_pago: 'gratuito',

@@ -49,54 +49,62 @@ export async function cargarPerfil(email: string): Promise<PerfilUsuario | null>
 
     if (userError || !userData) {
       if (userError) console.error('Error al obtener usuario:', userError);
-      // Si el email es alimajefe@gmail.com, crear perfil de Jefe de Taller por defecto
-      if (email.toLowerCase() === 'alimajefe@gmail.com') {
-        const jefePerfil: PerfilUsuario = {
-          id: 'jefe-alimajefe-id',
-          email: email,
-          nombre: 'Ali (Jefe de Taller)',
-          rol: 'JEFE_TALLER',
-          plan: 'PRO',
-          planNombre: 'GESTARIAN PRO',
-          esDeveloper: false,
-          permisos: ['*'],
-          licenciaEstado: 'activo',
-          licenciaFechaFin: null,
-          preferencias: {
-            tema: 'oscuro',
-            capaVisual: localStorage.getItem('gestarian_active_layer') || 'default',
-            idioma: 'es',
-            notificaciones: { email: true, push: false }
+      
+      // Buscar si está registrado en gestarian_licencias o en backup local
+      let backupLic: any = null;
+      try {
+        const { data: gLic } = await supabase
+          .from('gestarian_licencias')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+        if (gLic) backupLic = gLic;
+      } catch (e) {}
+
+      if (!backupLic) {
+        try {
+          const raw = localStorage.getItem('gestarian_clientes_registrados_backup');
+          if (raw) {
+            const list: any[] = JSON.parse(raw);
+            backupLic = list.find((c: any) => c.email?.toLowerCase() === email.toLowerCase());
           }
-        };
-        perfilActual = jefePerfil;
-        return jefePerfil;
+        } catch (e) {}
       }
 
-      // Si el usuario no existe o hay error y es desarrollador, crear perfil desarrollador por defecto
-      if (isDevEmail || userError?.code === 'PGRST116') {
-        const defaultPerfil: PerfilUsuario = {
-          id: 'dev-default',
-          email: email,
-          nombre: 'Desarrollador',
-          rol: 'DEVELOPER',
-          plan: 'DEVELOPER_PLAN',
-          planNombre: 'DEVELOPER_PLAN',
-          esDeveloper: true,
-          permisos: ['*'],
-          licenciaEstado: 'activo',
-          licenciaFechaFin: null,
-          preferencias: {
-            tema: 'oscuro',
-            capaVisual: localStorage.getItem('gestarian_active_layer') || 'default',
-            idioma: 'es',
-            notificaciones: { email: true, push: false }
-          }
-        };
-        perfilActual = defaultPerfil;
-        return defaultPerfil;
-      }
-      return null;
+      // Si se registró como taller o tiene email válido, permitir entrada inmediata como JEFE_TALLER
+      const nombreTitular = backupLic?.nombre_titular || backupLic?.nombre_profesional || email.split('@')[0];
+      const jefePerfil: PerfilUsuario = {
+        id: backupLic?.id || `usr-${Date.now()}`,
+        email: email,
+        nombre: nombreTitular,
+        rol: 'JEFE_TALLER',
+        plan: backupLic?.plan_solicitado || 'PRO',
+        planNombre: `GESTARIAN ${backupLic?.plan_solicitado || 'PRO'}`,
+        esDeveloper: isDevEmail,
+        permisos: ['*'],
+        licenciaEstado: 'activo',
+        licenciaFechaFin: backupLic?.fecha_fin_prueba || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        preferencias: {
+          tema: 'oscuro',
+          capaVisual: localStorage.getItem('gestarian_active_layer') || 'default',
+          idioma: 'es',
+          notificaciones: { email: true, push: false }
+        }
+      };
+
+      // Registrar o sincronizar en Supabase usuarios en segundo plano para que persista
+      try {
+        void supabase.from('usuarios').upsert({
+          email: email.toLowerCase().trim(),
+          nombre: nombreTitular,
+          rol: 'JEFE_TALLER',
+          es_pro: true,
+          activo: true
+        }, { onConflict: 'email' });
+      } catch (e) {}
+
+      perfilActual = jefePerfil;
+      return jefePerfil;
     }
 
     // 2. Si el usuario es desarrollador, no necesitamos permisos específicos
