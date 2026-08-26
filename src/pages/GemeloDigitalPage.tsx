@@ -414,8 +414,23 @@ export function GemeloDigitalPage() {
     playSoundEffect('laser')
     if (isPlayingTour) {
       setIsPlayingTour(false)
-      window.speechSynthesis.cancel()
+      stopSpanishSpeech()
     } else {
+      // Desbloqueo explícito de SpeechSynthesis en navegadores móviles (iOS/Android)
+      // La API requiere que la primera invocación ocurra síncronamente dentro del gesto de usuario (click)
+      try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          window.speechSynthesis.cancel()
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume()
+          }
+          // Warm-up de desbloqueo táctil
+          const warmup = new SpeechSynthesisUtterance('')
+          warmup.volume = 0
+          window.speechSynthesis.speak(warmup)
+        }
+      } catch (e) {}
+
       setCurrentScriptIndex(0)
       setIsPlayingTour(true)
     }
