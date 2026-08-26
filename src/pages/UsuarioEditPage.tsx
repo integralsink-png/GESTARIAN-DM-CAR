@@ -8,6 +8,88 @@ import { getPerfil, hasRole } from '../services/authService'
 import { useToast } from '../lib/ToastContext'
 import type { Usuario, Rol, Especialidad, EpigrafeIAE, Permiso, Configuracion } from '../lib/types'
 
+// Catálogo cronológico de permisos de personal autorizado agrupados por módulo
+export interface PermisoItem {
+  clave: string
+  label: string
+  sub?: string
+}
+
+export interface GrupoPermisos {
+  grupo: string
+  descripcion: string
+  permisos: PermisoItem[]
+}
+
+export const PERMISOS_CRONOLOGICOS: GrupoPermisos[] = [
+  {
+    grupo: '1. CLIENTE',
+    descripcion: 'Gestión y consulta de clientes titulares',
+    permisos: [
+      { clave: 'anadir_cliente', label: 'Añadir cliente', sub: 'Alta de nuevos clientes en el sistema' },
+      { clave: 'buscar_cliente', label: 'Buscar cliente', sub: 'Búsqueda por nombre, DNI o teléfono' },
+      { clave: 'seleccionar_cliente', label: 'Seleccionar cliente', sub: 'Elegir cliente para asociar a trámites' },
+      { clave: 'modificar_datos_cliente', label: 'Modificar datos cliente', sub: 'Edición de datos de contacto y fiscales' },
+      { clave: 'ver_cliente', label: 'Ver cliente', sub: 'Acceso a la ficha y detalles del cliente' },
+    ]
+  },
+  {
+    grupo: '2. VEHÍCULO',
+    descripcion: 'Inventario, inspección y fotos de vehículos',
+    permisos: [
+      { clave: 'ver_vehiculos', label: 'Ver vehículos', sub: 'Consulta de vehículos y matrículas registradas' },
+      { clave: 'anadir_vehiculos', label: 'Añadir vehículos', sub: 'Alta de vehículos con matrícula, marca y modelo' },
+      { clave: 'editar_vehiculos', label: 'Editar vehículos', sub: 'Modificación de características y ficha técnica' },
+      { clave: 'anadir_fotos_vehiculo', label: 'Añadir fotos a vehículo del cliente', sub: 'Captura o subida de imágenes al vehículo' },
+    ]
+  },
+  {
+    grupo: '3. PRESUPUESTO',
+    descripcion: 'Confección, valoración y emisión de presupuestos',
+    permisos: [
+      { clave: 'ver_presupuesto', label: 'Ver presupuesto', sub: 'Visualización de presupuestos emitidos' },
+      { clave: 'generar_presupuesto', label: 'Generar presupuesto', sub: 'Crear nuevos presupuestos para expedientes' },
+      { clave: 'rellenar_conceptos_presupuesto', label: 'Rellenar conceptos de presupuesto', sub: 'Añadir líneas de mano de obra y recambios' },
+      { clave: 'anadir_precio_conceptos', label: 'Añadir precio a conceptos', sub: 'Fijar y modificar importes en euros' },
+      { clave: 'guardar_presupuesto', label: 'Guardar presupuesto', sub: 'Guardado y registro oficial en base de datos' },
+      { clave: 'modificar_presupuesto', label: 'Modificar presupuesto', sub: 'Edición de presupuestos existentes' },
+      { clave: 'enviar_presupuesto', label: 'Enviar presupuesto', sub: 'Envío automático por WhatsApp y Email' },
+    ]
+  },
+  {
+    grupo: '4. CITA',
+    descripcion: 'Recepción y agenda de entradas al taller',
+    permisos: [
+      { clave: 'generar_cita', label: 'Generar cita', sub: 'Solicitar o crear nueva fecha de cita' },
+      { clave: 'anadir_imagenes_cita', label: 'Añadir imágenes a cita', sub: 'Fotos previas de recepción de la cita' },
+      { clave: 'asignar_cita', label: 'Asignar cita', sub: 'Fijar fecha y hora en el calendario de taller' },
+      { clave: 'aceptar_cita_solicitada', label: 'Aceptar cita solicitada', sub: 'Confirmar citas pedidas por clientes' },
+    ]
+  },
+  {
+    grupo: '5. REPARACIÓN',
+    descripcion: 'Órdenes de trabajo, taller y ejecución',
+    permisos: [
+      { clave: 'ver_reparaciones', label: 'Ver reparaciones', sub: 'Acceso a tarjetas de reparación adjudicadas' },
+      { clave: 'enviar_a_reparaciones', label: 'Enviar a reparaciones', sub: 'Comenzar reparación tras entrada del vehículo' },
+      { clave: 'anadir_fotos_reparaciones', label: 'Añadir fotos a reparaciones', sub: 'Capturar o adjuntar fotos del proceso' },
+      { clave: 'finalizar_reparacion', label: 'Finalizar reparación', sub: 'Marcar trabajo como completado' },
+    ]
+  },
+  {
+    grupo: '6. FACTURACIÓN',
+    descripcion: 'Cobro, facturación y liquidación',
+    permisos: [
+      { clave: 'ver_facturas', label: 'Ver facturas', sub: 'Visualización de facturas emitidas y recibidas' },
+      { clave: 'generar_factura', label: 'Generar factura', sub: 'Creación de facturas desde reparaciones' },
+      { clave: 'modificar_factura', label: 'Modificar factura', sub: 'Corrección y ajustes de líneas de factura' },
+      { clave: 'guardar_factura', label: 'Guardar factura', sub: 'Confirmación y numeración de factura' },
+      { clave: 'enviar_factura', label: 'Enviar factura', sub: 'Envío de PDF de factura por WhatsApp/Email' },
+      { clave: 'anadir_imagenes_facturas', label: 'Añadir imágenes desde facturas', sub: 'Adjuntar comprobantes y fotos de pago' },
+    ]
+  }
+]
+
 export function UsuarioEditPage() {
   const { id } = useParams<{ id: string }>()
   const isNew = !id || id === 'nuevo'
@@ -440,56 +522,98 @@ export function UsuarioEditPage() {
             </div>
           </Card>
 
-          {/* 3. Permisos Granulares */}
-          <Card className="p-6 space-y-4 rounded-2xl bg-slate-900/90 border border-slate-800">
+          {/* 3. Permisos Granulares por Grupos Cronológicos */}
+          <Card className="p-6 space-y-6 rounded-2xl bg-slate-900/90 border border-slate-800">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-xs font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
-                <KeyRound className="w-4 h-4" />
-                <span>3. Permisos Específicos Granulares</span>
-              </h3>
+              <div>
+                <h3 className="text-xs font-black uppercase tracking-widest text-cyan-400 flex items-center gap-2">
+                  <KeyRound className="w-4 h-4" />
+                  <span>3. Permisos Granulares de Acceso (Por Grupos Cronológicos)</span>
+                </h3>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Marca las casillas permitidas para este operario o autorizado. Por defecto, solo puede ver sus reparaciones adjudicadas y subir fotos.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={toggleAllPermisos}
-                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer shrink-0"
               >
-                {permisosSeleccionados.length === todosPermisos.length ? 'Desmarcar todos' : 'Marcar todos'}
+                {permisosSeleccionados.length === PERMISOS_CRONOLOGICOS.flatMap(g => g.permisos).length ? 'Desmarcar todos' : 'Marcar todos'}
               </button>
             </div>
 
-            {todosPermisos.length === 0 ? (
-              <p className="text-xs text-slate-500 italic">No hay catálogo de permisos cargado.</p>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {todosPermisos.map((p) => {
-                  const isChecked = permisosSeleccionados.includes(p.id)
-                  return (
-                    <div
-                      key={p.id}
-                      onClick={() => togglePermiso(p.id)}
-                      className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-2.5 ${
-                        isChecked
-                          ? 'bg-cyan-950/30 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
-                          : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="mt-0.5 text-cyan-400">
-                        {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-600" />}
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-white block uppercase tracking-wide">
-                          {p.clave.replace('_', ' ')}
+            {/* Renderizado de Grupos Cronológicos */}
+            <div className="space-y-6">
+              {PERMISOS_CRONOLOGICOS.map((grupo, gIdx) => {
+                const todosDelGrupoMarcados = grupo.permisos.every(p => permisosSeleccionados.includes(p.clave))
+                const algunoMarcado = grupo.permisos.some(p => permisosSeleccionados.includes(p.clave))
+
+                return (
+                  <div key={grupo.grupo} className="space-y-3 p-4 rounded-2xl bg-slate-950/60 border border-slate-800">
+                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-6 h-6 rounded-lg bg-cyan-500/20 text-cyan-300 font-mono font-bold text-xs flex items-center justify-center border border-cyan-500/30">
+                          {gIdx + 1}
                         </span>
-                        {p.descripcion && (
-                          <span className="text-[11px] text-slate-400 leading-tight block mt-0.5">
-                            {p.descripcion}
-                          </span>
-                        )}
+                        <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                          {grupo.grupo}
+                        </h4>
+                        <span className="text-[10px] text-slate-400 font-medium hidden sm:inline">
+                          • {grupo.descripcion}
+                        </span>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clavesGrupo = grupo.permisos.map(p => p.clave)
+                          if (todosDelGrupoMarcados) {
+                            setPermisosSeleccionados(prev => prev.filter(k => !clavesGrupo.includes(k)))
+                          } else {
+                            setPermisosSeleccionados(prev => Array.from(new Set([...prev, ...clavesGrupo])))
+                          }
+                        }}
+                        className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                      >
+                        {todosDelGrupoMarcados ? 'Desmarcar grupo' : 'Marcar grupo'}
+                      </button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                      {grupo.permisos.map((p) => {
+                        const isChecked = permisosSeleccionados.includes(p.clave)
+                        return (
+                          <div
+                            key={p.clave}
+                            onClick={() => togglePermiso(p.clave)}
+                            className={`p-3 rounded-xl border transition-all cursor-pointer select-none flex items-start gap-2.5 ${
+                              isChecked
+                                ? 'bg-cyan-950/30 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.2)]'
+                                : 'bg-slate-950/50 border-slate-800 hover:border-slate-700'
+                            }`}
+                          >
+                            <div className="mt-0.5 text-cyan-400 shrink-0">
+                              {isChecked ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4 text-slate-600" />}
+                            </div>
+                            <div className="min-w-0">
+                              <span className="text-xs font-bold text-white block capitalize leading-tight">
+                                {p.label}
+                              </span>
+                              {p.sub && (
+                                <span className="text-[10px] text-slate-400 block mt-0.5 leading-snug">
+                                  {p.sub}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </Card>
 
           {/* Botones de Guardar / Cancelar */}

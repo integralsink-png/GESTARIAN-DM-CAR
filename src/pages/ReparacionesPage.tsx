@@ -39,6 +39,11 @@ export function ReparacionesPage() {
   
   // Modal de Detalle de Tarjeta de Reparación Emergente y Centrada
   const [selectedRepModal, setSelectedRepModal] = useState<Reparacion | null>(null)
+  const [permisosUsuario, setPermisosUsuario] = useState<string[]>([])
+
+  const perfil = (typeof window !== 'undefined') ? JSON.parse(localStorage.getItem('gestarian_perfil') || '{}') : {}
+  const testEmail = localStorage.getItem('gestarian_test_user') || ''
+  const esDev = perfil?.esDeveloper || testEmail.toLowerCase().includes('iclomsinks') || localStorage.getItem('gestarian_dev_mode') === 'true'
 
   useEffect(() => {
     loadReparaciones()
@@ -46,7 +51,20 @@ export function ReparacionesPage() {
     loadVehiculos()
     loadCitasYPresupuestos()
     loadOperarios()
+    loadPermisosActivos()
   }, [])
+
+  async function loadPermisosActivos() {
+    try {
+      const uId = localStorage.getItem('gestarian_empleado_activo_id')
+      if (uId) {
+        const perms = await usuarioService.obtenerPermisos(uId)
+        setPermisosUsuario(perms)
+      }
+    } catch (e) {
+      console.warn('Aviso cargando permisos:', e)
+    }
+  }
 
   async function loadOperarios() {
     try {
@@ -67,7 +85,30 @@ export function ReparacionesPage() {
   async function loadReparaciones() {
     setLoading(true)
     const { data } = await supabase.from('reparaciones').select('*').order('created_at', { ascending: false })
-    setReparaciones(data ?? [])
+    let lista = data ?? []
+
+    // Si es un operario (y no modo desarrollador ni jefe de taller), filtrar únicamente las adjudicadas a él
+    const empId = localStorage.getItem('gestarian_empleado_activo_id')
+    const empNombre = localStorage.getItem('gestarian_empleado_activo_nombre')
+    const rolActual = (perfil?.rol || '').toUpperCase()
+    const esOperario = (rolActual.includes('OPERARIO') || rolActual.includes('MECANICO')) && !esDev && !rolActual.includes('JEFE') && !rolActual.includes('ADMIN')
+
+    if (esOperario && (empId || empNombre)) {
+      lista = lista.filter(r => {
+        const porId = empId && r.operarios_asignados && r.operarios_asignados.includes(empId)
+        const porNombre = empNombre && r.operarios_nombres && r.operarios_nombres.some((n: string) => n.toLowerCase() === empNombre.toLowerCase())
+        let porVehiculo = false
+        if (r.vehiculo_id && empId) {
+          try {
+            const loc = localStorage.getItem(`gestarian_asig_exp_${r.vehiculo_id}`)
+            if (loc && JSON.parse(loc).includes(empId)) porVehiculo = true
+          } catch (e) {}
+        }
+        return porId || porNombre || porVehiculo
+      })
+    }
+
+    setReparaciones(lista)
     setLoading(false)
   }
 
@@ -221,16 +262,29 @@ export function ReparacionesPage() {
       } catch (e) {}
 
       // Actualizar estado local de reparaciones
-      setReparaciones(prev => prev.map(r => r.id === rep.id ? {
-        ...r,
+      const updatedRep = {
+        ...rep,
         descripcion: conceptoOrden,
         operarios_asignados: operariosOrden,
         operarios_nombres: nombres
-      } : r))
+      }
+      setReparaciones(prev => prev.map(r => r.id === rep.id ? updatedRep : r))
 
       setModalOrdenRep(null)
       playSuccessChime()
-      showToast(`¡Orden de trabajo enviada con éxito a ${nombres.join(', ')}!`, 'success')
+      showToast(`¡Orden de trabajo adjudicada con éxito a ${nombres.join(', ')}!`, 'success')
+
+      // Centrar automágicamente en la pantalla del dispositivo la tarjeta de la reparación
+      setTimeout(() => {
+        const el = document.getElementById(`tarjeta-rep-${rep.id}`)
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+          el.classList.add('ring-4', 'ring-indigo-400', 'shadow-[0_0_40px_rgba(99,102,241,0.6)]')
+          setTimeout(() => {
+            el.classList.remove('ring-4', 'ring-indigo-400', 'shadow-[0_0_40px_rgba(99,102,241,0.6)]')
+          }, 3500)
+        }
+      }, 100)
     } catch (err: any) {
       console.error('Error enviando orden:', err)
       showToast('Error al enviar orden de trabajo', 'error')
@@ -266,9 +320,17 @@ export function ReparacionesPage() {
             const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
             const borderClass = getBorderColor(rep)
 
+            // Comprobar si el usuario actual es un operario y qué permisos tiene concedidos
+            const rolActual = (perfil?.rol || '').toUpperCase()
+            const esOperario = (rolActual.includes('OPERARIO') || rolActual.includes('MECANICO')) && !esDev && !rolActual.includes('JEFE') && !rolActual.includes('ADMIN')
+            const tienePermisoExpediente = !esOperario || esDev || permisosUsuario.includes('ver_cliente') || permisosUsuario.includes('ver_vehiculos')
+            const tienePermisoPresupuesto = !esOperario || esDev || permisosUsuario.includes('ver_presupuesto')
+            const tienePermisoOrden = !esOperario || esDev || permisosUsuario.includes('rellenar_conceptos_presupuesto') || permisosUsuario.includes('enviar_a_reparaciones')
+
             return (
               <div
                 key={rep.id}
+                id={`tarjeta-rep-${rep.id}`}
                 onClick={() => {
                   if (!longPressTriggered.current) {
                     setSelectedRepModal(rep)
@@ -288,7 +350,7 @@ export function ReparacionesPage() {
                   </h2>
                 </div>
 
-                {/* LÍNEA 2: Marca y Modelo a la izquierda, Matrícula a la derecha (preferencia matrícula) */}
+                {/* LÍNEA 2: Marca y Modelo a la izquierda, Matrícula a la derecha */}
                 <div className="flex items-center justify-between gap-3 mt-2">
                   <div className="font-semibold text-slate-300 text-sm sm:text-base uppercase truncate flex-1 min-w-0">
                     {v ? (
@@ -343,61 +405,69 @@ export function ReparacionesPage() {
                   )
                 })()}
 
-                {/* LÍNEA 3: Número de expediente flotante a la izquierda, Iconos de acción repartiéndose el espacio restante (x1.2) */}
+                {/* LÍNEA 3: Número de expediente flotante y botones de acción según permisos */}
                 <div className="flex items-center justify-between gap-3 mt-3 pt-2.5 border-t border-white/10">
-                  {/* Número de Expediente flotante (x1.5) sin recuadro */}
+                  {/* Número de Expediente flotante (x1.5) */}
                   <div
                     onClick={(e) => {
                       e.stopPropagation()
-                      navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                      if (tienePermisoExpediente) {
+                        navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                      }
                     }}
-                    className="cursor-pointer hover:brightness-125 transition-all shrink-0"
-                    title="Ver Expediente"
+                    className={`shrink-0 ${tienePermisoExpediente ? 'cursor-pointer hover:brightness-125 transition-all' : 'cursor-default'}`}
+                    title={tienePermisoExpediente ? 'Ver Expediente' : `Expediente ${expNum}`}
                   >
                     <span className="text-lg sm:text-xl font-mono text-cyan-400 font-black tracking-wide">
                       {expNum}
                     </span>
                   </div>
 
-                  {/* Iconos flotantes sin texto repartiéndose el espacio restante (tamaño x1.2) */}
+                  {/* Iconos de acción: Si es modo operario estricto, únicamente aparece el icono de imágenes */}
                   <div className="flex-1 flex items-center justify-around sm:justify-end sm:gap-6 ml-2 sm:ml-4" onClick={(e) => e.stopPropagation()}>
-                    {/* 1. Icono flotante Expediente (carpeta con E dentro) */}
-                    <button
-                      onClick={() => navigate('/expedientes', { state: { search: v?.matricula || expNum } })}
-                      className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
-                      title="Expediente"
-                      aria-label="Expediente"
-                    >
-                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
-                    </button>
+                    {/* 1. Icono flotante Expediente (solo si tiene permiso) */}
+                    {tienePermisoExpediente && (
+                      <button
+                        onClick={() => navigate('/expedientes', { state: { search: v?.matricula || expNum } })}
+                        className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+                        title="Expediente"
+                        aria-label="Expediente"
+                      >
+                        <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                      </button>
+                    )}
 
-                    {/* 2. Icono flotante Presupuesto (hoja A4 con P dentro) */}
-                    <button
-                      onClick={() => {
-                        if (p) {
-                          navigate('/presupuestos', { state: { presupuestoId: p.id } })
-                        } else {
-                          navigate('/presupuestos', { state: { clienteId: rep.cliente_id, openForm: false } })
-                        }
-                      }}
-                      className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
-                      title={p ? "Ver Presupuesto del Expediente" : "Presupuestos del cliente"}
-                      aria-label="Presupuestos"
-                    >
-                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
-                    </button>
+                    {/* 2. Icono flotante Presupuesto (solo si tiene permiso) */}
+                    {tienePermisoPresupuesto && (
+                      <button
+                        onClick={() => {
+                          if (p) {
+                            navigate('/presupuestos', { state: { presupuestoId: p.id } })
+                          } else {
+                            navigate('/presupuestos', { state: { clienteId: rep.cliente_id, openForm: false } })
+                          }
+                        }}
+                        className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+                        title={p ? "Ver Presupuesto del Expediente" : "Presupuestos del cliente"}
+                        aria-label="Presupuestos"
+                      >
+                        <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                      </button>
+                    )}
 
-                    {/* 3. Icono flotante Orden de Trabajo / Operario (abre modal para rellenar concepto y asignar operarios) */}
-                    <button
-                      onClick={() => abrirModalOrden(rep, p, v)}
-                      className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
-                      title="Asignar Operario y Orden de Trabajo"
-                      aria-label="Asignar Operario"
-                    >
-                      <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
-                    </button>
+                    {/* 3. Icono flotante Orden de Trabajo (solo si tiene permiso) */}
+                    {tienePermisoOrden && (
+                      <button
+                        onClick={() => abrirModalOrden(rep, p, v)}
+                        className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
+                        title="Asignar Operario y Orden de Trabajo"
+                        aria-label="Asignar Operario"
+                      >
+                        <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
+                      </button>
+                    )}
 
-                    {/* 4. Icono flotante Imágenes (abre el visor único con fotos de la reparación) */}
+                    {/* 4. Icono flotante Imágenes (Siempre visible para el operario para añadir/capturar fotos que se guardan automáticamente) */}
                     <button
                       onClick={async () => {
                         const fotos = await fetchExpedienteFotos(rep.cliente_id, rep.vehiculo_id, rep.fotos || [], {
@@ -410,11 +480,11 @@ export function ReparacionesPage() {
                         setExpedienteViewerTitle(`Reparación ${expNum}`)
                         setShowExpedienteViewer(true)
                       }}
-                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
-                      title="Ver Imágenes de la Reparación"
-                      aria-label="Imágenes"
+                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_12px_rgba(167,139,250,0.7)] cursor-pointer"
+                      title="Visor de Imágenes y Captura de Fotos de la Reparación"
+                      aria-label="Imágenes de Reparación"
                     >
-                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
+                      <ImageIcon className="w-11 h-11 sm:w-12 sm:h-12 stroke-[1.8]" />
                     </button>
                   </div>
                 </div>
@@ -711,43 +781,49 @@ export function ReparacionesPage() {
                     )
                   })()}
 
-                  {/* Acciones flotantes integradas */}
+                  {/* Acciones flotantes integradas según permisos */}
                   <div className="flex items-center justify-around gap-2 pt-3 border-t border-white/10">
                     {/* 1. Expediente */}
-                    <button
-                      onClick={() => {
-                        setSelectedRepModal(null)
-                        navigate('/expedientes', { state: { search: v?.matricula || expNum } })
-                      }}
-                      className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
-                      title="Abrir Expediente"
-                    >
-                      <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
-                    </button>
+                    {tienePermisoExpediente && (
+                      <button
+                        onClick={() => {
+                          setSelectedRepModal(null)
+                          navigate('/expedientes', { state: { search: v?.matricula || expNum } })
+                        }}
+                        className="text-yellow-500 hover:text-yellow-400 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(234,179,8,0.5)] cursor-pointer"
+                        title="Abrir Expediente"
+                      >
+                        <ExpedienteFolderIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                      </button>
+                    )}
 
                     {/* 2. Presupuesto */}
-                    <button
-                      onClick={() => {
-                        setSelectedRepModal(null)
-                        navigate('/presupuestos', { state: { presupuestoId: p?.id, matricula: v?.matricula } })
-                      }}
-                      className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
-                      title="Presupuesto"
-                    >
-                      <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
-                    </button>
+                    {tienePermisoPresupuesto && (
+                      <button
+                        onClick={() => {
+                          setSelectedRepModal(null)
+                          navigate('/presupuestos', { state: { presupuestoId: p?.id, matricula: v?.matricula } })
+                        }}
+                        className="text-cyan-400 hover:text-cyan-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(6,182,212,0.5)] cursor-pointer"
+                        title="Presupuesto"
+                      >
+                        <PresupuestoIcon className="w-10 h-10 sm:w-11 sm:h-11" />
+                      </button>
+                    )}
 
                     {/* 3. Orden de Trabajo */}
-                    <button
-                      onClick={() => {
-                        setSelectedRepModal(null)
-                        abrirModalOrden(rep, p, v)
-                      }}
-                      className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
-                      title="Asignar Operario y Orden de Trabajo"
-                    >
-                      <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
-                    </button>
+                    {tienePermisoOrden && (
+                      <button
+                        onClick={() => {
+                          setSelectedRepModal(null)
+                          abrirModalOrden(rep, p, v)
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(99,102,241,0.6)] cursor-pointer"
+                        title="Asignar Operario y Orden de Trabajo"
+                      >
+                        <UserCheck className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.8]" />
+                      </button>
+                    )}
 
                     {/* 4. Galería Imágenes */}
                     <button
@@ -762,10 +838,10 @@ export function ReparacionesPage() {
                         setExpedienteViewerTitle(`Reparación ${expNum}`)
                         setShowExpedienteViewer(true)
                       }}
-                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_8px_rgba(167,139,250,0.5)] cursor-pointer"
-                      title="Ver Imágenes"
+                      className="text-violet-400 hover:text-violet-300 transition-all hover:scale-125 active:scale-95 bg-transparent border-0 p-0 outline-none flex items-center justify-center drop-shadow-[0_0_12px_rgba(167,139,250,0.7)] cursor-pointer"
+                      title="Ver Imágenes y Capturar Fotos"
                     >
-                      <ImageIcon className="w-10 h-10 sm:w-11 sm:h-11 stroke-[1.5]" />
+                      <ImageIcon className="w-11 h-11 sm:w-12 sm:h-12 stroke-[1.8]" />
                     </button>
                   </div>
                 </div>
@@ -775,7 +851,7 @@ export function ReparacionesPage() {
         )
       })()}
 
-      {/* Visor Global único de Imágenes */}
+      {/* Visor Global único de Imágenes con Autoguardado */}
       <GlobalImageViewer
         isOpen={showExpedienteViewer || !!viewerMatricula}
         onClose={() => {
@@ -786,6 +862,7 @@ export function ReparacionesPage() {
         images={expedienteFotos}
         onAddImage={async (dataUrl) => {
           setExpedienteFotos((prev) => [...prev, dataUrl])
+          showToast('Imagen guardada automáticamente en la reparación', 'success')
         }}
         onDeleteImage={async (index) => {
           setExpedienteFotos((prev) => prev.filter((_, i) => i !== index))
