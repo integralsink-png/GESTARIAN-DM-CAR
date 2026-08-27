@@ -552,7 +552,7 @@ export function ConfiguracionPage() {
       </PageHeader>
 
       {/* IDENTIFICACIÓN DEL USUARIO ACTIVO Y CAMBIO DE CUENTA */}
-      <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border-2 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md">
+      <div className="relative z-30 p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-slate-950 border-2 border-cyan-500/40 shadow-[0_0_25px_rgba(6,182,212,0.15)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-slate-950 font-black text-sm shadow-[0_0_15px_rgba(6,182,212,0.4)] shrink-0">
             {perfil?.nombre ? perfil.nombre.charAt(0).toUpperCase() : 'U'}
@@ -572,7 +572,7 @@ export function ConfiguracionPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto relative">
+        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto relative z-40">
           {/* Botón CAMBIAR DE CUENTA */}
           <div className="relative">
             <button
@@ -589,10 +589,10 @@ export function ConfiguracionPage() {
             {mostrarMenuCambiarCuenta && (
               <>
                 <div 
-                  className="fixed inset-0 z-40" 
+                  className="fixed inset-0 z-[90]" 
                   onClick={() => setMostrarMenuCambiarCuenta(false)} 
                 />
-                <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/60 rounded-2xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(6,182,212,0.3)] space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute right-0 top-12 z-[100] w-72 sm:w-80 bg-slate-900/98 backdrop-blur-2xl border-2 border-cyan-400 rounded-2xl p-3.5 shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_30px_rgba(6,182,212,0.4)] space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
                   <div className="flex items-center justify-between border-b border-slate-800 pb-2">
                     <span className="text-[11px] font-black uppercase tracking-wider text-cyan-300">
                       Cuentas en este equipo:

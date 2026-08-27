@@ -4,11 +4,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '../lib/supabase'
 import type { Factura, Cliente, Cobro, Concepto, Configuracion, Presupuesto, Vehiculo } from '../lib/types'
-import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, Printer, Mail, Save, X, Check, Calendar, Download, MessageCircle, Search, CheckCircle2, Plus, FolderOpen } from 'lucide-react'
+import { Trash2, Edit3, Image as ImageIcon, ArrowLeft, FileText, Printer, Mail, Save, X, Check, Search, CheckCircle2, Plus, FolderOpen } from 'lucide-react'
 import { ExpedienteFolderIcon } from '../components/CustomIcons'
-import { Card, Badge, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
+import { Card, Badge, PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
-import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF, sendExtractoCuentaByEmail, generateExtractoCuentaPDF } from '../lib/pdfGenerator'
+import { sendFacturaByEmail, generateFacturaPDF, sendExtractoCuentaByEmail } from '../lib/pdfGenerator'
 import { getExpediente } from '../lib/utils'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
@@ -887,68 +887,66 @@ export function FacturasPage() {
 
       {/* Contenido con Scroll (Pasa por debajo) */}
       <div className="pt-4 px-1">
-        {/* Selector de pestañas: EMITIDAS / LUPA / RECIBIDAS (solo visible en emitidas o según contexto) */}
-        {activeTab === 'emitidas' && (
-          <div className="flex flex-col gap-3 mb-4 border-b border-slate-800 pb-3">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => { setActiveTab('emitidas'); setSelectedFactura(null); }}
-                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
-                  activeTab === 'emitidas'
-                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-                }`}
-              >
-                EMITIDAS
-              </button>
+        {/* Selector de pestañas: EMITIDAS / LUPA / RECIBIDAS */}
+        <div className="flex flex-col gap-3 mb-4 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { setActiveTab('emitidas'); setSelectedFactura(null); }}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+                activeTab === 'emitidas'
+                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              EMITIDAS
+            </button>
 
-              {/* Icono de Lupa */}
-              <button
-                onClick={() => setShowSearchInput(!showSearchInput)}
-                className={`p-2.5 rounded-xl transition-all border-[2px] flex items-center justify-center ${
-                  showSearchInput
-                    ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
-                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-                }`}
-                title="Buscar facturas"
-              >
-                <Search className="w-5 h-5" />
-              </button>
+            {/* Icono de Lupa */}
+            <button
+              onClick={() => setShowSearchInput(!showSearchInput)}
+              className={`p-2.5 rounded-xl transition-all border-[2px] flex items-center justify-center ${
+                showSearchInput
+                  ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+              }`}
+              title="Buscar facturas"
+            >
+              <Search className="w-5 h-5" />
+            </button>
 
-              <button
-                onClick={() => { setActiveTab('recibidas'); setSelectedFactura(null); }}
-                className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
-                  activeTab === 'recibidas'
-                    ? 'bg-purple-500/20 text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
-                    : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
-                }`}
-              >
-                RECIBIDAS
-              </button>
-            </div>
-
-            {/* Campo de búsqueda global */}
-            {showSearchInput && (
-              <div className="flex items-center gap-2 mt-1">
-                <input
-                  type="text"
-                  value={globalSearchText}
-                  onChange={(e) => setGlobalSearchText(e.target.value)}
-                  placeholder="Buscar por cliente, matrícula o nº factura..."
-                  className="w-full bg-bg-700 border border-bg-600 rounded-xl px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
-                />
-                {globalSearchText && (
-                  <button
-                    onClick={() => setGlobalSearchText('')}
-                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all"
-                  >
-                    Limpiar
-                  </button>
-                )}
-              </div>
-            )}
+            <button
+              onClick={() => { setActiveTab('recibidas'); setSelectedFactura(null); }}
+              className={`px-5 py-2.5 rounded-xl font-bold text-sm transition-all border-[2px] ${
+                activeTab === 'recibidas'
+                  ? 'bg-purple-500/20 text-purple-400 border-purple-500/60 shadow-[0_0_12px_rgba(168,85,247,0.3)]'
+                  : 'bg-slate-800/60 text-white/50 border-transparent hover:text-white hover:bg-slate-700'
+              }`}
+            >
+              RECIBIDAS
+            </button>
           </div>
-        )}
+
+          {/* Campo de búsqueda global */}
+          {showSearchInput && (
+            <div className="flex items-center gap-2 mt-1">
+              <input
+                type="text"
+                value={globalSearchText}
+                onChange={(e) => setGlobalSearchText(e.target.value)}
+                placeholder="Buscar por cliente, matrícula o nº factura..."
+                className="w-full bg-bg-700 border border-bg-600 rounded-xl px-4 py-2.5 text-white text-sm focus:border-cyan-500 focus:outline-none"
+              />
+              {globalSearchText && (
+                <button
+                  onClick={() => setGlobalSearchText('')}
+                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-xl text-xs font-bold transition-all"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
+          )}
+        </div>
 
         {activeTab === 'recibidas' ? (
           <FacturasRecibidasPage />

@@ -172,10 +172,10 @@ export function CitasPage() {
   }
 
   function getBorderColor(cita: Cita) {
-    if (cita.estado === 'confirmada' || cita.estado === 'completada') {
+    if ((cita.estado as string) === 'confirmada' || (cita.estado as string) === 'completada') {
       return 'border-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
     }
-    if (cita.estado === 'citado' || (cita.fecha && cita.hora && cita.estado !== 'pendiente')) {
+    if ((cita.estado as string) === 'citado' || (cita.fecha && cita.hora && cita.estado !== 'pendiente')) {
       return 'border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.2)]'
     }
     return 'border-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.2)]'

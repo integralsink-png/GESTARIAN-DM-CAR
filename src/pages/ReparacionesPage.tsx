@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { Reparacion, Cliente, Vehiculo, Usuario } from '../lib/types'
-import { Wrench, ImageIcon, Trash2, ArrowLeft, UserCheck, Send, Sparkles, X, Check, Users, FileText, CheckCircle2 } from 'lucide-react'
+import { Wrench, ImageIcon, Trash2, ArrowLeft, UserCheck, Send, X, Check, FileText } from 'lucide-react'
 import { getExpediente } from '../lib/utils'
 import { PageHeader, EmptyState, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
@@ -730,6 +730,10 @@ export function ReparacionesPage() {
         const p = cita ? presupuestos.find((p) => p.id === cita.presupuesto_id) : null
         const expNum = p ? getExpediente(p, cli, clientes) : 'S/N'
         const borderClass = getBorderColor(rep)
+
+        const tienePermisoExpediente = esDev || permisosUsuario.length === 0 || permisosUsuario.includes('expedientes') || permisosUsuario.includes('ADMIN') || permisosUsuario.includes('ALL')
+        const tienePermisoPresupuesto = esDev || permisosUsuario.length === 0 || permisosUsuario.includes('presupuestos') || permisosUsuario.includes('ADMIN') || permisosUsuario.includes('ALL')
+        const tienePermisoOrden = esDev || permisosUsuario.length === 0 || permisosUsuario.includes('reparaciones') || permisosUsuario.includes('ADMIN') || permisosUsuario.includes('ALL')
 
         return (
           <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4">
