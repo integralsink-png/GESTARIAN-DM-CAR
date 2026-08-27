@@ -1553,8 +1553,28 @@ export function ProveedoresPage() {
       supabase.from('proveedores').select('*').order('nombre'),
       supabase.from('facturas_recibidas').select('*').order('created_at', { ascending: false }),
     ])
-    setProveedores(prov ?? [])
-    setFacturasRecibidas(fac ?? [])
+
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userProvKey = `gestarian_taller_proveedores_${activeEmail || 'default'}`
+    const rawUserProv = localStorage.getItem(userProvKey)
+    let userProvIds: string[] = []
+    try {
+      if (rawUserProv) userProvIds = JSON.parse(rawUserProv)
+    } catch (e) {}
+
+    let filteredProv = prov ?? []
+    let filteredFac = fac ?? []
+
+    if (userProvIds.length > 0) {
+      filteredProv = filteredProv.filter(p => userProvIds.includes(p.id))
+      filteredFac = filteredFac.filter(f => userProvIds.includes(f.proveedor_id))
+    } else {
+      filteredProv = []
+      filteredFac = []
+    }
+
+    setProveedores(filteredProv)
+    setFacturasRecibidas(filteredFac)
   }
 
   function handleOpenCreate() {
@@ -1591,7 +1611,20 @@ export function ProveedoresPage() {
     if (editingId) {
       await supabase.from('proveedores').update(payload).eq('id', editingId)
     } else {
-      await supabase.from('proveedores').insert(payload)
+      const { data: newP } = await supabase.from('proveedores').insert(payload).select().maybeSingle()
+      if (newP?.id) {
+        const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+        const userProvKey = `gestarian_taller_proveedores_${activeEmail || 'default'}`
+        const rawUserProv = localStorage.getItem(userProvKey)
+        let userProvIds: string[] = []
+        try {
+          if (rawUserProv) userProvIds = JSON.parse(rawUserProv)
+        } catch (e) {}
+        if (!userProvIds.includes(newP.id)) {
+          userProvIds.push(newP.id)
+          localStorage.setItem(userProvKey, JSON.stringify(userProvIds))
+        }
+      }
     }
 
     setForm({ nombre: '', cif: '', direccion: '', telefono: '', email: '', contacto: '' })

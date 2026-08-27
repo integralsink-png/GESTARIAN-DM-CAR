@@ -542,6 +542,24 @@ export function ExpedientesPage() {
       return
     }
 
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filteredPData = pData as any[]
+    if (userClientsIds.length > 0) {
+      filteredPData = filteredPData.filter((p: any) => {
+        const cId = p?.vehiculos?.cliente_id || (Array.isArray(p?.vehiculos?.clientes) ? p?.vehiculos?.clientes[0]?.id : p?.vehiculos?.clientes?.id)
+        return userClientsIds.includes(cId)
+      })
+    } else {
+      filteredPData = []
+    }
+
     const [
       { data: citasD },
       { data: repsD },
@@ -580,7 +598,7 @@ export function ExpedientesPage() {
     const seen = new Set<string>()
     const result: ExpRow[] = []
 
-    for (const p of pData as any[]) {
+    for (const p of filteredPData) {
       const veh = p.vehiculos
       if (!veh) continue
 

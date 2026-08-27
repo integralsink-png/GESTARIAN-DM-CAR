@@ -502,7 +502,23 @@ export function PresupuestosPage() {
       .from("presupuestos")
       .select("*")
       .order("created_at", { ascending: false });
-    setPresupuestos((data ?? []).map(p => ({
+
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(p => userClientsIds.includes(p.cliente_id))
+    } else {
+      filtered = []
+    }
+
+    setPresupuestos(filtered.map(p => ({
       ...p,
       enviado_email_at: (p as any).enviado_email_at || localStorage.getItem(`presupuesto_${p.id}_email_at`),
       enviado_whatsapp_at: (p as any).enviado_whatsapp_at || localStorage.getItem(`presupuesto_${p.id}_wa_at`)

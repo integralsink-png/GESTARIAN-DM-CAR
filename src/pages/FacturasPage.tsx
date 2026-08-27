@@ -119,7 +119,23 @@ export function FacturasPage() {
   async function loadFacturas() {
     setLoading(true)
     const { data } = await supabase.from('facturas').select('*').order('created_at', { ascending: false })
-    setFacturas((data ?? []).map(f => ({
+    
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(f => userClientsIds.includes(f.cliente_id))
+    } else {
+      filtered = []
+    }
+
+    setFacturas(filtered.map(f => ({
       ...f,
       observaciones: (f as any).observaciones || localStorage.getItem(`factura_${f.id}_observaciones`) || undefined,
       enviado_email_at: (f as any).enviado_email_at || localStorage.getItem(`factura_${f.id}_email_at`),

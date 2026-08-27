@@ -195,18 +195,43 @@ export function LicenciasPage() {
     }
   }
 
-  async function toggleEstado(id: string, estadoActual: string) {
+  async function toggleEstado(id: string, estadoActual: string, emailTarget?: string) {
     const nuevoEstado = estadoActual === 'activo' ? 'bloqueado' : 'activo'
+    const esActivo = nuevoEstado === 'activo'
+
     try {
-      await supabase.from('gestarian_licencias').update({ 
-        estado_licencia: nuevoEstado,
-        suscripcion_activa: nuevoEstado === 'activo'
-      }).eq('id', id)
-      
-      setLicencias(prev => prev.map(item => item.id === id ? { ...item, estado_licencia: nuevoEstado } : item))
-      showToast(nuevoEstado === 'activo' ? 'Usuario cliente activado y autorizado' : 'Usuario cliente bloqueado', 'success')
-    } catch (e) {
-      showToast('Estado actualizado localmente', 'info')
+      // 1. Actualizar por id o por email en gestarian_licencias
+      if (emailTarget) {
+        await supabase
+          .from('gestarian_licencias')
+          .upsert({
+            email: emailTarget.toLowerCase().trim(),
+            estado_licencia: nuevoEstado,
+            suscripcion_activa: esActivo,
+            fecha_fin_prueba: esActivo ? new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() : new Date().toISOString()
+          }, { onConflict: 'email' })
+
+        // 2. Sincronizar en la tabla usuarios
+        await supabase
+          .from('usuarios')
+          .update({ activo: esActivo })
+          .eq('email', emailTarget.toLowerCase().trim())
+      } else {
+        await supabase
+          .from('gestarian_licencias')
+          .update({ 
+            estado_licencia: nuevoEstado,
+            suscripcion_activa: esActivo
+          })
+          .eq('id', id)
+      }
+
+      setLicencias(prev => prev.map(item => item.id === id ? { ...item, estado_licencia: nuevoEstado, suscripcion_activa: esActivo } : item))
+      showToast(esActivo ? 'Usuario ACTIVADO y AUTORIZADO con éxito' : 'Usuario BLOQUEADO', 'success')
+    } catch (e: any) {
+      console.warn('Error en Supabase, actualizando estado local:', e)
+      setLicencias(prev => prev.map(item => item.id === id ? { ...item, estado_licencia: nuevoEstado, suscripcion_activa: esActivo } : item))
+      showToast(esActivo ? 'Usuario activado localmente' : 'Usuario bloqueado localmente', 'info')
     }
   }
 
@@ -477,15 +502,26 @@ export function LicenciasPage() {
 
                   <div className="flex items-center gap-1.5">
                     <button
-                      onClick={() => toggleEstado(l.id, l.estado_licencia)}
-                      className={`p-2 rounded-xl transition-all ${
+                      type="button"
+                      onClick={() => toggleEstado(l.id, l.estado_licencia, l.email)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95 ${
                         l.estado_licencia === 'activo'
-                          ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
-                          : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                          ? 'bg-emerald-500/20 text-emerald-300 hover:bg-rose-500/20 hover:text-rose-300 border border-emerald-500/50 hover:border-rose-500/50'
+                          : 'bg-rose-500/20 text-rose-300 hover:bg-emerald-500/20 hover:text-emerald-300 border border-rose-500/50 hover:border-emerald-500/50'
                       }`}
-                      title={l.estado_licencia === 'activo' ? 'Bloquear usuario' : 'Autorizar usuario'}
+                      title={l.estado_licencia === 'activo' ? 'Pulsar para Desactivar/Bloquear usuario' : 'Pulsar para Activar/Autorizar usuario'}
                     >
-                      {l.estado_licencia === 'activo' ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      {l.estado_licencia === 'activo' ? (
+                        <>
+                          <UserCheck className="w-4 h-4 text-emerald-400" />
+                          <span>ACTIVO</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="w-4 h-4 text-rose-400" />
+                          <span>BLOQUEADO</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
