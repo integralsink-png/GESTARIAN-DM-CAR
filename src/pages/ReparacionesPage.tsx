@@ -76,16 +76,41 @@ export function ReparacionesPage() {
   }
 
   async function loadCitasYPresupuestos() {
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
     const { data: cData } = await supabase.from('citas').select('*')
-    if (cData) setCitas(cData)
+    if (cData) {
+      setCitas(userClientsIds.length > 0 ? cData.filter(c => userClientsIds.includes(c.cliente_id)) : [])
+    }
     const { data: pData } = await supabase.from('presupuestos').select('*')
-    if (pData) setPresupuestos(pData)
+    if (pData) {
+      setPresupuestos(userClientsIds.length > 0 ? pData.filter(p => userClientsIds.includes(p.cliente_id)) : [])
+    }
   }
 
   async function loadReparaciones() {
     setLoading(true)
     const { data } = await supabase.from('reparaciones').select('*').order('created_at', { ascending: false })
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
     let lista = data ?? []
+    if (userClientsIds.length > 0) {
+      lista = lista.filter(r => userClientsIds.includes(r.cliente_id))
+    } else {
+      lista = []
+    }
 
     // Si es un operario (y no modo desarrollador ni jefe de taller), filtrar únicamente las adjudicadas a él
     const empId = localStorage.getItem('gestarian_empleado_activo_id')
@@ -114,7 +139,21 @@ export function ReparacionesPage() {
 
   async function loadClientes() {
     const { data } = await supabase.from('clientes').select('*').order('nombre')
-    setClientes(data ?? [])
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(c => userClientsIds.includes(c.id))
+    } else {
+      filtered = []
+    }
+    setClientes(filtered)
   }
 
   async function loadVehiculos() {

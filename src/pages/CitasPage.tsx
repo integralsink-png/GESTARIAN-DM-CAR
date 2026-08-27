@@ -41,19 +41,61 @@ export function CitasPage() {
 
   async function loadPresupuestos() {
     const { data } = await supabase.from('presupuestos').select('*')
-    setPresupuestos(data ?? [])
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(p => userClientsIds.includes(p.cliente_id))
+    } else {
+      filtered = []
+    }
+    setPresupuestos(filtered)
   }
 
   async function loadCitas() {
     setLoading(true)
     const { data } = await supabase.from('citas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false })
-    setCitas(data ?? [])
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(c => userClientsIds.includes(c.cliente_id))
+    } else {
+      filtered = []
+    }
+    setCitas(filtered)
     setLoading(false)
   }
 
   async function loadClientes() {
     const { data } = await supabase.from('clientes').select('*').order('nombre')
-    setClientes(data ?? [])
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    let filtered = data ?? []
+    if (userClientsIds.length > 0) {
+      filtered = filtered.filter(c => userClientsIds.includes(c.id))
+    } else {
+      filtered = []
+    }
+    setClientes(filtered)
   }
 
   async function loadVehiculos() {

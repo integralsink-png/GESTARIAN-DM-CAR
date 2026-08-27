@@ -104,9 +104,35 @@ export function BalancesPage() {
       supabase.from('facturas_recibidas').select('*').order('fecha', { ascending: false })
     ])
     
+    const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
+    
+    // Filtro clientes de la cuenta
+    const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
+    const rawUserClients = localStorage.getItem(userClientsKey)
+    let userClientsIds: string[] = []
+    try {
+      if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
+    } catch (e) {}
+
+    // Filtro proveedores de la cuenta
+    const userProvKey = `gestarian_taller_proveedores_${activeEmail || 'default'}`
+    const rawUserProv = localStorage.getItem(userProvKey)
+    let userProvIds: string[] = []
+    try {
+      if (rawUserProv) userProvIds = JSON.parse(rawUserProv)
+    } catch (e) {}
+
+    const filteredEmitidas = userClientsIds.length > 0
+      ? (emitidas ?? []).filter(f => userClientsIds.includes(f.cliente_id))
+      : []
+
+    const filteredRecibidas = userProvIds.length > 0
+      ? (recibidas ?? []).filter(f => userProvIds.includes(f.proveedor_id))
+      : []
+
     // Restricción: en balances no pueden haber facturas con el mismo id
-    const uniqueEmitidas = Array.from(new Map((emitidas ?? []).map((f: Factura) => [f.id, f])).values())
-    const uniqueRecibidas = Array.from(new Map((recibidas ?? []).map((f: FacturaRecibida) => [f.id, f])).values())
+    const uniqueEmitidas = Array.from(new Map(filteredEmitidas.map((f: Factura) => [f.id, f])).values())
+    const uniqueRecibidas = Array.from(new Map(filteredRecibidas.map((f: FacturaRecibida) => [f.id, f])).values())
     
     setFacturas(uniqueEmitidas)
     setFacturasRecibidas(uniqueRecibidas)
