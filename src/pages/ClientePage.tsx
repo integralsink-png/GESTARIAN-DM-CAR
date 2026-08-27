@@ -196,32 +196,75 @@ export function ClientePage() {
           vehiculoId = firstVeh.id
         }
       } else {
-        // 1. Invitación por token
-        const { data: invitacion, error: invErr } = await supabase
+        // 1. Invitación por token (buscar por token, o si el token es un id de cliente)
+        const { data: invitacion } = await supabase
           .from('cliente_invitaciones')
           .select('*')
           .eq('token', token!)
           .maybeSingle()
 
-        if (invErr || !invitacion) {
-          setError('Enlace no válido. Contacta con el taller para obtener un enlace nuevo.')
-          setLoading(false)
-          return
-        }
+        if (invitacion) {
+          clienteId = invitacion.cliente_id
+          vehiculoId = invitacion.vehiculo_id
+        } else {
+          // Intentar resolver si el token es directamente un cliente_id
+          const { data: cliDirect } = await supabase
+            .from('clientes')
+            .select('id')
+            .eq('id', token!)
+            .maybeSingle()
 
-        clienteId = invitacion.cliente_id
-        vehiculoId = invitacion.vehiculo_id
+          if (cliDirect) {
+            clienteId = cliDirect.id
+          } else {
+            // Buscar si es un prefijo inv_
+            const { data: invPrefix } = await supabase
+              .from('cliente_invitaciones')
+              .select('*')
+              .ilike('token', `%${token}%`)
+              .maybeSingle()
+            if (invPrefix) {
+              clienteId = invPrefix.cliente_id
+              vehiculoId = invPrefix.vehiculo_id
+            }
+          }
+        }
       }
 
-      if (!clienteId || !vehiculoId) {
-        setError('No se encontraron vehículos o clientes de prueba.')
+      if (!clienteId) {
+        setError('Enlace no válido o caducado. Contacta con el taller para recibir un nuevo enlace.')
         setLoading(false)
         return
       }
 
       // 2. Cliente y Vehículo
       const { data: cli } = await supabase.from('clientes').select('*').eq('id', clienteId).maybeSingle()
-      const { data: veh } = await supabase.from('vehiculos').select('*').eq('id', vehiculoId).maybeSingle()
+      
+      if (!cli) {
+        setError('No se encontraron los datos del cliente.')
+        setLoading(false)
+        return
+      }
+
+      // Si no tenemos vehiculoId de la invitación, buscar cualquier vehículo perteneciente a este cliente
+      let { data: veh } = vehiculoId 
+        ? await supabase.from('vehiculos').select('*').eq('id', vehiculoId).maybeSingle()
+        : await supabase.from('vehiculos').select('*').eq('cliente_id', clienteId).order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+      // Si aún no tiene vehículo registrado, crear un vehículo genérico para este cliente
+      if (!veh) {
+        const { data: newVeh } = await supabase
+          .from('vehiculos')
+          .insert({
+            cliente_id: clienteId,
+            matricula: 'PENDIENTE',
+            marca: 'VEHÍCULO CLIENTE',
+            modelo: 'EN TRÁMITE'
+          })
+          .select()
+          .single()
+        veh = newVeh
+      }
       const { data: conf } = await supabase.from('configuracion').select('*').eq('id', 1).maybeSingle()
       const { data: clientesList } = await supabase.from('clientes').select('*')
 
@@ -241,11 +284,11 @@ export function ClientePage() {
       setFormModelo(veh.modelo || '')
       setFormMatricula(veh.matricula || '')
 
-      // 3. Presupuestos, Facturas y Citas
+      // 3. Presupuestos, Facturas y Citas (buscar por cliente_id o vehiculo_id)
       const [presRes, facRes, citasRes] = await Promise.all([
-        supabase.from('presupuestos').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
-        supabase.from('facturas').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false }),
-        supabase.from('citas').select('*').eq('vehiculo_id', veh.id).order('created_at', { ascending: false })
+        supabase.from('presupuestos').select('*').or(`vehiculo_id.eq.${veh.id},cliente_id.eq.${cli.id}`).order('created_at', { ascending: false }),
+        supabase.from('facturas').select('*').or(`vehiculo_id.eq.${veh.id},cliente_id.eq.${cli.id}`).order('created_at', { ascending: false }),
+        supabase.from('citas').select('*').or(`vehiculo_id.eq.${veh.id},cliente_id.eq.${cli.id}`).order('created_at', { ascending: false })
       ])
 
       const presupuestosList: Presupuesto[] = presRes.data ?? []

@@ -203,7 +203,7 @@ export function generatePresupuestoPDF(
   // Observaciones
   if (presupuesto.observaciones) {
     const yObs = curY + 34
-    if (yObs < 260) {
+    if (yObs < 250) {
       doc.setFont('Helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
@@ -217,11 +217,40 @@ export function generatePresupuestoPDF(
     }
   }
 
-  // Footer
+  // Recuadro informativo de envío al pie de página (Email / WhatsApp)
+  const fechaEnvioEmail = (presupuesto as any).enviado_email_at || (presupuesto.id ? localStorage.getItem(`presupuesto_${presupuesto.id}_email_at`) : null)
+  const fechaEnvioWA = (presupuesto as any).enviado_whatsapp_at || (presupuesto.id ? localStorage.getItem(`presupuesto_${presupuesto.id}_wa_at`) : null)
+
+  const fechaEnvio = fechaEnvioEmail || fechaEnvioWA || new Date().toISOString()
+  const viaEnvio = fechaEnvioWA && !fechaEnvioEmail ? 'WhatsApp' : 'Email'
+
+  let textoEnvio = ''
+  try {
+    const d = new Date(fechaEnvio)
+    const fechaFmt = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    const horaFmt = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+    textoEnvio = `Presupuesto enviado el ${fechaFmt} a las ${horaFmt} h por ${viaEnvio}`
+  } catch (e) {
+    textoEnvio = `Presupuesto enviado por ${viaEnvio}`
+  }
+
+  // Dibujar Recuadro de Envío destacado en el pie A4
+  doc.setFillColor(240, 253, 250) // Fondo verde menta / cian muy suave
+  doc.roundedRect(14, 266, 182, 11, 2, 2, 'F')
+  doc.setDrawColor(16, 185, 129) // Borde esmeralda / cian
+  doc.setLineWidth(0.4)
+  doc.roundedRect(14, 266, 182, 11, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(6, 95, 70) // Color texto esmeralda oscuro
+  doc.text(textoEnvio.toUpperCase(), 105, 273, { align: 'center' })
+
+  // Footer inferior
   doc.setFont('Helvetica', 'normal')
-  doc.setFontSize(8)
+  doc.setFontSize(7.5)
   doc.setTextColor(148, 163, 184)
-  doc.text('Gracias por su confianza. Este documento es un presupuesto orientativo válido durante 30 días.', 105, 285, { align: 'center' })
+  doc.text('Gracias por su confianza. Este documento es un presupuesto orientativo válido durante 30 días.', 105, 286, { align: 'center' })
 
   return doc
 }

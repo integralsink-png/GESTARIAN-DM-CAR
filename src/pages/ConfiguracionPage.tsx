@@ -22,9 +22,29 @@ export function ConfiguracionPage() {
   const [themePreset, setThemePreset] = useState<ThemePreset>(DEFAULT_THEME_SETTINGS.theme_preset)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [mostrarMenuModos, setMostrarMenuModos] = useState(false)
+  const [mostrarMenuCambiarCuenta, setMostrarMenuCambiarCuenta] = useState(false)
+  const [listaCuentasGuardadas, setListaCuentasGuardadas] = useState<Array<{ email: string; nombre?: string }>>([])
   const { themeSettings, setThemeSettings, saveThemeToDB, playSound, appearance } = useTheme()
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('gestarian_saved_accounts')
+      let list: any[] = raw ? JSON.parse(raw) : []
+      if (list.length === 0) {
+        const bkpRaw = localStorage.getItem('gestarian_clientes_registrados_backup')
+        if (bkpRaw) {
+          const bkpList: any[] = JSON.parse(bkpRaw)
+          bkpList.forEach((b: any) => {
+            if (b.email && !list.some(s => s.email.toLowerCase() === b.email.toLowerCase())) {
+              list.push({ email: b.email, nombre: b.nombre_profesional || b.nombre_titular || b.email.split('@')[0] })
+            }
+          })
+        }
+      }
+      setListaCuentasGuardadas(list)
+    } catch (e) {}
+  }, [])
 
   const perfil = getPerfil()
   const isDevUser = perfil?.esDeveloper || perfil?.email.toLowerCase() === 'iclomsinks@gmail.com' || localStorage.getItem('gestarian_dev_mode') === 'true'
@@ -551,20 +571,105 @@ export function ConfiguracionPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto">
+        <div className="flex items-center gap-2 flex-wrap self-end sm:self-auto relative">
           {/* Botón CAMBIAR DE CUENTA */}
-          <button
-            type="button"
-            onClick={() => {
-              sessionStorage.removeItem('gestarian_account_chosen')
-              window.location.reload()
-            }}
-            className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/60 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
-            title="Cambiar de cuenta de taller"
-          >
-            <span>🔄</span>
-            <span>CAMBIAR DE CUENTA</span>
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMostrarMenuCambiarCuenta(!mostrarMenuCambiarCuenta)}
+              className="px-3.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-400/60 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm cursor-pointer"
+              title="Cambiar de cuenta de taller"
+            >
+              <span>🔄</span>
+              <span>CAMBIAR DE CUENTA {mostrarMenuCambiarCuenta ? '▲' : '▼'}</span>
+            </button>
+
+            {/* DESPLEGABLE DE CUENTAS GUARDADAS Y ACCESO A LOGIN */}
+            {mostrarMenuCambiarCuenta && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setMostrarMenuCambiarCuenta(false)} 
+                />
+                <div className="absolute right-0 top-12 z-50 w-72 sm:w-80 bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/60 rounded-2xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_25px_rgba(6,182,212,0.3)] space-y-2.5 animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-cyan-300">
+                      Cuentas en este equipo:
+                    </span>
+                    <span className="text-[10px] font-mono text-slate-400">
+                      {listaCuentasGuardadas.length} cuentas
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {listaCuentasGuardadas.map((c) => {
+                      const isCurrent = (perfil?.email || localStorage.getItem('gestarian_test_user') || '').toLowerCase() === c.email.toLowerCase()
+                      const isDevAccount = c.email.toLowerCase() === 'iclomsinks@gmail.com'
+
+                      return (
+                        <button
+                          key={c.email}
+                          type="button"
+                          onClick={() => {
+                            setMostrarMenuCambiarCuenta(false)
+                            localStorage.setItem('gestarian_test_user', c.email)
+                            sessionStorage.setItem('gestarian_account_chosen', 'true')
+                            if (isDevAccount && localStorage.getItem('gestarian_dev_mode') !== 'true') {
+                              window.location.href = '/desarrollador'
+                            } else {
+                              window.location.reload()
+                            }
+                          }}
+                          className={`w-full text-left p-2.5 rounded-xl border flex items-center justify-between transition-all cursor-pointer ${
+                            isCurrent
+                              ? 'bg-cyan-950/60 border-cyan-400 text-cyan-200 shadow-sm'
+                              : 'bg-slate-950 hover:bg-slate-800 border-slate-800 hover:border-cyan-500/40 text-slate-200'
+                          }`}
+                        >
+                          <div className="min-w-0 pr-2">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold truncate block text-white">
+                                {c.nombre || c.email.split('@')[0]}
+                              </span>
+                              {isDevAccount && (
+                                <span className="text-[8px] px-1 py-0.2 rounded bg-amber-400/20 text-amber-300 font-mono font-bold">
+                                  DEV
+                                </span>
+                              )}
+                              {isCurrent && (
+                                <span className="text-[8px] px-1 py-0.2 rounded bg-cyan-400/20 text-cyan-300 font-mono font-bold">
+                                  ACTIVA
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-slate-400 font-mono truncate block">
+                              {c.email}
+                            </span>
+                          </div>
+                          <span className="text-xs text-cyan-400 font-mono">➔</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Acceso directo al Portal de Login / Registro para entrar con otra cuenta */}
+                  <div className="pt-2 border-t border-slate-800">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarMenuCambiarCuenta(false)
+                        navigate('/registro-taller')
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/20 to-teal-500/20 hover:from-cyan-500/30 hover:to-teal-500/30 border border-cyan-400/50 text-cyan-300 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                    >
+                      <span>🔑</span>
+                      <span>PORTAL DE LOGIN / OTRA CUENTA</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 text-xs text-slate-400 pl-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
