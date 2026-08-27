@@ -755,6 +755,219 @@ export function generateReciboAbonoPDF(
 }
 
 // ─────────────────────────────────────────────────────────────
+// 1.B GENERADOR DE EXTRACTO DE CUENTA / REGULARIZACIÓN DE SALDO
+// ─────────────────────────────────────────────────────────────
+export function generateExtractoCuentaPDF(
+  factura: Partial<Factura>,
+  cobros: Cobro[],
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+): jsPDF {
+  const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
+  const numeroExp = expediente || factura.numero || 'EXP-0001'
+  const fecha = new Date().toLocaleDateString('es-ES')
+  const total = factura.total || 0
+  const totalAbonado = factura.total_abonado || cobros.reduce((acc, c) => acc + c.importe, 0)
+  const saldoPendiente = Math.max(0, total - totalAbonado)
+
+  const primaryColor = [15, 23, 42]
+  const redAccent = [220, 38, 38]
+  const grayDark = [51, 65, 85]
+  const grayLight = [248, 250, 252]
+
+  // Header Empresa
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(config?.nombre_empresa || 'DM CAR', 14, 20)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let yEmpresa = 26
+  if (config?.cif) { doc.text(`CIF: ${config.cif}`, 14, yEmpresa); yEmpresa += 4 }
+  if (config?.direccion) { doc.text(config.direccion, 14, yEmpresa); yEmpresa += 4 }
+  if (config?.telefono) { doc.text(`Tel: ${config.telefono}`, 14, yEmpresa); yEmpresa += 4 }
+
+  // Título EXTRACTO DE CUENTA
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(18)
+  doc.setTextColor(redAccent[0], redAccent[1], redAccent[2])
+  doc.text('EXTRACTO DE CUENTA', 196, 20, { align: 'right' })
+
+  doc.setFontSize(10)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(`EXPEDIENTE: ${numeroExp}`, 196, 27, { align: 'right' })
+  doc.text(`FACTURA: ${factura.numero || 'S/N'}`, 196, 33, { align: 'right' })
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  doc.text(`Fecha: ${fecha}`, 196, 39, { align: 'right' })
+
+  // Divider
+  doc.setDrawColor(15, 23, 42)
+  doc.setLineWidth(0.5)
+  doc.line(14, 44, 196, 44)
+
+  // Datos Cliente & Vehículo
+  const yCliente = 49
+  doc.setFillColor(grayLight[0], grayLight[1], grayLight[2])
+  doc.roundedRect(14, yCliente, 182, 28, 2, 2, 'F')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text('ESTIMADO/A CLIENTE:', 18, yCliente + 6)
+
+  doc.setFontSize(11)
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.text(cliente?.nombre || 'Cliente', 18, yCliente + 12)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(9)
+  doc.setTextColor(grayDark[0], grayDark[1], grayDark[2])
+  let infoCli = ''
+  if (cliente?.dni) infoCli += `DNI/CIF: ${cliente.dni}   `
+  if (cliente?.telefono) infoCli += `Tel: ${cliente.telefono}   `
+  if (cliente?.email) infoCli += `Email: ${cliente.email}`
+  if (infoCli) doc.text(infoCli, 18, yCliente + 18)
+
+  if (vehiculo) {
+    doc.text(`Vehículo: ${vehiculo.matricula} ${vehiculo.marca ? `(${vehiculo.marca} ${vehiculo.modelo || ''})` : ''}`, 18, yCliente + 24)
+  }
+
+  // Estado del Expediente y Resumen Económico
+  let curY = 84
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2])
+  doc.rect(14, curY, 182, 8, 'F')
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(9)
+  doc.setTextColor(255, 255, 255)
+  doc.text('RESUMEN DE CUENTA Y SALDO DEL EXPEDIENTE', 18, curY + 5.5)
+
+  curY += 14
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(10)
+  doc.setTextColor(30, 41, 59)
+  doc.text('Total Factura / Expediente:', 18, curY)
+  doc.setFont('Helvetica', 'bold')
+  doc.text(`${total.toFixed(2)} €`, 190, curY, { align: 'right' })
+
+  curY += 8
+  doc.setFont('Helvetica', 'normal')
+  doc.text('Total Abonado hasta la fecha:', 18, curY)
+  doc.setFont('Helvetica', 'bold')
+  doc.setTextColor(16, 185, 129)
+  doc.text(`${totalAbonado.toFixed(2)} €`, 190, curY, { align: 'right' })
+
+  curY += 8
+  doc.setFont('Helvetica', 'bold')
+  doc.setTextColor(redAccent[0], redAccent[1], redAccent[2])
+  doc.text('SALDO PENDIENTE DE REGULARIZACIÓN:', 18, curY)
+  doc.setFontSize(12)
+  doc.text(`${saldoPendiente.toFixed(2)} €`, 190, curY, { align: 'right' })
+
+  // Cronología de Abonos
+  curY += 12
+  doc.setFillColor(241, 245, 249)
+  doc.rect(14, curY, 182, 7, 'F')
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(8.5)
+  doc.setTextColor(51, 65, 85)
+  doc.text('CRONOLOGÍA DE ABONOS REGISTRADOS', 18, curY + 5)
+
+  curY += 10
+  if (cobros.length === 0) {
+    doc.setFont('Helvetica', 'italic')
+    doc.setFontSize(8.5)
+    doc.setTextColor(100, 116, 139)
+    doc.text('No se han registrado abonos hasta el momento.', 18, curY)
+    curY += 6
+  } else {
+    cobros.forEach((c, idx) => {
+      const fStr = c.fecha ? new Date(c.fecha).toLocaleDateString('es-ES') : 'Fecha n/d'
+      const met = c.metodo ? `(${c.metodo.toUpperCase()})` : ''
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(8.5)
+      doc.setTextColor(51, 65, 85)
+      doc.text(`• Abono #${idx + 1} realizado el ${fStr} ${met}:`, 22, curY)
+      doc.setFont('Helvetica', 'bold')
+      doc.text(`+ ${c.importe.toFixed(2)} €`, 190, curY, { align: 'right' })
+      curY += 6
+    })
+  }
+
+  // Recuadro de Regularización
+  curY = Math.max(curY + 6, 175)
+  doc.setFillColor(254, 242, 242) // red-50
+  doc.roundedRect(14, curY, 182, 38, 2, 2, 'F')
+  doc.setDrawColor(239, 68, 68)
+  doc.setLineWidth(0.4)
+  doc.roundedRect(14, curY, 182, 38, 2, 2, 'S')
+
+  doc.setFont('Helvetica', 'bold')
+  doc.setFontSize(10)
+  doc.setTextColor(185, 28, 28)
+  doc.text('SOLICITUD DE REGULARIZACIÓN DE PAGO', 18, curY + 8)
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(8.5)
+  doc.setTextColor(69, 10, 10)
+  const regularizacionText = `Le informamos de que tiene un saldo pendiente de ${saldoPendiente.toFixed(2)} € correspondiente a la factura ${factura.numero || ''} (Expediente ${numeroExp}). Le rogamos proceda a la regularización del importe pendiente a la mayor brevedad posible para la cancelación de la deuda y emisión definitiva de su documentación contable.`
+  const splitText = doc.splitTextToSize(regularizacionText, 174)
+  doc.text(splitText, 18, curY + 15)
+
+  if (config?.iban) {
+    doc.setFont('Helvetica', 'bold')
+    doc.text(`IBAN para transferencia: ${config.iban}`, 18, curY + 32)
+  }
+
+  doc.setFont('Helvetica', 'normal')
+  doc.setFontSize(7.5)
+  doc.setTextColor(148, 163, 184)
+  doc.text('GESTARIAN — Extracto Oficial de Cuenta de Taller', 105, 286, { align: 'center' })
+
+  return doc
+}
+
+export async function sendExtractoCuentaByEmail(
+  factura: Partial<Factura>,
+  cobros: Cobro[],
+  cliente?: Cliente | null,
+  vehiculo?: Vehiculo | null,
+  config?: Configuracion | null,
+  expediente?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!cliente?.email) {
+    return { success: false, error: 'El cliente no tiene email registrado' }
+  }
+
+  const numeroExp = expediente || factura.numero || 'EXP-0001'
+  const saldoPendiente = Math.max(0, (factura.total || 0) - (factura.total_abonado || 0))
+  const doc = generateExtractoCuentaPDF(factura, cobros, cliente, vehiculo, config, expediente)
+  const pdfBlob = doc.output('blob')
+
+  const origin = window.location.origin || 'http://localhost:5174'
+  const messageBody = `Estimado/a ${cliente.nombre},\n\nLe remitimos adjunto el EXTRACTO DE CUENTA correspondiente al Expediente ${numeroExp} (Factura ${factura.numero || ''}).\n\n• Importe Total: ${(factura.total || 0).toFixed(2)} €\n• Total Abonado: ${(factura.total_abonado || 0).toFixed(2)} €\n• SALDO PENDIENTE: ${saldoPendiente.toFixed(2)} €\n\nLe recordamos la necesidad de regularizar este saldo pendiente a la mayor brevedad. Puede acceder a su Área de Cliente para consultar los detalles o ponerse en contacto con nosotros:\n${origin}\n\nAtentamente,\n${config?.nombre_empresa || 'DM CAR'}`
+
+  const result = await sendEstimate({
+    to: cliente.email,
+    documentId: factura.id,
+    documentNumber: `Extracto_${factura.numero || numeroExp}`,
+    pdfContent: pdfBlob,
+    subject: `Extracto de Cuenta y Saldo Pendiente (${saldoPendiente.toFixed(2)} €) - Expediente ${numeroExp}`,
+    message: messageBody,
+    metadata: { cliente_id: cliente.id, vehiculo_id: vehiculo?.id, tipo: 'extracto_cuenta' }
+  })
+
+  return result
+}
+
+// ─────────────────────────────────────────────────────────────
 // 2. GENERADOR DE FACTURA PROFORMA (EMPRESAS / ORGANISMOS)
 // ─────────────────────────────────────────────────────────────
 export function generateFacturaProformaPDF(

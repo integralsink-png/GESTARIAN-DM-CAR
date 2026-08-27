@@ -378,7 +378,7 @@ function Layout() {
                   <Route path="/presupuesto-hibrido" element={<PresupuestoHibridoPage />} />
                   <Route path="/citas" element={<CitasPage />} />
                   <Route path="/reparaciones" element={<ReparacionesPage />} />
-                  <Route path="/abonos-parciales" element={<AbonosParcialesPage />} />
+                  <Route path="/abonos-parciales" element={<Navigate to="/facturas" replace />} />
                   <Route path="/facturas" element={<FacturasPage />} />
                   <Route path="/balances" element={<BalancesPage />} />
                   <Route path="/expedientes" element={<ExpedientesPage />} />

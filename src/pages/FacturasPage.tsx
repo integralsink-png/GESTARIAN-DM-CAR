@@ -8,7 +8,7 @@ import { Trash2, Edit3, Image as ImageIcon, Send, ArrowLeft, Camera, FileText, P
 import { ExpedienteFolderIcon } from '../components/CustomIcons'
 import { Card, Badge, PageHeader, EmptyState, MetisRowButton, MatriculaBadge } from '../components/UI'
 import { GlobalImageViewer } from '../components/GlobalImageViewer'
-import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF } from '../lib/pdfGenerator'
+import { sendFacturaByEmail, downloadFacturaPDF, generateFacturaPDF, sendExtractoCuentaByEmail, generateExtractoCuentaPDF } from '../lib/pdfGenerator'
 import { getExpediente } from '../lib/utils'
 import { fetchExpedienteFotos, saveExpedienteFoto } from '../lib/expedienteService'
 import { shareDocumentoViaWhatsApp } from '../services/documentShareService'
@@ -675,6 +675,47 @@ export function FacturasPage() {
     URL.revokeObjectURL(url)
   }
 
+  async function handleEnviarExtracto(facturaTarget?: Factura) {
+    const target = facturaTarget || selectedFactura
+    if (!target) return
+
+    const cliente = clienteData(target.cliente_id)
+    if (!cliente?.email) {
+      showToast('El cliente no tiene un email configurado para recibir el extracto', 'error')
+      return
+    }
+
+    const veh = target.vehiculo_id ? vehiculos.find(v => v.id === target.vehiculo_id) : null
+    const p = presupuestos.find((pr: any) => pr.vehiculo_id === target.vehiculo_id)
+    const numExp = p && cliente ? getExpediente(p, cliente, clientes) : target.numero
+
+    // Cargar cobros si no están en memoria
+    let cobrosFactura = cobros
+    if (target.id !== selectedFactura?.id) {
+      try {
+        const { data: cData } = await supabase.from('cobros').select('*').eq('factura_id', target.id).order('fecha', { ascending: true })
+        cobrosFactura = (cData as Cobro[]) || []
+      } catch (e) {
+        cobrosFactura = []
+      }
+    }
+
+    try {
+      showToast(`Enviando extracto a ${cliente.email}...`, 'info')
+      const res = await sendExtractoCuentaByEmail(target, cobrosFactura, cliente, veh, config, numExp)
+      if (res.success) {
+        playSuccessChime()
+        const nowIso = new Date().toISOString()
+        localStorage.setItem(`factura_${target.id}_extracto_at`, nowIso)
+        showToast(`EXTRACTO DE CUENTA ENVIADO CON ÉXITO A ${cliente.email.toUpperCase()}`, 'success')
+      } else {
+        showToast(`Error al enviar extracto: ${res.error || 'Desconocido'}`, 'error')
+      }
+    } catch (err: any) {
+      showToast(`Error enviando extracto: ${err?.message || ''}`, 'error')
+    }
+  }
+
   async function enviarEmail() {
     if (!selectedFactura) return
     const cliente = clienteData(selectedFactura.cliente_id)
@@ -1151,6 +1192,24 @@ export function FacturasPage() {
                   </div>
                 </div>
               )}
+
+              {/* Botón ENVIAR EXTRACTO AL CLIENTE (disponible siempre para regularización de cobros) */}
+              {selectedFactura.id !== 'draft' && (
+                <div className="mt-4 pt-4 border-t border-bg-600">
+                  <button
+                    type="button"
+                    onClick={() => handleEnviarExtracto(selectedFactura)}
+                    className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-red-600/30 to-amber-600/30 hover:from-red-600/40 hover:to-amber-600/40 border-2 border-red-500/50 text-red-300 font-extrabold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 cursor-pointer"
+                    title="Enviar extracto con detalle de cobros y saldo pendiente al cliente"
+                  >
+                    <Mail className="w-4 h-4 text-red-400" />
+                    <span>ENVIAR EXTRACTO AL CLIENTE</span>
+                  </button>
+                  <p className="text-[10px] text-slate-500 text-center mt-1.5 leading-snug">
+                    Remite el estado del expediente, cronología de abonos y saldo pendiente invitando a regularizar su cuenta.
+                  </p>
+                </div>
+              )}
             </Card>
             )}
           </div>
@@ -1593,16 +1652,28 @@ export function FacturasPage() {
                         </div>
                       )}
 
-                      {/* LÍNEA 2: GUARDAR | EDITAR | VOLVER */}
-                      <div className="flex items-center justify-center gap-3 pt-1">
+                      {/* LÍNEA 2: GUARDAR | EXTRACTO | EDITAR | VOLVER */}
+                      <div className="flex items-center justify-center gap-3 pt-1 flex-wrap">
                         <button
                           id="btn-guardar-a4"
                           onClick={registrarFactura}
-                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95 flex items-center gap-1.5"
+                          className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
                         >
                           <Save className="w-4 h-4" />
                           GUARDAR
                         </button>
+
+                        {selectedFactura.id !== 'draft' && (
+                          <button
+                            type="button"
+                            onClick={() => handleEnviarExtracto(selectedFactura)}
+                            className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs tracking-wider uppercase shadow transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer"
+                            title="Enviar extracto con detalle de cobros y saldo pendiente al cliente"
+                          >
+                            <Mail className="w-4 h-4" />
+                            ENVIAR EXTRACTO
+                          </button>
+                        )}
 
                         {!isFacturaBloqueada(selectedFactura) && (
                           <button
@@ -1709,7 +1780,22 @@ export function FacturasPage() {
                   </div>
 
                   {/* Actions Panel */}
-                  <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 shrink-0 w-full sm:w-auto">
+                    {/* Botón Enviar Extracto si está impagada o con abono parcial */}
+                    {(f.estado_cobro !== 'pagada' || (f.total - f.total_abonado) > 0.05) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEnviarExtracto(f);
+                        }}
+                        className="px-3 py-2.5 rounded-xl bg-gradient-to-r from-red-600/30 to-amber-600/30 text-red-300 border border-red-500/50 hover:bg-red-600/40 text-xs font-bold transition-all text-center flex items-center justify-center gap-1 shadow-sm active:scale-95 cursor-pointer"
+                        title="Enviar extracto con saldo pendiente y cronología de abonos al cliente"
+                      >
+                        <Mail className="w-3.5 h-3.5 text-red-400" />
+                        <span>EXTRACTO</span>
+                      </button>
+                    )}
+
                     <button 
                       onClick={(e) => {
                         e.stopPropagation();

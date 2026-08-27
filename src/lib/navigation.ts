@@ -20,7 +20,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Presupuestos',        path: '/presupuestos',        icon: ClipboardList,   permiso: null },
   { label: 'Citas',               path: '/citas',              icon: Calendar,        permiso: null },
   { label: 'Reparaciones',        path: '/reparaciones',       icon: Wrench,          permiso: null },
-  { label: 'Abonos Parciales',    path: '/abonos-parciales',   icon: Coins,           permiso: null },
   { label: 'Facturación',         path: '/facturas',           icon: FileText,        permiso: null },
   { label: 'Balances',            path: '/balances',           icon: Scale,           permiso: null },
   { label: 'Proveedores',         path: '/proveedores',        icon: Truck,           permiso: null },
