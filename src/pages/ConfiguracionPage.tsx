@@ -22,6 +22,7 @@ export function ConfiguracionPage() {
   const [themePreset, setThemePreset] = useState<ThemePreset>(DEFAULT_THEME_SETTINGS.theme_preset)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [showHistoryModal, setShowHistoryModal] = useState(false)
   const [mostrarMenuModos, setMostrarMenuModos] = useState(false)
   const [mostrarMenuCambiarCuenta, setMostrarMenuCambiarCuenta] = useState(false)
   const [listaCuentasGuardadas, setListaCuentasGuardadas] = useState<Array<{ email: string; nombre?: string }>>([])
@@ -692,12 +693,34 @@ export function ConfiguracionPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              {/* Botón General: ENTRAR A MODOS */}
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+              {/* Botón 1: Portal de Acceso / Login de Usuario */}
+              <button
+                type="button"
+                onClick={() => navigate('/registro-taller')}
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer font-extrabold"
+                title="Acceder al Portal de Acceso / Login para identificarse como usuario"
+              >
+                <LogIn className="w-4 h-4 text-slate-950" />
+                <span>Portal de Acceso (Login)</span>
+              </button>
+
+              {/* Botón 2: Control de Licencias */}
+              <button
+                type="button"
+                onClick={() => navigate('/licencias')}
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)] transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer font-extrabold"
+                title="Abrir Panel de Control de Licencias de usuarios registrados"
+              >
+                <Key className="w-4 h-4 text-slate-950" />
+                <span>Control de Licencias</span>
+              </button>
+
+              {/* Botón 3: Menú General de Modos */}
               <button
                 type="button"
                 onClick={() => setMostrarMenuModos(!mostrarMenuModos)}
-                className="w-full sm:w-auto px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer font-extrabold"
+                className="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 shadow-[0_0_20px_rgba(245,158,11,0.5)] transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer font-extrabold"
               >
                 <Layers className="w-4 h-4 text-slate-950" />
                 <span>Entrar a Modos {mostrarMenuModos ? '▲' : '▼'}</span>
