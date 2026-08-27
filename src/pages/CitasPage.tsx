@@ -60,7 +60,9 @@ export function CitasPage() {
 
   async function loadCitas() {
     setLoading(true)
-    const { data } = await supabase.from('citas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false })
+    const { data: citasData } = await supabase.from('citas').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false })
+    const { data: presupuestosData } = await supabase.from('presupuestos').select('id, cliente_id')
+
     const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
     const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
     const rawUserClients = localStorage.getItem(userClientsKey)
@@ -69,9 +71,19 @@ export function CitasPage() {
       if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
     } catch (e) {}
 
-    let filtered = data ?? []
-    if (userClientsIds.length > 0) {
-      filtered = filtered.filter(c => userClientsIds.includes(c.cliente_id))
+    // Presupuestos del taller
+    const tallerPresupuestosIds = (presupuestosData ?? [])
+      .filter(p => userClientsIds.includes(p.cliente_id))
+      .map(p => p.id)
+
+    let filtered = citasData ?? []
+    if (userClientsIds.length > 0 && tallerPresupuestosIds.length > 0) {
+      filtered = filtered.filter(c => {
+        if (c.presupuesto_id) {
+          return tallerPresupuestosIds.includes(c.presupuesto_id)
+        }
+        return userClientsIds.includes(c.cliente_id)
+      })
     } else {
       filtered = []
     }

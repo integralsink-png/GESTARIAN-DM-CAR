@@ -96,7 +96,11 @@ export function ReparacionesPage() {
 
   async function loadReparaciones() {
     setLoading(true)
-    const { data } = await supabase.from('reparaciones').select('*').order('created_at', { ascending: false })
+    const [{ data: repsData }, { data: pData }] = await Promise.all([
+      supabase.from('reparaciones').select('*').order('created_at', { ascending: false }),
+      supabase.from('presupuestos').select('id, cliente_id')
+    ])
+
     const activeEmail = (localStorage.getItem('gestarian_test_user') || '').toLowerCase().trim()
     const userClientsKey = `gestarian_taller_clientes_${activeEmail || 'default'}`
     const rawUserClients = localStorage.getItem(userClientsKey)
@@ -105,8 +109,12 @@ export function ReparacionesPage() {
       if (rawUserClients) userClientsIds = JSON.parse(rawUserClients)
     } catch (e) {}
 
-    let lista = data ?? []
-    if (userClientsIds.length > 0) {
+    const tallerPresupuestosIds = (pData ?? [])
+      .filter(p => userClientsIds.includes(p.cliente_id))
+      .map(p => p.id)
+
+    let lista = repsData ?? []
+    if (userClientsIds.length > 0 && tallerPresupuestosIds.length > 0) {
       lista = lista.filter(r => userClientsIds.includes(r.cliente_id))
     } else {
       lista = []
